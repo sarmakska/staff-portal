@@ -2,10 +2,13 @@
 
 > A complete, open-source staff management platform built with Next.js and Supabase.
 
-[![MIT License](https://img.shields.io/badge/License-MIT-amber.svg)](LICENSE)
-[![Next.js](https://img.shields.io/badge/Next.js-16-black)](https://nextjs.org)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.7-blue)](https://typescriptlang.org)
-[![Supabase](https://img.shields.io/badge/Supabase-PostgreSQL-green)](https://supabase.com)
+[![MIT License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Next.js](https://img.shields.io/badge/Next.js-16-black?logo=next.js&logoColor=white)](https://nextjs.org)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.7-blue?logo=typescript&logoColor=white)](https://typescriptlang.org)
+[![Supabase](https://img.shields.io/badge/Supabase-PostgreSQL-3ECF8E?logo=supabase&logoColor=white)](https://supabase.com)
+[![Tailwind CSS](https://img.shields.io/badge/Tailwind-v4-38BDF8?logo=tailwind-css&logoColor=white)](https://tailwindcss.com)
+[![Open Source](https://img.shields.io/badge/Open%20Source-%E2%9D%A4-red)](https://github.com/sarmakska/staff-portal)
+[![Stars](https://img.shields.io/github/stars/sarmakska/staff-portal?style=social)](https://github.com/sarmakska/staff-portal)
 
 StaffPortal is a fully-featured, open-source internal staff management system. Attendance, timesheets, leave management, expenses with AI receipt scanning, a kiosk sign-in system, team calendar, visitor management, announcements and more — all in one platform.
 
