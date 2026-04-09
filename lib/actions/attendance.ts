@@ -70,7 +70,7 @@ async function getNotifyEmail(userId: string): Promise<{ employeeName: string; d
     const employeeName = (profile as any)?.full_name || employeeEmail || 'Unknown'
     const departmentName = (profile as any)?.departments?.name ?? 'Unassigned'
 
-    const notifyEmail = process.env.WFH_NOTIFY_EMAIL ?? 'memofashions@yourcompany.com'
+    const notifyEmail = process.env.WFH_NOTIFY_EMAIL ?? 'staff@yourcompany.com'
     return { employeeName, departmentName, notifyEmail, employeeEmail }
 }
 

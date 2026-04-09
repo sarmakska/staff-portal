@@ -1911,7 +1911,7 @@ export async function sendStaffAnnouncement(params: AnnouncementParams): Promise
     try {
         const { error } = await resend.emails.send({
             from: `StaffPortal <${ANNOUNCE_FROM}>`,
-            to: [process.env.WFH_NOTIFY_EMAIL ?? 'memofashions@yourcompany.com'],
+            to: [process.env.WFH_NOTIFY_EMAIL ?? 'staff@yourcompany.com'],
             subject: params.subject,
             html: announcementHtml(params),
             text: `${params.categoryEmoji ?? '📢'} ${params.category ?? 'Announcement'} from ${params.sentByName}\n\n${params.subject}\n\n${params.body}${params.event ? `\n\nEvent: ${params.event.title}\nDate: ${params.event.date}${params.event.endDate ? ' to ' + params.event.endDate : ''}${params.event.time ? ' at ' + params.event.time : ''}${params.event.location ? '\nLocation: ' + params.event.location : ''}` : ''}`,

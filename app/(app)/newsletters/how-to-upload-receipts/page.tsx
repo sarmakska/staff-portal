@@ -179,10 +179,10 @@ export default function HowToUploadReceiptsPage() {
         </div>
         <div className="bg-violet-50 border border-violet-200 rounded-xl p-5">
           <span className="inline-block text-xs font-bold tracking-wider uppercase bg-violet-200 text-violet-800 rounded-full px-2.5 py-0.5 mb-3">Automatic Fallback</span>
-          <p className="text-sm font-bold text-violet-800 mb-2">Claude Haiku (Anthropic)</p>
+          <p className="text-sm font-bold text-violet-800 mb-2">Secondary AI Provider</p>
           <p className="text-sm text-violet-700/80 leading-relaxed">
-            If Gemini is unavailable or returns an error, the system automatically switches to Claude
-            by Anthropic &mdash; with no delay and no action needed from you. You&apos;ll never see an error
+            If the primary AI is unavailable or returns an error, the system automatically switches to a secondary provider
+            &mdash; with no delay and no action needed from you. You&apos;ll never see an error
             because of one AI being down. The result looks identical either way.
           </p>
         </div>

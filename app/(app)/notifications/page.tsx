@@ -69,7 +69,7 @@ export default function NotificationsPage() {
         items={[
           {
             trigger: 'Any staff member sends an announcement',
-            recipient: 'memofashions@yourcompany.com — company group inbox',
+            recipient: 'staff@yourcompany.com — company group inbox',
             subject: '{Category Emoji} {Announcement Subject}',
             contains: [
               'Category badge (General / OOO / Event / Closure / Celebration / New Joiner / Policy / Urgent / Meeting / IT)',
@@ -83,7 +83,7 @@ export default function NotificationsPage() {
           },
           {
             trigger: 'Out of Office announcement (OOO category)',
-            recipient: 'memofashions@yourcompany.com',
+            recipient: 'staff@yourcompany.com',
             subject: '🌴 {Subject} — Away from [Start Date] to [End Date]',
             contains: [
               'OOO category auto-shows absence date range',
@@ -96,7 +96,7 @@ export default function NotificationsPage() {
           },
           {
             trigger: 'Announcement includes a calendar event',
-            recipient: 'memofashions@yourcompany.com',
+            recipient: 'staff@yourcompany.com',
             subject: '{Category Emoji} {Announcement Subject}',
             contains: [
               'event-invite.ics file attached automatically',
@@ -363,7 +363,7 @@ export default function NotificationsPage() {
           <Zap className="h-5 w-5 text-muted-foreground shrink-0 mt-0.5" />
           <div className="space-y-1">
             <p className="text-sm font-bold text-foreground">Technical Details</p>
-            <p className="text-sm text-muted-foreground">All emails are sent via <strong>Resend</strong>. All system notifications and announcements come from <code className="bg-muted px-1.5 py-0.5 rounded text-xs">noreply@sarmalinux.com</code>. Add this to your Outlook safe senders list. The Expense Manager uses <strong>Google Gemini Vision AI</strong> (with <strong>Claude AI</strong> as automatic fallback) in two places: (1) Receipt OCR — reads merchant, amount, currency, date, category, VAT amount, VAT rate, and supplier VAT number from any receipt photo or PDF; (2) Bank Statement Parser — reads the card number from the statement header, matches the last 4 digits to a registered company card to identify the cardholder, extracts every transaction including FX rates and cash advance fees, auto-matches debits to expenses, updates VAT from the bank's actual GBP amount, and auto-creates stubs for unmatched transactions. Missing receipt emails are sent manually via the mail icon button on each statement card — they are never sent automatically.</p>
+            <p className="text-sm text-muted-foreground">All emails are sent via <strong>Resend</strong>. All system notifications and announcements come from <code className="bg-muted px-1.5 py-0.5 rounded text-xs">noreply@sarmalinux.com</code>. Add this to your Outlook safe senders list. The Expense Manager uses <strong>Google Gemini Vision AI</strong> (with AI as automatic fallback) in two places: (1) Receipt OCR — reads merchant, amount, currency, date, category, VAT amount, VAT rate, and supplier VAT number from any receipt photo or PDF; (2) Bank Statement Parser — reads the card number from the statement header, matches the last 4 digits to a registered company card to identify the cardholder, extracts every transaction including FX rates and cash advance fees, auto-matches debits to expenses, updates VAT from the bank's actual GBP amount, and auto-creates stubs for unmatched transactions. Missing receipt emails are sent manually via the mail icon button on each statement card — they are never sent automatically.</p>
           </div>
         </div>
       </div>

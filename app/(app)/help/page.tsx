@@ -728,7 +728,7 @@ new_year_available = new_year_total + carry_amount`}</Formula>
                     ["Company card expense recorded", "Sent to you as confirmation when you record a company card expense. No approval needed — company already paid."],
                     ["Purchase request submitted (to approver)", "Sent to your chosen approver when you submit a purchase request. Includes item, cost, urgency, justification, and any attachments."],
                     ["Purchase request decision", "Sent to you when your purchase request is approved or rejected. Includes the approver's decision and any notes."],
-                    ["Staff announcement", "Sent to memofashions@yourcompany.com when anyone creates a staff announcement. Includes the message, type badge, optional date range, and optional calendar invite (.ics file)."],
+                    ["Staff announcement", "Sent to staff@yourcompany.com when anyone creates a staff announcement. Includes the message, type badge, optional date range, and optional calendar invite (.ics file)."],
                     ["New poll created", "Sent to all active staff (except Directors) when a new poll is created. Includes the question, all options, deadline, and a direct link to vote."],
                     ["Absent reminder", "Sent to you at 10am if you have not clocked in and have no holiday, calendar leave, WFH, or running-late recorded for the day. Asks you to select the right option or contact reception. Automatically skips UK bank holidays (checked via gov.uk). Directors and staff marked as excluded from reminders are never sent this email."],
                     ["Missing attendance report", "Sent at 7pm if you have no attendance record at all for the day — no clock-in, no leave, no WFH. You'll receive an email asking you to confirm if you were on pre-booked annual leave, sick leave, or had a clock-in issue. A separate summary is sent to the accounts team so they can follow up before payroll. Skips bank holidays automatically."],
@@ -920,15 +920,15 @@ new_year_available = new_year_total + carry_amount`}</Formula>
         content: (
             <div className="space-y-4">
                 <p className="text-sm text-muted-foreground leading-relaxed">
-                    The Expense Manager handles everything from submitting a £5 coffee receipt to full monthly accounting reconciliation with sign-off. It uses <strong>Google Gemini AI</strong> (with <strong>Claude AI</strong> as automatic fallback) for receipt scanning and bank statement matching. Built so the accountant does almost no manual work — just upload the HSBC statement, fix a few edge cases, sign off. Access it from <strong>Expenses</strong> in the sidebar.
+                    The Expense Manager handles everything from submitting a £5 coffee receipt to full monthly accounting reconciliation with sign-off. It uses <strong>Google Gemini AI</strong> (with AI as automatic fallback) for receipt scanning and bank statement matching. Built so the accountant does almost no manual work — just upload the your bank statement, fix a few edge cases, sign off. Access it from <strong>Expenses</strong> in the sidebar.
                 </p>
 
                 {/* AI banner */}
                 <div className="rounded-xl border border-violet-200 dark:border-violet-800 bg-violet-50 dark:bg-violet-950/30 px-4 py-3 space-y-2">
                     <p className="text-xs font-bold text-violet-800 dark:text-violet-300 uppercase tracking-wider">🤖 AI-Powered Features</p>
                     <InfoTable rows={[
-                        ["Receipt OCR", "Upload a photo or PDF receipt — AI reads merchant, total, currency (GBP/USD/EUR etc.), date, description, category, receipt number, VAT details, and supplier VAT number in under 1 second. ~90% accuracy. Gemini runs first; Claude picks up automatically if Gemini is unavailable."],
-                        ["Bank Statement Parsing", "Upload a statement (PDF/image) — AI extracts every transaction automatically, reads the card number from the statement header, and identifies the exact cardholder from their registered card's last 4 digits. Also extracts FX conversion rates, foreign currency amounts, and cash advance fees. Gemini runs first; Claude picks up if Gemini is unavailable."],
+                        ["Receipt OCR", "Upload a photo or PDF receipt — AI reads merchant, total, currency (GBP/USD/EUR etc.), date, description, category, receipt number, VAT details, and supplier VAT number in under 1 second. ~90% accuracy. Gemini runs first; a secondary AI picks up automatically if Gemini is unavailable."],
+                        ["Bank Statement Parsing", "Upload a statement (PDF/image) — AI extracts every transaction automatically, reads the card number from the statement header, and identifies the exact cardholder from their registered card's last 4 digits. Also extracts FX conversion rates, foreign currency amounts, and cash advance fees. Gemini runs first; a secondary AI picks up if Gemini is unavailable."],
                         ["Cardholder Detection", "AI reads the card number from the statement and matches the last 4 digits against company cards registered in Settings → Company Cards. No name guessing — it's always the exact card owner."],
                         ["Auto-Matching", "Each bank debit is scored against company card expenses using amount similarity (60pts) + date proximity (40pts). ≥70 = Matched · 40–69 = Suggested · <40 = No Match."],
                         ["Auto VAT Update", "When a bank transaction matches an expense, the system updates converted_gbp, recalculates VAT and net amount from the bank's actual GBP charge, and stores the bank's FX rate."],
@@ -1127,7 +1127,7 @@ new_year_available = new_year_total + carry_amount`}</Formula>
         content: (
             <div className="space-y-4">
                 <p className="text-sm text-muted-foreground leading-relaxed">
-                    The Announcements page lets <strong>anyone</strong> send a formatted email to the whole company. The email goes to <strong>memofashions@yourcompany.com</strong> — the company group inbox. Go to <strong>My Work → Announcements</strong> in the sidebar, or use the <strong>Announce</strong> quick action on the dashboard.
+                    The Announcements page lets <strong>anyone</strong> send a formatted email to the whole company. The email goes to <strong>staff@yourcompany.com</strong> — the company group inbox. Go to <strong>My Work → Announcements</strong> in the sidebar, or use the <strong>Announce</strong> quick action on the dashboard.
                 </p>
 
                 <SubHeading text="Announcement Types" />
@@ -1153,7 +1153,7 @@ new_year_available = new_year_total + carry_amount`}</Formula>
                     ["4. Set dates (optional)", "From Date and To Date are always visible — fill them in for any event or absence"],
                     ["5. Calendar invite (optional)", "Toggle 'Send calendar invite (.ics)' — enter a title, and the dates above are attached automatically"],
                     ["6. Preview", "Click Preview Email to see exactly what staff will receive before sending"],
-                    ["7. Send", "Click Send to All Staff — email fires instantly to memofashions@yourcompany.com"],
+                    ["7. Send", "Click Send to All Staff — email fires instantly to staff@yourcompany.com"],
                 ]} />
 
                 <SubHeading text="Calendar Events & Date Ranges" />
@@ -1172,7 +1172,7 @@ new_year_available = new_year_total + carry_amount`}</Formula>
                 <SubHeading text="What the Email Looks Like" />
                 <div className="rounded-xl border border-border bg-muted/20 p-4 space-y-2">
                     {[
-                        { mono: true,  text: "From: noreply@sarmalinux.com → memofashions@yourcompany.com" },
+                        { mono: true,  text: "From: noreply@sarmalinux.com → staff@yourcompany.com" },
                         { mono: false, text: "Dark branded header with Staff Announcement title, your name, and the type badge (e.g. 🏖️ Out of Office)" },
                         { mono: false, text: "Blue subject bar with the emoji and your subject line" },
                         { mono: false, text: "Your message as clean paragraphs" },

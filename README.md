@@ -7,7 +7,7 @@
 [![TypeScript](https://img.shields.io/badge/TypeScript-5-blue?logo=typescript&logoColor=white)](https://typescriptlang.org)
 [![Supabase](https://img.shields.io/badge/Supabase-PostgreSQL-3ECF8E?logo=supabase&logoColor=white)](https://supabase.com)
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind-CSS-38BDF8?logo=tailwind-css&logoColor=white)](https://tailwindcss.com)
-[![Open Source](https://img.shields.io/badge/Open%20Source-%E2%9D%A4-red)](https://github.com/your-github-username/staff-portal)
+[![Open Source](https://img.shields.io/badge/Open%20Source-%E2%9D%A4-red)](https://github.com/sarmakska/staff-portal)
 
 A full-featured HR and workforce management platform you can self-host for your team. Built for small-to-medium businesses that want a modern, clean alternative to expensive HR software.
 
@@ -128,7 +128,7 @@ The assistant's personality and system prompt are fully customisable in `app/api
 ### 1. Clone the repo
 
 ```bash
-git clone https://github.com/your-github-username/staff-portal.git
+git clone https://github.com/sarmakska/staff-portal.git
 cd staff-portal
 npm install
 ```
@@ -293,4 +293,4 @@ Ideas for contributions:
 
 ## Support
 
-Bug reports and feature requests: [GitHub Issues](https://github.com/your-github-username/staff-portal/issues)
+Bug reports and feature requests: [GitHub Issues](https://github.com/sarmakska/staff-portal/issues)

@@ -14,7 +14,7 @@ export default async function NotificationsPage() {
     ])
 
     const envEmails = {
-        wfhNotify: process.env.WFH_NOTIFY_EMAIL ?? 'memofashions@yourcompany.com',
+        wfhNotify: process.env.WFH_NOTIFY_EMAIL ?? 'staff@yourcompany.com',
         accountsNotify: process.env.ACCOUNTS_NOTIFY_EMAIL ?? 'accounts@yourcompany.com',
         receptionNotify: process.env.RECEPTION_NOTIFY_EMAIL ?? 'reception@yourcompany.com',
     }

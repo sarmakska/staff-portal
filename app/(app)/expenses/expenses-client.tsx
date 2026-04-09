@@ -500,7 +500,7 @@ function ExpenseFormModal({ categories, cards, departments, allUsers, currentUse
       const publicUrl = await getPublicReceiptUrl(path)
       setReceiptUrl(publicUrl)
 
-      // OCR via Claude Vision
+      // OCR via AI Vision
       if (file.type.startsWith('image/') || file.type === 'application/pdf') {
         setScanning(true)
         try {
