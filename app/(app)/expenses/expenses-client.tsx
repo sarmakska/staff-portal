@@ -11,18 +11,22 @@ import {
   Calendar, Users, Filter, ChevronRight, Building2, Wallet,
   ArrowUpRight, ArrowDownRight, Zap, MoreHorizontal, RefreshCw,
   FileSpreadsheet, AlertTriangle, Layers, SlidersHorizontal, Scale,
-  ChevronDown as ChevronDownIcon, ChevronUp,
+  ChevronDown as ChevronDownIcon, ChevronUp, MessageSquare, History, Pencil, Tag, Mail,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import {
   getMyExpenses, getAllExpenses, getPendingApprovals, submitExpense, updateExpense,
   updateExpenseStatus, markExpensePaid, getExpenseCategories, getCompanyCards,
-  getApprovalChains, createExpenseCategory, createCompanyCard, saveApprovalChain,
+  getApprovalChains, createExpenseCategory, updateExpenseCategory, deleteExpenseCategory,
+  createCompanyCard, saveApprovalChain,
   deleteApprovalChain, getMyPurchaseRequests, getAllPurchaseRequests,
-  submitPurchaseRequest, updatePurchaseRequestStatus, getExpenseAnalytics,
+  submitPurchaseRequest, updatePurchaseRequestStatus, cancelPurchaseRequest, deletePurchaseRequest, getExpenseAnalytics,
   getReceiptUploadUrl, getPublicReceiptUrl, toggleExpenseAutoApprove,
   getAllUsersForExpenseSettings, getBankStatements, deleteBankStatement,
-  recordBankAdjustment, getExpenseAnalyticsPeriod,
+  recordBankAdjustment, getExpenseAnalyticsPeriod, updateTransactionMatch,
+  markBankStatementReconciled, getExpenseAnalyticsDirector,
+  getDepartmentsForExpenses, bulkMarkExpensesPaid,
+  addExpenseComment, getExpenseComments, getExpenseAuditLog,
 } from '@/lib/actions/expenses'
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -63,7 +67,7 @@ const URGENCY_CONFIG: Record<string, { label: string; color: string; dot: string
   high:   { label: 'High',   color: 'text-rose-600',    dot: 'bg-rose-500' },
 }
 
-const CHART_COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#14b8a6', '#f97316', '#64748b']
+const CHART_COLORS = ['#6366f1', '#f59e0b', '#10b981', '#ec4899', '#3b82f6', '#f97316', '#8b5cf6', '#14b8a6', '#ef4444', '#84cc16']
 
 function formatCurrency(amount: number, currency = 'GBP') {
   return new Intl.NumberFormat('en-GB', { style: 'currency', currency }).format(amount)
@@ -190,18 +194,22 @@ function MyExpensesTab({ userId, userProfile, allUsers, canSeeAll, isAdmin }: { 
   const [expenses, setExpenses] = useState<any[]>([])
   const [categories, setCategories] = useState<any[]>([])
   const [cards, setCards] = useState<any[]>([])
+  const [departments, setDepartments] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
   const [selectedExpense, setSelectedExpense] = useState<any | null>(null)
   const [isPending, startTransition] = useTransition()
   const [filterUser, setFilterUser] = useState<string>('all')
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  const [showBulkPaid, setShowBulkPaid] = useState(false)
 
   const load = useCallback(async () => {
     setLoading(true)
-    const [exp, cats, cds] = await Promise.all([canSeeAll ? getAllExpenses() : getMyExpenses(), getExpenseCategories(), getCompanyCards()])
+    const [exp, cats, cds, depts] = await Promise.all([canSeeAll ? getAllExpenses() : getMyExpenses(), getExpenseCategories(), getCompanyCards(), getDepartmentsForExpenses()])
     setExpenses(exp)
     setCategories(cats)
     setCards(cds)
+    setDepartments(depts)
     setLoading(false)
   }, [canSeeAll])
 
@@ -231,7 +239,15 @@ function MyExpensesTab({ userId, userProfile, allUsers, canSeeAll, isAdmin }: { 
 
       {/* Header row */}
       <div className="flex items-center justify-between gap-3 flex-wrap">
-        <h2 className="text-lg font-bold text-foreground">{canSeeAll ? 'All Expenses' : 'My Claims'}</h2>
+        <div className="flex items-center gap-3">
+          <h2 className="text-lg font-bold text-foreground">{canSeeAll ? 'All Expenses' : 'My Claims'}</h2>
+          {selectedIds.size > 0 && (
+            <button onClick={() => setShowBulkPaid(true)}
+              className="flex items-center gap-2 rounded-xl bg-emerald-600 px-3 py-2 text-sm font-semibold text-white hover:opacity-90 transition-opacity">
+              <CheckCircle2 className="h-4 w-4" /> Mark {selectedIds.size} as Paid
+            </button>
+          )}
+        </div>
         <div className="flex items-center gap-2 flex-wrap">
           {canSeeAll && (
             <select
@@ -263,7 +279,17 @@ function MyExpensesTab({ userId, userProfile, allUsers, canSeeAll, isAdmin }: { 
       ) : (
         <div className="space-y-3">
           {filteredExpenses.map(e => (
-            <ExpenseRow key={e.id} expense={e} onClick={() => setSelectedExpense(e)} showEmployee={canSeeAll} />
+            <div key={e.id} className="flex items-start gap-2">
+              {canSeeAll && e.status === 'approved' && (e.payment_method === 'personal_card' || e.payment_method === 'personal_cash') && (
+                <input type="checkbox" checked={selectedIds.has(e.id)}
+                  onChange={ev => setSelectedIds(prev => { const s = new Set(prev); ev.target.checked ? s.add(e.id) : s.delete(e.id); return s })}
+                  className="mt-3 h-4 w-4 rounded border-border text-primary focus:ring-primary/30 shrink-0 cursor-pointer" />
+              )}
+              {(!canSeeAll || e.status !== 'approved') && <div className="w-6 shrink-0" />}
+              <div className="flex-1 min-w-0">
+                <ExpenseRow expense={e} onClick={() => setSelectedExpense(e)} showEmployee={canSeeAll} />
+              </div>
+            </div>
           ))}
         </div>
       )}
@@ -273,6 +299,7 @@ function MyExpensesTab({ userId, userProfile, allUsers, canSeeAll, isAdmin }: { 
         <ExpenseFormModal
           categories={categories}
           cards={cards}
+          departments={departments}
           allUsers={allUsers}
           currentUserId={userId}
           isAdmin={isAdmin}
@@ -283,8 +310,74 @@ function MyExpensesTab({ userId, userProfile, allUsers, canSeeAll, isAdmin }: { 
 
       {/* Detail modal */}
       {selectedExpense && (
-        <ExpenseDetailModal expense={selectedExpense} onClose={() => setSelectedExpense(null)} onRefresh={load} allUsers={allUsers} isAdmin={isAdmin} />
+        <ExpenseDetailModal expense={selectedExpense} onClose={() => setSelectedExpense(null)} onRefresh={load} allUsers={allUsers} isAdmin={isAdmin} departments={departments} />
       )}
+
+      {/* Bulk mark as paid modal */}
+      {showBulkPaid && (
+        <BulkPaidModal
+          count={selectedIds.size}
+          onClose={() => setShowBulkPaid(false)}
+          onConfirm={async (reimb) => {
+            const result = await bulkMarkExpensesPaid(Array.from(selectedIds), reimb) as any
+            if (result.success) {
+              toast.success(`${selectedIds.size} expenses marked as paid`)
+              setSelectedIds(new Set())
+              setShowBulkPaid(false)
+              load()
+            } else {
+              toast.error(result.error ?? 'Failed to update')
+            }
+          }}
+        />
+      )}
+    </div>
+  )
+}
+
+// ── Bulk Mark Paid Modal ──────────────────────────────────────
+
+function BulkPaidModal({ count, onClose, onConfirm }: { count: number; onClose: () => void; onConfirm: (r: { via: string; ref: string; date: string }) => Promise<void> }) {
+  const [via, setVia] = useState('BACS')
+  const [ref, setRef] = useState('')
+  const [date, setDate] = useState(new Date().toISOString().split('T')[0])
+  const [saving, setSaving] = useState(false)
+  return (
+    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+      <div className="w-full max-w-sm bg-card rounded-3xl shadow-2xl p-6 space-y-4">
+        <div className="flex items-center justify-between">
+          <h3 className="text-lg font-bold text-foreground">Mark {count} Expense{count > 1 ? 's' : ''} as Paid</h3>
+          <button onClick={onClose} className="rounded-xl p-2 hover:bg-muted transition-colors"><X className="h-4 w-4" /></button>
+        </div>
+        <div>
+          <label className="block text-xs font-bold text-foreground mb-1.5">Payment Method</label>
+          <select value={via} onChange={e => setVia(e.target.value)}
+            className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30">
+            <option value="BACS">BACS Transfer</option>
+            <option value="Payroll">Added to Payroll</option>
+            <option value="Cash">Cash</option>
+            <option value="Cheque">Cheque</option>
+          </select>
+        </div>
+        <div>
+          <label className="block text-xs font-bold text-foreground mb-1.5">Reference / Payroll Run Ref <span className="font-normal text-muted-foreground">(optional)</span></label>
+          <input value={ref} onChange={e => setRef(e.target.value)} placeholder="e.g. BACS-2026-03 or March Payroll"
+            className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30" />
+        </div>
+        <div>
+          <label className="block text-xs font-bold text-foreground mb-1.5">Payment Date</label>
+          <input type="date" value={date} onChange={e => setDate(e.target.value)}
+            className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30" />
+        </div>
+        <div className="flex gap-3 pt-2">
+          <button onClick={async () => { setSaving(true); await onConfirm({ via, ref, date }); setSaving(false) }}
+            disabled={saving}
+            className="flex-1 rounded-xl bg-emerald-600 py-2.5 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-50 transition-opacity">
+            {saving ? <Loader2 className="h-4 w-4 animate-spin mx-auto" /> : 'Confirm Payment'}
+          </button>
+          <button onClick={onClose} className="flex-1 rounded-xl border border-border py-2.5 text-sm font-semibold hover:bg-muted transition-colors">Cancel</button>
+        </div>
+      </div>
     </div>
   )
 }
@@ -306,33 +399,42 @@ function ExpenseRow({ expense: e, onClick, showEmployee }: { expense: any; onCli
           <Receipt className="h-4 w-4" style={{ color: e.expense_categories?.color ?? '#6366f1' }} />
         </div>
         <div className="flex-1 min-w-0">
+          {/* Top row: description + amount */}
           <div className="flex items-start justify-between gap-2">
-            <div>
-              <p className="font-semibold text-foreground text-sm truncate">{e.description}</p>
-              <div className="flex items-center gap-2 mt-0.5">
-                {showEmployee && employeeName && <span className="text-xs font-semibold text-primary/80">{employeeName}</span>}
-                <span className="text-xs text-muted-foreground">{formatDate(e.date)}</span>
-                {e.merchant && <span className="text-xs text-muted-foreground">· {e.merchant}</span>}
-                {e.expense_categories && <span className="text-xs text-muted-foreground">· {e.expense_categories.name}</span>}
-              </div>
-            </div>
-            <div className="text-right shrink-0">
-              <p className={cn('font-black', e.payment_method === 'refund' ? 'text-emerald-600' : 'text-foreground')}>
+            <p className="font-semibold text-foreground text-sm truncate min-w-0 flex-1">{e.description}</p>
+            <div className="text-right shrink-0 ml-2">
+              <p className={cn('font-black text-sm', e.payment_method === 'refund' ? 'text-emerald-600' : 'text-foreground')}>
                 {e.payment_method === 'refund' ? '-' : ''}{formatCurrency(e.amount, e.currency)}
               </p>
               {e.currency !== 'GBP' && e.converted_gbp && (
-                <p className="text-xs text-muted-foreground">{e.payment_method === 'refund' ? '-' : ''}{formatCurrency(e.converted_gbp)} GBP</p>
+                <p className="text-[10px] text-muted-foreground">{e.payment_method === 'refund' ? '-' : ''}{formatCurrency(e.converted_gbp)}</p>
               )}
-              {e.payment_method === 'refund' && <span className="text-[10px] font-bold text-emerald-600 uppercase tracking-wide">Credit</span>}
-              <StatusBadge status={e.status} />
             </div>
           </div>
-          <div className="flex items-center gap-3 mt-2">
+          {/* Meta row: employee, date, merchant, category */}
+          <div className="flex items-center gap-x-2 gap-y-0.5 mt-0.5 flex-wrap">
+            {showEmployee && employeeName && <span className="text-xs font-semibold text-primary/80">{employeeName}</span>}
+            <span className="text-xs text-muted-foreground">{formatDate(e.date)}</span>
+            {e.merchant && <span className="text-xs text-muted-foreground truncate max-w-[120px]">· {e.merchant}</span>}
+            {e.expense_categories && <span className="text-xs text-muted-foreground">· {e.expense_categories.name}</span>}
+          </div>
+          {/* Bottom row: card info + receipt + status */}
+          <div className="flex items-center gap-x-3 gap-y-0.5 mt-1.5 flex-wrap">
             <span className="flex items-center gap-1 text-xs text-muted-foreground">
-              <PayIcon className="h-3 w-3" />
-              {e.payment_method === 'company_card' ? (e.company_cards ? `${e.company_cards.label} ····${e.company_cards.last4}` : 'Company Card') : e.payment_method === 'company_cash' ? 'Cash Withdrawal (Company)' : e.payment_method === 'personal_card' ? 'Personal Card (Claim)' : e.payment_method === 'refund' ? 'Return / Refund' : 'Cash (Claim)'}
+              <PayIcon className="h-3 w-3 shrink-0" />
+              <span className="truncate max-w-[140px]">
+                {e.payment_method === 'company_card' ? (e.company_cards ? `${e.company_cards.label} ····${e.company_cards.last4}` : 'Company Card') : e.payment_method === 'company_cash' ? 'Cash (Company)' : e.payment_method === 'personal_card' ? 'Personal Card' : e.payment_method === 'refund' ? 'Refund' : 'Cash (Claim)'}
+              </span>
             </span>
             {e.receipt_url && <span className="flex items-center gap-1 text-xs text-blue-600"><Paperclip className="h-3 w-3" />Receipt attached</span>}
+            <StatusBadge status={e.status} />
+            {e.payment_method === 'refund' && <span className="text-[10px] font-bold text-emerald-600 uppercase tracking-wide">Credit</span>}
+            {e.bank_adjustment != null && Math.abs(e.bank_adjustment) > 0.50 && (
+              <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 dark:bg-amber-950/30 px-2 py-0.5 text-[10px] font-bold text-amber-700 dark:text-amber-400">
+                <AlertTriangle className="h-2.5 w-2.5" />
+                Bank {e.bank_adjustment > 0 ? '+' : ''}{formatCurrency(e.bank_adjustment)}
+              </span>
+            )}
           </div>
         </div>
         <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
@@ -343,10 +445,11 @@ function ExpenseRow({ expense: e, onClick, showEmployee }: { expense: any; onCli
 
 // ── Expense Form Modal ────────────────────────────────────────
 
-function ExpenseFormModal({ categories, cards, allUsers, currentUserId, isAdmin, onClose, onSuccess }: {
-  categories: any[]; cards: any[]; allUsers: any[]; currentUserId: string; isAdmin?: boolean; onClose: () => void; onSuccess: () => void
+function ExpenseFormModal({ categories, cards, departments, allUsers, currentUserId, isAdmin, onClose, onSuccess }: {
+  categories: any[]; cards: any[]; departments: any[]; allUsers: any[]; currentUserId: string; isAdmin?: boolean; onClose: () => void; onSuccess: () => void
 }) {
   const [isPending, startTransition] = useTransition()
+  const [dupWarning, setDupWarning] = useState<any>(null)
   const [receiptUrl, setReceiptUrl] = useState('')
   const [receiptData, setReceiptData] = useState<any>(null)
   const [uploading, setUploading] = useState(false)
@@ -458,10 +561,12 @@ function ExpenseFormModal({ categories, cards, allUsers, currentUserId, isAdmin,
     if (onBehalfOfId) fd.set('on_behalf_of_user_id', onBehalfOfId)
 
     startTransition(async () => {
-      const result = await submitExpense(fd)
+      const result = await submitExpense(fd) as any
       if (result.success) {
         toast.success('Expense submitted for approval')
         onSuccess()
+      } else if (result.error === 'DUPLICATE_WARNING') {
+        setDupWarning(result.duplicate)
       } else {
         toast.error(result.error ?? 'Failed to submit')
       }
@@ -483,7 +588,7 @@ function ExpenseFormModal({ categories, cards, allUsers, currentUserId, isAdmin,
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+    <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
       <div className="w-full max-w-lg bg-card rounded-3xl shadow-2xl overflow-hidden max-h-[90vh] flex flex-col">
         <div className="flex items-center justify-between p-5 border-b border-border">
           <h3 className="text-lg font-bold text-foreground">Add Expense</h3>
@@ -546,7 +651,7 @@ function ExpenseFormModal({ categories, cards, allUsers, currentUserId, isAdmin,
             {/* Payment method */}
             <div>
               <label className="block text-xs font-bold text-foreground mb-2">Payment Method</label>
-              <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                 {[
                   { v: 'company_card', label: 'Company Card', icon: CreditCard },
                   { v: 'company_cash', label: 'Cash Withdrawal', icon: Banknote },
@@ -651,6 +756,58 @@ function ExpenseFormModal({ categories, cards, allUsers, currentUserId, isAdmin,
                 className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30" />
             </div>
 
+            {/* Department */}
+            {departments.length > 0 && (
+              <div>
+                <label className="block text-xs font-bold text-foreground mb-1.5">Department <span className="font-normal text-muted-foreground">(optional)</span></label>
+                <select name="department_id"
+                  className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30">
+                  <option value="">— No department —</option>
+                  {departments.map((d: any) => <option key={d.id} value={d.id}>{d.name}</option>)}
+                </select>
+              </div>
+            )}
+
+            {/* Duplicate warning */}
+            {dupWarning && (
+              <div className="rounded-xl border border-amber-300 bg-amber-50 dark:bg-amber-950/20 p-4 space-y-3">
+                <div className="flex items-start gap-2">
+                  <AlertTriangle className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
+                  <div>
+                    <p className="text-sm font-bold text-amber-700">Possible Duplicate</p>
+                    <p className="text-xs text-amber-600 mt-0.5">
+                      A similar expense already exists: <strong>{dupWarning.description}</strong> · £{dupWarning.amount} · {formatDate(dupWarning.date)}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <button type="button" onClick={() => { setDupWarning(null) }}
+                    className="flex-1 rounded-xl border border-amber-300 bg-white dark:bg-transparent py-2 text-xs font-semibold text-amber-700 hover:bg-amber-50 transition-colors">
+                    Cancel — it was a duplicate
+                  </button>
+                  <button type="button" onClick={() => {
+                    setDupWarning(null)
+                    const form = document.getElementById('expense-form') as HTMLFormElement
+                    if (form) {
+                      const fd = new FormData(form)
+                      fd.set('skip_duplicate_check', 'true')
+                      if (receiptUrl) fd.set('receipt_url', receiptUrl)
+                      if (receiptData) fd.set('receipt_data', JSON.stringify(receiptData))
+                      fd.set('payment_method', paymentMethod)
+                      if (onBehalfOfId) fd.set('on_behalf_of_user_id', onBehalfOfId)
+                      submitExpense(fd).then((r: any) => {
+                        if (r.success) { toast.success('Expense submitted'); onSuccess() }
+                        else toast.error(r.error ?? 'Failed to submit')
+                      })
+                    }
+                  }}
+                    className="flex-1 rounded-xl bg-amber-600 py-2 text-xs font-semibold text-white hover:opacity-90 transition-opacity">
+                    Submit anyway — different expense
+                  </button>
+                </div>
+              </div>
+            )}
+
             {/* VAT section — auto-shown by AI, manual fallback link */}
             <div className="space-y-3">
               {includesVat ? (
@@ -686,9 +843,9 @@ function ExpenseFormModal({ categories, cards, allUsers, currentUserId, isAdmin,
                       const netAmt = Math.round((gross - vatAmt) * 100) / 100
                       return (
                         <div className="rounded-lg bg-muted/40 px-3 py-2 grid grid-cols-3 gap-2 text-center">
-                          <div><p className="text-[10px] text-muted-foreground">Gross</p><p className="text-xs font-bold">{formatCurrency(gross)}</p></div>
-                          <div><p className="text-[10px] text-muted-foreground">Net</p><p className="text-xs font-bold">{formatCurrency(netAmt)}</p></div>
-                          <div><p className="text-[10px] text-violet-600">VAT</p><p className="text-xs font-bold text-violet-600">{formatCurrency(vatAmt)}</p></div>
+                          <div><p className="text-[10px] text-muted-foreground">Gross</p><p className="text-xs font-bold">{formatCurrency(gross, formCurrency)}</p></div>
+                          <div><p className="text-[10px] text-muted-foreground">Net</p><p className="text-xs font-bold">{formatCurrency(netAmt, formCurrency)}</p></div>
+                          <div><p className="text-[10px] text-violet-600">VAT</p><p className="text-xs font-bold text-violet-600">{formatCurrency(vatAmt, formCurrency)}</p></div>
                         </div>
                       )
                     }
@@ -771,7 +928,7 @@ function ExpenseFormModal({ categories, cards, allUsers, currentUserId, isAdmin,
 
 // ── Expense Detail Modal ──────────────────────────────────────
 
-function ExpenseDetailModal({ expense: e, onClose, onRefresh, allUsers, isAdmin }: { expense: any; onClose: () => void; onRefresh: () => void; allUsers?: any[]; isAdmin?: boolean }) {
+function ExpenseDetailModal({ expense: e, onClose, onRefresh, allUsers, isAdmin, departments = [] }: { expense: any; onClose: () => void; onRefresh: () => void; allUsers?: any[]; isAdmin?: boolean; departments?: any[] }) {
   const [isEditing, setIsEditing] = useState(false)
   const [saving, setSaving] = useState(false)
   const [categories, setCategories] = useState<any[]>([])
@@ -780,14 +937,42 @@ function ExpenseDetailModal({ expense: e, onClose, onRefresh, allUsers, isAdmin 
   const [selectedCardId, setSelectedCardId] = useState(e.company_cards?.id ?? '')
   const [cardLast4, setCardLast4] = useState(e.company_cards?.last4 ?? '')
   const [editUserId, setEditUserId] = useState(e.user_id ?? '')
+  const [editDepartmentId, setEditDepartmentId] = useState(e.department_id ?? '')
   const [receiptUrl, setReceiptUrl] = useState(e.receipt_url ?? '')
   const [uploading, setUploading] = useState(false)
+  const [editAmount, setEditAmount] = useState(String(e.amount ?? ''))
+  const [editIncludesVat, setEditIncludesVat] = useState(!!e.includes_vat)
+  const [editVatRate, setEditVatRate] = useState<number>(e.vat_rate ?? 20)
+  const [editCustomVatRate, setEditCustomVatRate] = useState('')
+  const [editVatNumber, setEditVatNumber] = useState(e.vat_number ?? '')
+  const [editReceiptNumber, setEditReceiptNumber] = useState(e.receipt_number ?? '')
+  const [scanning, setScanning] = useState(false)
+  const [activeDetailTab, setActiveDetailTab] = useState<'details' | 'comments' | 'history'>('details')
+  const [comments, setComments] = useState<any[]>([])
+  const [auditLog, setAuditLog] = useState<any[]>([])
+  const [newComment, setNewComment] = useState('')
+  const [postingComment, setPostingComment] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     getExpenseCategories().then(setCategories)
     getCompanyCards().then((c: any) => setCards(c ?? []))
-  }, [])
+    getExpenseComments(e.id).then(setComments)
+    getExpenseAuditLog(e.id).then(setAuditLog)
+  }, [e.id])
+
+  const handlePostComment = async () => {
+    if (!newComment.trim()) return
+    setPostingComment(true)
+    const result = await addExpenseComment(e.id, newComment) as any
+    if (result.success) {
+      setComments(prev => [...prev, result.data])
+      setNewComment('')
+    } else {
+      toast.error(result.error ?? 'Failed to post comment')
+    }
+    setPostingComment(false)
+  }
 
   const handleSave = async (ev: React.FormEvent<HTMLFormElement>) => {
     ev.preventDefault()
@@ -798,6 +983,7 @@ function ExpenseDetailModal({ expense: e, onClose, onRefresh, allUsers, isAdmin 
     if (selectedCardId) fd.set('card_id', selectedCardId)
     if (cardLast4) fd.set('card_last4', cardLast4)
     if (isAdmin && editUserId) fd.set('edit_user_id', editUserId)
+    fd.set('department_id', editDepartmentId)
     const result = await updateExpense(e.id, fd)
     setSaving(false)
     if (result.success) {
@@ -817,7 +1003,34 @@ function ExpenseDetailModal({ expense: e, onClose, onRefresh, allUsers, isAdmin 
       await fetch(uploadUrl, { method: 'PUT', body: file, headers: { 'Content-Type': file.type } })
       const publicUrl = await getPublicReceiptUrl(path)
       setReceiptUrl(publicUrl)
-      toast.success('Receipt uploaded')
+      // OCR scan on upload
+      if (file.type.startsWith('image/') || file.type === 'application/pdf') {
+        setScanning(true)
+        try {
+          const res = await fetch('/api/expenses/ocr', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ receiptUrl: publicUrl }),
+          })
+          if (res.ok) {
+            const data = await res.json()
+            if (data.receipt_number) setEditReceiptNumber(data.receipt_number)
+            if (data.vat_number) setEditVatNumber(data.vat_number)
+            if ((data.vat_amount && data.vat_amount > 0) || (data.vat_rate && data.vat_rate > 0)) {
+              setEditIncludesVat(true)
+              if (data.vat_rate) setEditVatRate(data.vat_rate)
+            }
+            toast.success('Receipt scanned — fields updated!')
+          } else {
+            toast.success('Receipt uploaded')
+          }
+        } catch {
+          toast.success('Receipt uploaded')
+        }
+        setScanning(false)
+      } else {
+        toast.success('Receipt uploaded')
+      }
     } catch (err: any) {
       toast.error(err.message ?? 'Upload failed')
     }
@@ -825,7 +1038,7 @@ function ExpenseDetailModal({ expense: e, onClose, onRefresh, allUsers, isAdmin 
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+    <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
       <div className="w-full max-w-lg bg-card rounded-3xl shadow-2xl overflow-hidden">
         <div className="flex items-center justify-between p-5 border-b border-border">
           <div className="flex items-center gap-3">
@@ -848,7 +1061,7 @@ function ExpenseDetailModal({ expense: e, onClose, onRefresh, allUsers, isAdmin 
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-bold text-foreground mb-1.5">Amount *</label>
-                  <input required name="amount" type="number" step="0.01" min="0.01" defaultValue={e.amount}
+                  <input required name="amount" type="number" step="0.01" min="0.01" value={editAmount} onChange={ev => setEditAmount(ev.target.value)}
                     className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30" />
                 </div>
                 <div>
@@ -883,6 +1096,17 @@ function ExpenseDetailModal({ expense: e, onClose, onRefresh, allUsers, isAdmin 
                   {categories.map((c: any) => <option key={c.id} value={c.id}>{c.name}</option>)}
                 </select>
               </div>
+              {/* Department */}
+              {departments.length > 0 && (
+                <div>
+                  <label className="block text-xs font-bold text-foreground mb-1.5">Department</label>
+                  <select value={editDepartmentId} onChange={ev => setEditDepartmentId(ev.target.value)}
+                    className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm">
+                    <option value="">— No department —</option>
+                    {departments.map((d: any) => <option key={d.id} value={d.id}>{d.name}</option>)}
+                  </select>
+                </div>
+              )}
               {/* Employee picker — admin only */}
               {isAdmin && allUsers && allUsers.length > 0 && (
                 <div>
@@ -898,7 +1122,7 @@ function ExpenseDetailModal({ expense: e, onClose, onRefresh, allUsers, isAdmin 
               {/* Payment method */}
               <div>
                 <label className="block text-xs font-bold text-foreground mb-2">Payment Method</label>
-                <div className="grid grid-cols-3 gap-2">
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                   {[
                     { v: 'company_card', label: 'Company Card', icon: CreditCard },
                     { v: 'company_cash', label: 'Cash Withdrawal', icon: Banknote },
@@ -956,14 +1180,79 @@ function ExpenseDetailModal({ expense: e, onClose, onRefresh, allUsers, isAdmin 
                     <button type="button" onClick={() => setReceiptUrl('')} className="text-xs text-rose-500 hover:underline">Remove</button>
                   </div>
                 ) : (
-                  <button type="button" onClick={() => fileRef.current?.click()} disabled={uploading}
+                  <button type="button" onClick={() => fileRef.current?.click()} disabled={uploading || scanning}
                     className="w-full rounded-xl border-2 border-dashed border-border p-3 text-xs text-muted-foreground hover:border-primary/50 transition-all">
-                    {uploading ? 'Uploading...' : '+ Upload receipt'}
+                    {uploading ? 'Uploading...' : scanning ? 'Scanning receipt...' : '+ Upload receipt'}
                   </button>
                 )}
               </div>
-              <input type="hidden" name="includes_vat" value={e.includes_vat ? 'true' : 'false'} />
-              <input type="hidden" name="vat_rate" value={e.vat_rate ?? 0} />
+              {/* Receipt number */}
+              <div>
+                <label className="block text-xs font-bold text-foreground mb-1.5">Receipt / Invoice Number</label>
+                <input name="receipt_number" value={editReceiptNumber} onChange={ev => setEditReceiptNumber(ev.target.value)}
+                  placeholder="Auto-filled from receipt scan (optional)"
+                  className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30" />
+              </div>
+              {/* VAT section */}
+              <div className="space-y-3">
+                {editIncludesVat ? (
+                  <div className="rounded-xl border border-violet-200 dark:border-violet-800 bg-violet-50/50 dark:bg-violet-950/20 p-3 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <p className="text-xs font-bold text-violet-700 dark:text-violet-400">VAT Details</p>
+                      <button type="button" onClick={() => setEditIncludesVat(false)}
+                        className="text-[10px] text-muted-foreground hover:text-foreground underline">Remove</button>
+                    </div>
+                    <div>
+                      <p className="text-xs font-semibold text-foreground mb-2">VAT Rate</p>
+                      <div className="flex gap-2">
+                        {[20, 5, 0].map(rate => (
+                          <button type="button" key={rate} onClick={() => { setEditVatRate(rate); setEditCustomVatRate('') }}
+                            className={cn('flex-1 rounded-lg py-1.5 text-xs font-semibold transition-all',
+                              editVatRate === rate && !editCustomVatRate ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:bg-muted/80')}>
+                            {rate}%
+                          </button>
+                        ))}
+                        <input
+                          type="number" placeholder="Other %" step="0.1" min="0" max="100"
+                          value={editCustomVatRate}
+                          onChange={ev => { setEditCustomVatRate(ev.target.value); if (ev.target.value) setEditVatRate(parseFloat(ev.target.value)) }}
+                          className={cn('w-20 rounded-lg border px-2 py-1.5 text-xs text-center focus:outline-none focus:ring-2 focus:ring-primary/30',
+                            editCustomVatRate ? 'border-primary bg-primary/5' : 'border-border bg-background')}
+                        />
+                      </div>
+                    </div>
+                    {editAmount && editVatRate > 0 && (() => {
+                      const gross = parseFloat(editAmount)
+                      if (!isNaN(gross) && gross > 0) {
+                        const vatAmt = Math.round(gross * editVatRate / (100 + editVatRate) * 100) / 100
+                        const netAmt = Math.round((gross - vatAmt) * 100) / 100
+                        return (
+                          <div className="rounded-lg bg-muted/40 px-3 py-2 grid grid-cols-3 gap-2 text-center">
+                            <div><p className="text-[10px] text-muted-foreground">Gross</p><p className="text-xs font-bold">{formatCurrency(gross, e.currency)}</p></div>
+                            <div><p className="text-[10px] text-muted-foreground">Net</p><p className="text-xs font-bold">{formatCurrency(netAmt, e.currency)}</p></div>
+                            <div><p className="text-[10px] text-violet-600">VAT</p><p className="text-xs font-bold text-violet-600">{formatCurrency(vatAmt, e.currency)}</p></div>
+                          </div>
+                        )
+                      }
+                      return null
+                    })()}
+                    <div>
+                      <label className="block text-xs font-semibold text-foreground mb-1.5">Supplier VAT Number (optional)</label>
+                      <input name="vat_number" value={editVatNumber} onChange={ev => setEditVatNumber(ev.target.value)}
+                        placeholder="e.g. GB123456789"
+                        className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30" />
+                    </div>
+                  </div>
+                ) : (
+                  <button type="button" onClick={() => setEditIncludesVat(true)}
+                    className="text-xs text-muted-foreground hover:text-foreground underline">
+                    + Add VAT details manually
+                  </button>
+                )}
+                {!editIncludesVat && editVatNumber && <input type="hidden" name="vat_number" value={editVatNumber} />}
+                <input type="hidden" name="includes_vat" value={editIncludesVat ? 'true' : 'false'} />
+                <input type="hidden" name="vat_rate" value={editVatRate} />
+              </div>
             </div>
             <div className="p-5 border-t border-border flex gap-3">
               <button type="submit" disabled={saving}
@@ -978,46 +1267,134 @@ function ExpenseDetailModal({ expense: e, onClose, onRefresh, allUsers, isAdmin 
           </form>
         ) : (
           <>
-            <div className="p-5 space-y-4 overflow-y-auto max-h-[60vh]">
-              <div className="grid grid-cols-2 gap-3">
-                <InfoBlock label="Amount" value={formatCurrency(e.amount, e.currency)} highlight />
-                {e.currency !== 'GBP' && e.converted_gbp && <InfoBlock label="GBP Equivalent" value={formatCurrency(e.converted_gbp)} />}
-                <InfoBlock label="Date" value={formatDate(e.date)} />
-                <InfoBlock label="Merchant" value={e.merchant ?? '—'} />
-                <InfoBlock label="Category" value={e.expense_categories?.name ?? '—'} />
-                <InfoBlock label="Payment" value={e.payment_method === 'company_card' ? `Company Card${e.company_cards ? ` ····${e.company_cards.last4}` : ''}` : e.payment_method === 'company_cash' ? 'Cash Withdrawal (Company)' : e.payment_method === 'personal_card' ? 'Personal Card (Claim)' : 'Cash (Claim)'} />
-                <div className="col-span-2"><InfoBlock label="Description" value={e.description} /></div>
-              </div>
-              {e.receipt_url && (
-                <div>
-                  <p className="text-xs font-bold text-foreground mb-2">Receipt</p>
-                  {e.receipt_url.match(/\.(jpg|jpeg|png|webp)$/i) ? (
-                    <img src={e.receipt_url} alt="Receipt" className="w-full rounded-xl border border-border object-cover max-h-64" />
-                  ) : (
-                    <a href={e.receipt_url} target="_blank" rel="noopener noreferrer"
-                      className="flex items-center gap-2 rounded-xl border border-border p-3 hover:bg-muted text-sm text-blue-600">
-                      <FileText className="h-4 w-4" /> View Receipt PDF <ExternalLink className="h-3 w-3 ml-auto" />
-                    </a>
+            {/* Sub-tabs: Details / Comments / History */}
+            <div className="flex gap-1 px-5 pt-3 border-b border-border">
+              {([['details','Details',Receipt],['comments',`Comments${comments.length > 0 ? ` (${comments.length})` : ''}`,MessageSquare],['history',`History${auditLog.length > 0 ? ` (${auditLog.length})` : ''}`,History]] as const).map(([id, label, Icon]) => (
+                <button key={id} onClick={() => setActiveDetailTab(id as any)}
+                  className={cn('flex items-center gap-1.5 px-3 py-2 text-xs font-semibold border-b-2 transition-all',
+                    activeDetailTab === id ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground')}>
+                  <Icon className="h-3 w-3" />{label}
+                </button>
+              ))}
+            </div>
+
+            <div className="p-5 space-y-4 overflow-y-auto max-h-[55vh]">
+              {activeDetailTab === 'details' && (<>
+                <div className="grid grid-cols-2 gap-3">
+                  <InfoBlock label="Amount" value={formatCurrency(e.amount, e.currency)} highlight />
+                  {e.currency !== 'GBP' && e.converted_gbp && <InfoBlock label="GBP Equivalent" value={formatCurrency(e.converted_gbp)} />}
+                  <InfoBlock label="Date" value={formatDate(e.date)} />
+                  <InfoBlock label="Merchant" value={e.merchant ?? '—'} />
+                  <InfoBlock label="Category" value={e.expense_categories?.name ?? '—'} />
+                  <InfoBlock label="Payment" value={e.payment_method === 'company_card' ? `Company Card${e.company_cards ? ` ····${e.company_cards.last4}` : ''}` : e.payment_method === 'company_cash' ? 'Cash Withdrawal (Company)' : e.payment_method === 'personal_card' ? 'Personal Card (Claim)' : 'Cash (Claim)'} />
+                  {e.departments && <InfoBlock label="Department" value={e.departments.name} />}
+                  {e.expense_categories?.gl_code && <InfoBlock label="GL Code" value={e.expense_categories.gl_code} />}
+                  {e.receipt_number && <InfoBlock label="Receipt / Invoice No." value={e.receipt_number} />}
+                  {e.vat_number && <InfoBlock label="Supplier VAT No." value={e.vat_number} />}
+                  {e.vat_amount > 0 && <InfoBlock label="VAT Amount" value={formatCurrency(e.vat_amount, e.currency)} />}
+                  {e.status === 'paid' && e.reimbursed_via && (
+                    <InfoBlock label="Reimbursed" value={`${e.reimbursed_via}${e.reimbursement_ref ? ` · ${e.reimbursement_ref}` : ''}${e.reimbursed_at ? ` · ${formatDate(e.reimbursed_at)}` : ''}`} />
                   )}
+                  <div className="col-span-2"><InfoBlock label="Description" value={e.description} /></div>
+                </div>
+                {e.bank_adjustment != null && Math.abs(e.bank_adjustment) > 0.50 && (
+                  <div className="rounded-xl border border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-950/20 p-3 flex items-start gap-2">
+                    <AlertTriangle className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
+                    <div>
+                      <p className="text-xs font-bold text-amber-700 dark:text-amber-400">Bank Statement Discrepancy</p>
+                      <p className="text-xs text-amber-600 mt-0.5">
+                        Bank shows {formatCurrency(e.actual_bank_amount ?? 0)} · Expense {formatCurrency(e.converted_gbp ?? e.amount)} · Difference: {e.bank_adjustment > 0 ? '+' : ''}{formatCurrency(e.bank_adjustment)}
+                      </p>
+                      {e.bank_adjustment_note && <p className="text-xs text-amber-600 mt-0.5 italic">Note: {e.bank_adjustment_note}</p>}
+                    </div>
+                  </div>
+                )}
+                {e.receipt_url && (
+                  <div>
+                    <p className="text-xs font-bold text-foreground mb-2">Receipt</p>
+                    {e.receipt_url.match(/\.(jpg|jpeg|png|webp)$/i) ? (
+                      <img src={e.receipt_url} alt="Receipt" className="w-full rounded-xl border border-border object-cover max-h-64" />
+                    ) : (
+                      <a href={e.receipt_url} target="_blank" rel="noopener noreferrer"
+                        className="flex items-center gap-2 rounded-xl border border-border p-3 hover:bg-muted text-sm text-blue-600">
+                        <FileText className="h-4 w-4" /> View Receipt PDF <ExternalLink className="h-3 w-3 ml-auto" />
+                      </a>
+                    )}
+                  </div>
+                )}
+                {e.expense_approvals?.length > 0 && (
+                  <div>
+                    <p className="text-xs font-bold text-foreground mb-2">Approvals</p>
+                    <div className="space-y-2">
+                      {e.expense_approvals.map((a: any) => (
+                        <div key={a.id} className="flex items-center gap-3 rounded-xl bg-muted/40 p-3">
+                          <div className={cn('h-7 w-7 rounded-full flex items-center justify-center shrink-0 text-white text-xs',
+                            a.decision === 'approved' ? 'bg-emerald-500' : a.decision === 'rejected' ? 'bg-rose-500' : 'bg-amber-500')}>
+                            {a.decision === 'approved' ? '✓' : a.decision === 'rejected' ? '✗' : '?'}
+                          </div>
+                          <div>
+                            <p className="text-xs font-semibold text-foreground">{a.user_profiles?.full_name ?? 'Approver'}</p>
+                            <p className="text-xs text-muted-foreground">{a.note ?? a.decision} {a.decided_at ? `· ${formatDate(a.decided_at)}` : ''}</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </>)}
+
+              {activeDetailTab === 'comments' && (
+                <div className="space-y-3">
+                  {comments.length === 0 && <p className="text-xs text-muted-foreground text-center py-4">No comments yet. Ask a question or leave a note.</p>}
+                  {comments.map((c: any) => (
+                    <div key={c.id} className="rounded-xl bg-muted/40 p-3">
+                      <div className="flex items-center justify-between mb-1">
+                        <p className="text-xs font-semibold text-foreground">{c.user_profiles?.display_name ?? c.user_profiles?.full_name ?? 'User'}</p>
+                        <p className="text-[10px] text-muted-foreground">{new Date(c.created_at).toLocaleString('en-GB', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}</p>
+                      </div>
+                      <p className="text-xs text-foreground">{c.message}</p>
+                    </div>
+                  ))}
+                  <div className="flex gap-2 pt-2">
+                    <input value={newComment} onChange={ev => setNewComment(ev.target.value)}
+                      onKeyDown={ev => { if (ev.key === 'Enter' && !ev.shiftKey) { ev.preventDefault(); handlePostComment() } }}
+                      placeholder="Add a comment..."
+                      className="flex-1 rounded-xl border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30" />
+                    <button onClick={handlePostComment} disabled={postingComment || !newComment.trim()}
+                      className="rounded-xl bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground hover:opacity-90 disabled:opacity-50 transition-opacity">
+                      {postingComment ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Post'}
+                    </button>
+                  </div>
                 </div>
               )}
-              {e.expense_approvals?.length > 0 && (
-                <div>
-                  <p className="text-xs font-bold text-foreground mb-2">Approval History</p>
-                  <div className="space-y-2">
-                    {e.expense_approvals.map((a: any) => (
-                      <div key={a.id} className="flex items-center gap-3 rounded-xl bg-muted/40 p-3">
-                        <div className={cn('h-7 w-7 rounded-full flex items-center justify-center shrink-0 text-white text-xs',
-                          a.decision === 'approved' ? 'bg-emerald-500' : a.decision === 'rejected' ? 'bg-rose-500' : 'bg-amber-500')}>
-                          {a.decision === 'approved' ? '✓' : a.decision === 'rejected' ? '✗' : '?'}
-                        </div>
-                        <div>
-                          <p className="text-xs font-semibold text-foreground">{a.user_profiles?.full_name ?? 'Approver'}</p>
-                          <p className="text-xs text-muted-foreground">{a.note ?? a.decision} {a.decided_at ? `· ${formatDate(a.decided_at)}` : ''}</p>
-                        </div>
+
+              {activeDetailTab === 'history' && (
+                <div className="space-y-2">
+                  {auditLog.length === 0 && <p className="text-xs text-muted-foreground text-center py-4">No audit history available.</p>}
+                  {auditLog.map((log: any) => (
+                    <div key={log.id} className="rounded-xl bg-muted/40 p-3 flex items-start gap-3">
+                      <div className={cn('h-6 w-6 rounded-full flex items-center justify-center shrink-0 text-white text-[10px]',
+                        log.action === 'created' ? 'bg-blue-500' : log.action === 'approved' ? 'bg-emerald-500' : log.action === 'rejected' ? 'bg-rose-500' : log.action === 'paid' ? 'bg-violet-500' : 'bg-slate-400')}>
+                        {log.action === 'created' ? '+' : log.action === 'approved' ? '✓' : log.action === 'rejected' ? '✗' : log.action === 'paid' ? '£' : '~'}
                       </div>
-                    ))}
-                  </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between">
+                          <p className="text-xs font-semibold text-foreground capitalize">{log.action}</p>
+                          <p className="text-[10px] text-muted-foreground">{new Date(log.created_at).toLocaleString('en-GB', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}</p>
+                        </div>
+                        <p className="text-[11px] text-muted-foreground">{log.user_profiles?.display_name ?? log.user_profiles?.full_name ?? 'System'}</p>
+                        {log.changes && Object.keys(log.changes).length > 0 && (
+                          <div className="mt-1 space-y-0.5">
+                            {Object.entries(log.changes).slice(0, 4).map(([field, change]: [string, any]) => (
+                              <p key={field} className="text-[10px] text-muted-foreground">
+                                <span className="font-semibold">{field}</span>: {String(change.from ?? '—')} → {String(change.to ?? '—')}
+                              </p>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
                 </div>
               )}
             </div>
@@ -1102,7 +1479,7 @@ function PurchaseRequestsTab({ userId, allUsers }: { userId: string; allUsers: a
       )}
 
       {showForm && <PrFormModal allUsers={allUsers} currentUserId={userId} onClose={() => setShowForm(false)} onSuccess={() => { setShowForm(false); load() }} />}
-      {selected && <PrDetailModal pr={selected} onClose={() => setSelected(null)} onRefresh={load} />}
+      {selected && <PrDetailModal pr={selected} onClose={() => setSelected(null)} onRefresh={load} allUsers={allUsers} currentUserId={userId} />}
     </div>
   )
 }
@@ -1170,7 +1547,7 @@ function PrFormModal({ onClose, onSuccess, allUsers, currentUserId }: { onClose:
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+    <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
       <div className="w-full max-w-lg bg-card rounded-3xl shadow-2xl overflow-hidden max-h-[90vh] flex flex-col">
         <div className="flex items-center justify-between p-5 border-b border-border">
           <h3 className="text-lg font-bold text-foreground">New Purchase Request</h3>
@@ -1260,10 +1637,37 @@ function PrFormModal({ onClose, onSuccess, allUsers, currentUserId }: { onClose:
   )
 }
 
-function PrDetailModal({ pr, onClose, onRefresh }: { pr: any; onClose: () => void; onRefresh: () => void }) {
+function PrDetailModal({ pr, onClose, onRefresh, allUsers, currentUserId }: {
+  pr: any; onClose: () => void; onRefresh: () => void; allUsers: any[]; currentUserId: string
+}) {
+  const [isPending, startTransition] = useTransition()
+  const urgency = URGENCY_CONFIG[pr.urgency] ?? URGENCY_CONFIG.medium
+  const submitter = allUsers.find((u: any) => u.id === pr.user_id)
+  const approver = allUsers.find((u: any) => u.id === pr.direct_approver_id)
+  const isOwner = pr.user_id === currentUserId
+  const canCancel = isOwner && pr.status === 'submitted'
+  const canDelete = isOwner && ['rejected', 'cancelled'].includes(pr.status)
+  const canDownloadPdf = pr.status === 'approved'
+
+  const handleCancel = () => {
+    startTransition(async () => {
+      const res = await cancelPurchaseRequest(pr.id)
+      if (res.success) { toast.success('Request cancelled'); onRefresh(); onClose() }
+      else toast.error(res.error ?? 'Failed to cancel')
+    })
+  }
+
+  const handleDelete = () => {
+    startTransition(async () => {
+      const res = await deletePurchaseRequest(pr.id)
+      if (res.success) { toast.success('Request deleted'); onRefresh(); onClose() }
+      else toast.error(res.error ?? 'Failed to delete')
+    })
+  }
+
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-      <div className="w-full max-w-lg bg-card rounded-3xl shadow-2xl overflow-hidden">
+    <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+      <div className="w-full max-w-lg bg-card rounded-3xl shadow-2xl overflow-hidden max-h-[90vh] flex flex-col">
         <div className="flex items-center justify-between p-5 border-b border-border">
           <div className="flex items-center gap-3">
             <h3 className="text-lg font-bold text-foreground">{pr.item_name}</h3>
@@ -1271,15 +1675,64 @@ function PrDetailModal({ pr, onClose, onRefresh }: { pr: any; onClose: () => voi
           </div>
           <button onClick={onClose} className="rounded-xl p-2 hover:bg-muted"><X className="h-4 w-4" /></button>
         </div>
-        <div className="p-5 space-y-4 overflow-y-auto max-h-[60vh]">
+        <div className="p-5 space-y-4 overflow-y-auto flex-1">
+          {/* Key details grid */}
           <div className="grid grid-cols-2 gap-3">
-            <InfoBlock label="Estimated Cost" value={formatCurrency(pr.estimated_cost, pr.currency)} highlight />
-            <InfoBlock label="Urgency" value={pr.urgency.charAt(0).toUpperCase() + pr.urgency.slice(1)} />
-            {pr.supplier && <InfoBlock label="Supplier" value={pr.supplier} />}
+            <InfoBlock label="Estimated Cost" value={`${pr.currency !== 'GBP' ? pr.currency + ' ' : ''}${formatCurrency(pr.estimated_cost, pr.currency)}`} highlight />
+            {pr.currency !== 'GBP' && pr.converted_gbp && <InfoBlock label="GBP Equivalent" value={formatCurrency(pr.converted_gbp)} />}
+            <InfoBlock label="Urgency" value={<span className={urgency.color}>{urgency.label}</span> as any} />
             <InfoBlock label="Submitted" value={formatDate(pr.submitted_at)} />
+            {submitter && <InfoBlock label="Submitted By" value={submitter.display_name ?? submitter.full_name ?? submitter.email} />}
+            {approver && <InfoBlock label="Sent To" value={approver.display_name ?? approver.full_name ?? approver.email} />}
+            {pr.supplier && <InfoBlock label="Supplier" value={pr.supplier} />}
           </div>
-          {pr.description && <div className="rounded-xl bg-muted/40 p-3"><p className="text-xs text-muted-foreground font-semibold mb-0.5">Description</p><p className="text-sm">{pr.description}</p></div>}
-          {pr.justification && <div className="rounded-xl bg-muted/40 p-3"><p className="text-xs text-muted-foreground font-semibold mb-0.5">Justification</p><p className="text-sm">{pr.justification}</p></div>}
+
+          {/* Description / Justification */}
+          {pr.description && (
+            <div className="rounded-xl bg-muted/40 p-3">
+              <p className="text-xs text-muted-foreground font-semibold mb-0.5">Description</p>
+              <p className="text-sm text-foreground">{pr.description}</p>
+            </div>
+          )}
+          {pr.justification && (
+            <div className="rounded-xl bg-muted/40 p-3">
+              <p className="text-xs text-muted-foreground font-semibold mb-0.5">Justification / Reason</p>
+              <p className="text-sm text-foreground">{pr.justification}</p>
+            </div>
+          )}
+
+          {/* Approver note / decision */}
+          {pr.notes && (
+            <div className={cn('rounded-xl p-3 border', pr.status === 'rejected' ? 'bg-rose-50 dark:bg-rose-950/20 border-rose-200 dark:border-rose-800' : 'bg-amber-50 dark:bg-amber-950/20 border-amber-200 dark:border-amber-800')}>
+              <p className="text-xs font-semibold text-muted-foreground mb-0.5">
+                {pr.status === 'rejected' ? 'Rejection Reason' : pr.status === 'approved' ? 'Approver Note' : 'Note from Approver'}
+              </p>
+              <p className="text-sm text-foreground">{pr.notes}</p>
+            </div>
+          )}
+
+          {/* Approval history */}
+          {pr.pr_approvals?.length > 0 && (
+            <div>
+              <p className="text-xs font-bold text-foreground mb-2">Approval History</p>
+              <div className="space-y-2">
+                {pr.pr_approvals.map((a: any) => {
+                  const decisionColor = a.decision === 'approved' ? 'text-emerald-600' : a.decision === 'rejected' ? 'text-rose-600' : 'text-amber-600'
+                  return (
+                    <div key={a.id} className="rounded-xl border border-border bg-muted/20 p-3">
+                      <div className="flex items-center justify-between">
+                        <span className={cn('text-xs font-bold capitalize', decisionColor)}>{a.decision}</span>
+                        {a.decided_at && <span className="text-xs text-muted-foreground">{formatDate(a.decided_at)}</span>}
+                      </div>
+                      {a.note && <p className="text-xs text-muted-foreground mt-1 italic">&quot;{a.note}&quot;</p>}
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Attachments */}
           {pr.pr_attachments?.length > 0 && (
             <div>
               <p className="text-xs font-bold text-foreground mb-2">Attachments</p>
@@ -1292,8 +1745,27 @@ function PrDetailModal({ pr, onClose, onRefresh }: { pr: any; onClose: () => voi
             </div>
           )}
         </div>
-        <div className="p-5 border-t border-border">
-          <button onClick={onClose} className="w-full rounded-xl border border-border py-2.5 text-sm font-semibold hover:bg-muted">Close</button>
+
+        <div className="p-5 border-t border-border flex gap-3 flex-wrap">
+          {canDownloadPdf && (
+            <a href={`/api/expenses/purchase-request-pdf/${pr.id}`} target="_blank" rel="noopener noreferrer"
+              className="flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white hover:opacity-90 transition-opacity">
+              <Download className="h-4 w-4" /> Download PDF
+            </a>
+          )}
+          {canCancel && (
+            <button onClick={handleCancel} disabled={isPending}
+              className="rounded-xl border border-rose-200 dark:border-rose-800 text-rose-600 px-4 py-2.5 text-sm font-semibold hover:bg-rose-50 dark:hover:bg-rose-950/30 disabled:opacity-50 flex items-center gap-2">
+              {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <X className="h-4 w-4" />} Cancel Request
+            </button>
+          )}
+          {canDelete && (
+            <button onClick={handleDelete} disabled={isPending}
+              className="rounded-xl border border-rose-200 dark:border-rose-800 text-rose-600 px-4 py-2.5 text-sm font-semibold hover:bg-rose-50 dark:hover:bg-rose-950/30 disabled:opacity-50 flex items-center gap-2">
+              {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />} Delete Request
+            </button>
+          )}
+          <button onClick={onClose} className="flex-1 rounded-xl border border-border py-2.5 text-sm font-semibold hover:bg-muted">Close</button>
         </div>
       </div>
     </div>
@@ -1315,8 +1787,10 @@ function MonthlySheetTab({ canSeeAll, isAdmin, isDirector }: { canSeeAll: boolea
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState('')
   const [uploadingStatement, setUploadingStatement] = useState(false)
+  const [sendingEmailStmtId, setSendingEmailStmtId] = useState<string | null>(null)
   const [expandedPersons, setExpandedPersons] = useState<Set<string>>(new Set())
   const [adjustModal, setAdjustModal] = useState<any | null>(null)
+  const [matchingTxId, setMatchingTxId] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
   const stmtFileRef = useRef<HTMLInputElement>(null)
 
@@ -1369,7 +1843,7 @@ function MonthlySheetTab({ canSeeAll, isAdmin, isDirector }: { canSeeAll: boolea
           e.date, e.user_profiles?.full_name ?? '', e.merchant ?? '', e.description,
           e.expense_categories?.name ?? '', e.payment_method, e.currency,
           e.amount * sign, gross, net,
-          e.vat_amount ?? '', e.vat_rate ? `${e.vat_rate}%` : '', e.vat_number ?? '',
+          e.vat_amount != null ? e.vat_amount * sign : '', e.vat_rate ? `${e.vat_rate}%` : '', e.vat_number ?? '',
           e.receipt_number ?? '', e.status,
           e.actual_bank_amount ?? '', e.bank_adjustment ?? '',
           e.receipt_url ?? '',
@@ -1414,7 +1888,8 @@ function MonthlySheetTab({ canSeeAll, isAdmin, isDirector }: { canSeeAll: boolea
       const res = await fetch('/api/expenses/bank-statement', { method: 'POST', body: fd })
       const data = await res.json()
       if (res.ok) {
-        toast.success(`AI matched ${data.matched} of ${data.total} transactions`)
+        const who = data.cardholderName ? ` · ${data.cardholderName}'s card` : ''
+        toast.success(`AI matched ${data.matched} of ${data.total} transactions${who}`)
         load()
       } else {
         toast.error(data.error ?? 'Failed to process statement')
@@ -1427,10 +1902,31 @@ function MonthlySheetTab({ canSeeAll, isAdmin, isDirector }: { canSeeAll: boolea
 
   const handleDeleteStatement = (id: string) => {
     startTransition(async () => {
-      await deleteBankStatement(id)
+      const res = await deleteBankStatement(id) as any
+      if (!res.success) { toast.error(res.error ?? 'Failed to delete statement'); return }
       toast.success('Statement removed')
       load()
     })
+  }
+
+  const handleSendMissingReceiptEmail = async (stmtId: string) => {
+    setSendingEmailStmtId(stmtId)
+    try {
+      const res = await fetch('/api/expenses/bank-statement/send-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ statementId: stmtId }),
+      })
+      const data = await res.json()
+      if (res.ok) {
+        toast.success(`Email sent to ${data.sentTo} — ${data.count} missing receipt${data.count !== 1 ? 's' : ''}`)
+      } else {
+        toast.error(data.error ?? 'Failed to send email')
+      }
+    } catch (e: any) {
+      toast.error(e.message ?? 'Failed to send email')
+    }
+    setSendingEmailStmtId(null)
   }
 
   const handleAdjust = (amount: number, note: string) => {
@@ -1447,6 +1943,36 @@ function MonthlySheetTab({ canSeeAll, isAdmin, isDirector }: { canSeeAll: boolea
       const next = new Set(prev)
       next.has(name) ? next.delete(name) : next.add(name)
       return next
+    })
+  }
+
+  const handleUnlinkTx = (txId: string) => {
+    startTransition(async () => {
+      const res = await updateTransactionMatch(txId, null, 'unmatched') as any
+      if (!res.success) { toast.error(res.error ?? 'Failed to unlink transaction'); return }
+      load()
+    })
+  }
+  const handleAcceptTx = (txId: string, expenseId: string) => {
+    startTransition(async () => {
+      const res = await updateTransactionMatch(txId, expenseId, 'matched') as any
+      if (!res.success) { toast.error(res.error ?? 'Failed to match transaction'); return }
+      load()
+    })
+  }
+  const handleMarkReviewedTx = (txId: string) => {
+    startTransition(async () => {
+      const res = await updateTransactionMatch(txId, null, 'ignored') as any
+      if (!res.success) { toast.error(res.error ?? 'Failed to update transaction'); return }
+      toast.success('Transaction marked as reviewed')
+      load()
+    })
+  }
+  const handleMarkReconciled = (stmtId: string) => {
+    startTransition(async () => {
+      const res = await markBankStatementReconciled(stmtId) as any
+      if (res.success) { toast.success('Month marked as reconciled ✓'); load() }
+      else toast.error(res.error)
     })
   }
 
@@ -1529,73 +2055,143 @@ function MonthlySheetTab({ canSeeAll, isAdmin, isDirector }: { canSeeAll: boolea
             <h3 className="text-sm font-bold text-foreground">Bank Statement Reconciliation</h3>
             <span className="ml-auto text-xs text-muted-foreground">{statements.length} statement{statements.length > 1 ? 's' : ''} for {month}</span>
           </div>
-          {statements.map((stmt: any) => (
-            <div key={stmt.id} className="rounded-xl bg-card border border-border p-3">
-              <div className="flex items-center justify-between mb-2">
-                <div>
-                  <p className="text-sm font-semibold text-foreground">{stmt.bank_name || 'Bank Statement'}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {stmt.matched_count} of {stmt.total_transactions} debits matched
-                    {stmt.matched_count < stmt.total_transactions && ` · ${stmt.total_transactions - stmt.matched_count} unmatched`}
-                  </p>
+          {statements.map((stmt: any) => {
+            const debits = (stmt.bank_statement_transactions ?? []).filter((t: any) => t.type === 'debit')
+            const unmatchedDebits = debits.filter((t: any) => t.match_status === 'unmatched').length
+            const reconciledBy = stmt.user_profiles?.display_name ?? stmt.user_profiles?.full_name ?? 'unknown'
+            return (
+              <div key={stmt.id} className="rounded-xl bg-card border border-border p-3">
+                <div className="flex items-center justify-between mb-2">
+                  <div>
+                    <p className="text-sm font-semibold text-foreground">{stmt.bank_name || 'Bank Statement'}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {stmt.matched_count} of {stmt.total_transactions} debits matched
+                      {unmatchedDebits > 0 && ` · ${unmatchedDebits} need attention`}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {stmt.reconciled_at ? (
+                      <span className="rounded-full px-2 py-0.5 text-xs font-semibold bg-emerald-100 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-400">
+                        ✓ Reconciled
+                      </span>
+                    ) : unmatchedDebits === 0 && stmt.total_transactions > 0 ? (
+                      <span className="rounded-full px-2 py-0.5 text-xs font-semibold bg-blue-100 text-blue-700">All Matched</span>
+                    ) : (
+                      <span className="rounded-full px-2 py-0.5 text-xs font-semibold bg-amber-100 text-amber-700 dark:bg-amber-950/30 dark:text-amber-400">
+                        {unmatchedDebits} Issues
+                      </span>
+                    )}
+                    {stmt.file_url && (
+                      <a href={stmt.file_url} target="_blank" rel="noopener noreferrer"
+                        className="rounded-lg p-1.5 hover:bg-muted text-blue-600"><Eye className="h-3.5 w-3.5" /></a>
+                    )}
+                    <button
+                      onClick={() => handleSendMissingReceiptEmail(stmt.id)}
+                      disabled={sendingEmailStmtId === stmt.id}
+                      title="Send missing receipt email to cardholder"
+                      className="rounded-lg p-1.5 hover:bg-blue-50 dark:hover:bg-blue-950/20 text-blue-600 disabled:opacity-50">
+                      {sendingEmailStmtId === stmt.id
+                        ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        : <Mail className="h-3.5 w-3.5" />}
+                    </button>
+                    <button onClick={() => handleDeleteStatement(stmt.id)} disabled={isPending}
+                      className="rounded-lg p-1.5 hover:bg-rose-50 dark:hover:bg-rose-950/20 text-rose-500">
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <span className={cn('rounded-full px-2 py-0.5 text-xs font-semibold',
-                    stmt.matched_count === stmt.total_transactions
-                      ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-400'
-                      : 'bg-amber-100 text-amber-700 dark:bg-amber-950/30 dark:text-amber-400')}>
-                    {stmt.matched_count === stmt.total_transactions ? '✓ Fully Matched' : 'Partial'}
-                  </span>
-                  {stmt.file_url && (
-                    <a href={stmt.file_url} target="_blank" rel="noopener noreferrer"
-                      className="rounded-lg p-1.5 hover:bg-muted text-blue-600"><Eye className="h-3.5 w-3.5" /></a>
+                {stmt.bank_statement_transactions?.length > 0 && (
+                  <div className="overflow-x-auto mt-2">
+                    <table className="w-full text-xs">
+                      <thead>
+                        <tr className="border-b border-border/50">
+                          <th className="text-left py-1.5 pr-3 font-semibold text-muted-foreground">Date</th>
+                          <th className="text-left py-1.5 pr-3 font-semibold text-muted-foreground">Description</th>
+                          <th className="text-right py-1.5 pr-3 font-semibold text-muted-foreground">Amount</th>
+                          <th className="text-left py-1.5 font-semibold text-muted-foreground">Status / Action</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {stmt.bank_statement_transactions.map((tx: any) => (
+                          <tr key={tx.id} className="border-b border-border/30">
+                            <td className="py-1.5 pr-3 text-muted-foreground whitespace-nowrap">{tx.transaction_date}</td>
+                            <td className="py-1.5 pr-3 text-foreground max-w-48 truncate">{tx.description}</td>
+                            <td className={cn('py-1.5 pr-3 text-right font-semibold whitespace-nowrap',
+                              tx.type === 'credit' ? 'text-emerald-600' : 'text-foreground')}>
+                              {tx.type === 'credit' ? '+' : ''}{formatCurrency(tx.amount)}
+                            </td>
+                            <td className="py-1.5">
+                              {tx.type === 'credit' ? (
+                                <span className="text-muted-foreground">Credit</span>
+                              ) : tx.match_status === 'matched' ? (
+                                <div className="flex items-center gap-2">
+                                  <span className="flex items-center gap-1 text-emerald-600"><CheckCircle2 className="h-3 w-3" /> Matched</span>
+                                  <button onClick={() => handleUnlinkTx(tx.id)} disabled={isPending}
+                                    className="text-[10px] text-rose-500 hover:underline font-semibold">Unlink</button>
+                                </div>
+                              ) : tx.match_status === 'partial' ? (
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <span className="flex items-center gap-1 text-amber-600"><AlertCircle className="h-3 w-3" /> Suggested</span>
+                                  <button onClick={() => handleAcceptTx(tx.id, tx.matched_expense_id)} disabled={isPending}
+                                    className="text-[10px] text-emerald-600 hover:underline font-semibold">Accept</button>
+                                  <button onClick={() => handleMarkReviewedTx(tx.id)} disabled={isPending}
+                                    className="text-[10px] text-slate-500 hover:underline">Skip</button>
+                                </div>
+                              ) : tx.match_status === 'ignored' ? (
+                                <span className="text-muted-foreground text-[10px] italic">Reviewed — no expense</span>
+                              ) : (
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <span className="flex items-center gap-1 text-rose-500"><AlertTriangle className="h-3 w-3" /> No match</span>
+                                  <button onClick={() => handleMarkReviewedTx(tx.id)} disabled={isPending}
+                                    className="text-[10px] text-slate-500 hover:underline">Mark Reviewed</button>
+                                  <button onClick={() => setMatchingTxId(tx.id)} disabled={isPending}
+                                    className="text-[10px] text-blue-600 hover:underline font-semibold">Find Expense</button>
+                                </div>
+                              )}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+                {/* Sign-off */}
+                <div className="mt-3">
+                  {stmt.reconciled_at ? (
+                    <div className="rounded-lg bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 px-3 py-2 flex items-center gap-2">
+                      <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600 shrink-0" />
+                      <p className="text-xs text-emerald-700">Reconciled by {reconciledBy} on {formatDate(stmt.reconciled_at)}</p>
+                    </div>
+                  ) : unmatchedDebits === 0 && stmt.total_transactions > 0 ? (
+                    <button onClick={() => handleMarkReconciled(stmt.id)} disabled={isPending}
+                      className="w-full rounded-lg bg-emerald-600 py-2 text-xs font-bold text-white hover:opacity-90 disabled:opacity-50 flex items-center justify-center gap-1.5">
+                      <CheckCircle2 className="h-3.5 w-3.5" /> Mark Month as Reconciled
+                    </button>
+                  ) : (
+                    <p className="text-xs text-muted-foreground text-center py-1">
+                      Resolve {unmatchedDebits} unmatched transaction{unmatchedDebits !== 1 ? 's' : ''} to sign off
+                    </p>
                   )}
-                  <button onClick={() => handleDeleteStatement(stmt.id)} disabled={isPending}
-                    className="rounded-lg p-1.5 hover:bg-rose-50 dark:hover:bg-rose-950/20 text-rose-500">
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </button>
                 </div>
               </div>
-              {stmt.bank_statement_transactions?.length > 0 && (
-                <div className="overflow-x-auto mt-2">
-                  <table className="w-full text-xs">
-                    <thead>
-                      <tr className="border-b border-border/50">
-                        <th className="text-left py-1.5 pr-3 font-semibold text-muted-foreground">Date</th>
-                        <th className="text-left py-1.5 pr-3 font-semibold text-muted-foreground">Description</th>
-                        <th className="text-right py-1.5 pr-3 font-semibold text-muted-foreground">Amount</th>
-                        <th className="text-left py-1.5 font-semibold text-muted-foreground">Status</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {stmt.bank_statement_transactions.map((tx: any) => (
-                        <tr key={tx.id} className="border-b border-border/30">
-                          <td className="py-1.5 pr-3 text-muted-foreground whitespace-nowrap">{tx.transaction_date}</td>
-                          <td className="py-1.5 pr-3 text-foreground max-w-56 truncate">{tx.description}</td>
-                          <td className={cn('py-1.5 pr-3 text-right font-semibold',
-                            tx.type === 'credit' ? 'text-emerald-600' : 'text-foreground')}>
-                            {tx.type === 'credit' ? '+' : ''}{formatCurrency(tx.amount)}
-                          </td>
-                          <td className="py-1.5">
-                            {tx.match_status === 'matched' ? (
-                              <span className="flex items-center gap-1 text-emerald-600"><CheckCircle2 className="h-3 w-3" /> Matched</span>
-                            ) : tx.match_status === 'partial' ? (
-                              <span className="flex items-center gap-1 text-amber-600"><AlertCircle className="h-3 w-3" /> Suggested</span>
-                            ) : tx.match_status === 'credit' ? (
-                              <span className="text-muted-foreground">Credit</span>
-                            ) : (
-                              <span className="flex items-center gap-1 text-rose-500"><AlertTriangle className="h-3 w-3" /> No match</span>
-                            )}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </div>
-          ))}
+            )
+          })}
         </div>
+      )}
+      {/* Find Expense modal */}
+      {matchingTxId && (
+        <FindExpenseModal
+          expenses={expenses}
+          onSelect={(expId) => {
+            startTransition(async () => {
+              await updateTransactionMatch(matchingTxId, expId, 'matched')
+              setMatchingTxId(null)
+              toast.success('Transaction linked to expense')
+              load()
+            })
+          }}
+          onClose={() => setMatchingTxId(null)}
+        />
       )}
 
       {/* Main content */}
@@ -1620,6 +2216,48 @@ function MonthlySheetTab({ canSeeAll, isAdmin, isDirector }: { canSeeAll: boolea
 }
 
 // ── Transaction list view ─────────────────────────────────────
+
+// ── Find Expense Modal (for manual bank transaction matching) ──
+
+function FindExpenseModal({ expenses, onSelect, onClose }: { expenses: any[]; onSelect: (expId: string) => void; onClose: () => void }) {
+  const [q, setQ] = useState('')
+  const results = expenses.filter(e =>
+    !q || e.description?.toLowerCase().includes(q.toLowerCase()) ||
+    e.merchant?.toLowerCase().includes(q.toLowerCase()) ||
+    String(e.amount).includes(q)
+  ).slice(0, 20)
+  return (
+    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+      <div className="w-full max-w-md bg-card rounded-3xl shadow-2xl overflow-hidden">
+        <div className="flex items-center justify-between p-5 border-b border-border">
+          <h3 className="text-base font-bold text-foreground">Link to Expense</h3>
+          <button onClick={onClose} className="rounded-xl p-2 hover:bg-muted"><X className="h-4 w-4" /></button>
+        </div>
+        <div className="p-4">
+          <input value={q} onChange={e => setQ(e.target.value)} autoFocus
+            placeholder="Search by description, merchant, or amount…"
+            className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 mb-3" />
+          <div className="space-y-1.5 max-h-72 overflow-y-auto">
+            {results.length === 0 ? (
+              <p className="text-xs text-muted-foreground text-center py-4">No expenses found</p>
+            ) : results.map((e: any) => (
+              <button key={e.id} onClick={() => onSelect(e.id)}
+                className="w-full text-left rounded-xl border border-border p-3 hover:border-primary/40 hover:bg-muted/30 transition-all">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs font-semibold text-foreground">{e.description}</p>
+                    <p className="text-[11px] text-muted-foreground">{e.date} · {e.merchant ?? ''} · {e.user_profiles?.display_name ?? e.user_profiles?.full_name ?? ''}</p>
+                  </div>
+                  <p className="text-sm font-bold text-foreground ml-3">{formatCurrency(e.converted_gbp ?? e.amount)}</p>
+                </div>
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
 
 function MonthlyListView({ expenses, onAdjust }: { expenses: any[]; onAdjust?: (e: any) => void }) {
   const totalGbp = expenses.reduce((s, e) => s + (e.converted_gbp ?? e.amount), 0)
@@ -1860,9 +2498,13 @@ function MonthlyAccountingView({ expenses, statements }: { expenses: any[]; stat
   }, {} as Record<string, any>)
   const catList = Object.values(byCategory).sort((a: any, b: any) => b.gross - a.gross)
 
-  // By payment method
+  // By payment method — refunds are credits back to company card, so group them there as negative
   const byMethod: Record<string, number> = {}
-  expenses.forEach(e => { byMethod[e.payment_method] = (byMethod[e.payment_method] ?? 0) + (e.converted_gbp ?? e.amount) })
+  expenses.forEach(e => {
+    const key  = e.payment_method === 'refund' ? 'company_card' : e.payment_method
+    const sign = e.payment_method === 'refund' ? -1 : 1
+    byMethod[key] = (byMethod[key] ?? 0) + (e.converted_gbp ?? e.amount) * sign
+  })
 
   // Bank adjustments
   const adjustments = expenses.filter(e => e.bank_adjustment && Math.abs(e.bank_adjustment) > 0.001)
@@ -1872,7 +2514,8 @@ function MonthlyAccountingView({ expenses, statements }: { expenses: any[]; stat
   const refunds = expenses.filter(e => e.payment_method === 'refund')
 
   const methodLabel: Record<string, string> = {
-    company_card: 'Company Card', personal_card: 'Personal Card', personal_cash: 'Cash', refund: 'Refund',
+    company_card: 'Company Card', company_cash: 'Cash Withdrawal (Company)',
+    personal_card: 'Personal Card (Claim)', personal_cash: 'Cash (Claim)',
   }
 
   return (
@@ -1880,7 +2523,7 @@ function MonthlyAccountingView({ expenses, statements }: { expenses: any[]; stat
       {/* Grand totals */}
       <div className="rounded-2xl border border-border bg-card p-5">
         <h3 className="font-bold text-foreground mb-4 flex items-center gap-2"><Scale className="h-4 w-4" /> Grand Totals</h3>
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div className="rounded-xl bg-blue-50 dark:bg-blue-950/20 p-4 text-center">
             <p className="text-xs font-semibold text-blue-700 dark:text-blue-400 mb-1">GROSS</p>
             <p className="text-2xl font-black text-blue-900 dark:text-blue-200">{formatCurrency(grossTotal)}</p>
@@ -2024,7 +2667,7 @@ function BankAdjustmentModal({ expense: e, onSave, onClose, isPending }: {
   const [note, setNote] = useState(e.bank_adjustment_note ?? '')
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
       <div className="w-full max-w-sm bg-card rounded-3xl shadow-2xl p-6">
         <h3 className="text-base font-bold text-foreground mb-1">Record Actual Bank Amount</h3>
         <p className="text-xs text-muted-foreground mb-4">
@@ -2069,7 +2712,7 @@ function BankAdjustmentModal({ expense: e, onSave, onClose, isPending }: {
 function ApprovalsTab() {
   const [data, setData] = useState<{ expenses: any[]; prs: any[] }>({ expenses: [], prs: [] })
   const [loading, setLoading] = useState(true)
-  const [actionModal, setActionModal] = useState<{ type: 'expense' | 'pr'; id: string; title: string } | null>(null)
+  const [actionModal, setActionModal] = useState<{ type: 'expense' | 'pr'; id: string; title: string; action: 'approve' | 'reject' } | null>(null)
   const [isPending, startTransition] = useTransition()
 
   const load = useCallback(async () => {
@@ -2081,17 +2724,29 @@ function ApprovalsTab() {
 
   useEffect(() => { load() }, [load])
 
-  const handleDecide = (decision: 'approved' | 'rejected', note: string) => {
+  const handleDecide = (note: string) => {
     if (!actionModal) return
+    const decision = actionModal.action === 'approve' ? 'approved' : 'rejected'
+    // Optimistically remove from list immediately
+    setData(prev => ({
+      expenses: prev.expenses.filter(e => e.id !== actionModal.id),
+      prs: prev.prs.filter(p => p.id !== actionModal.id),
+    }))
+    setActionModal(null)
     startTransition(async () => {
+      let result: { success: boolean; error?: string } | undefined
       if (actionModal.type === 'expense') {
-        await updateExpenseStatus(actionModal.id, decision, note)
+        result = await updateExpenseStatus(actionModal.id, decision, note)
       } else {
-        await updatePurchaseRequestStatus(actionModal.id, decision, note)
+        result = await updatePurchaseRequestStatus(actionModal.id, decision, note)
       }
-      toast.success(decision === 'approved' ? 'Approved successfully' : 'Rejected')
-      setActionModal(null)
-      load()
+      if (result && !result.success) {
+        toast.error(result.error ?? 'Action failed — please try again')
+        load() // reload to restore the item in the list
+      } else {
+        toast.success(decision === 'approved' ? 'Approved successfully' : 'Rejected')
+        load()
+      }
     })
   }
 
@@ -2147,11 +2802,11 @@ function ApprovalsTab() {
                             </a>
                           )}
                           <div className="ml-auto flex gap-2">
-                            <button onClick={() => setActionModal({ type: 'expense', id: e.id, title: `${e.user_profiles?.full_name} — ${formatCurrency(e.amount, e.currency)}` })}
+                            <button onClick={() => setActionModal({ type: 'expense', id: e.id, title: `${e.user_profiles?.full_name} — ${formatCurrency(e.amount, e.currency)}`, action: 'approve' })}
                               className="rounded-xl bg-emerald-600 px-3 py-1.5 text-xs font-bold text-white hover:opacity-90 flex items-center gap-1.5">
                               <Check className="h-3.5 w-3.5" /> Approve
                             </button>
-                            <button onClick={() => setActionModal({ type: 'expense', id: e.id, title: `Reject — ${e.user_profiles?.full_name}` })}
+                            <button onClick={() => setActionModal({ type: 'expense', id: e.id, title: `${e.user_profiles?.full_name} — ${formatCurrency(e.amount, e.currency)}`, action: 'reject' })}
                               className="rounded-xl border border-rose-200 dark:border-rose-800 text-rose-600 px-3 py-1.5 text-xs font-bold hover:bg-rose-50 dark:hover:bg-rose-950/30 flex items-center gap-1.5">
                               <X className="h-3.5 w-3.5" /> Reject
                             </button>
@@ -2202,11 +2857,11 @@ function ApprovalsTab() {
                               </a>
                             )}
                             <div className="ml-auto flex gap-2">
-                              <button onClick={() => setActionModal({ type: 'pr', id: pr.id, title: `${pr.item_name} — ${pr.user_profiles?.full_name}` })}
+                              <button onClick={() => setActionModal({ type: 'pr', id: pr.id, title: `${pr.item_name} — ${pr.user_profiles?.full_name ?? ''}`, action: 'approve' })}
                                 className="rounded-xl bg-emerald-600 px-3 py-1.5 text-xs font-bold text-white hover:opacity-90 flex items-center gap-1.5">
                                 <Check className="h-3.5 w-3.5" /> Approve
                               </button>
-                              <button onClick={() => setActionModal({ type: 'pr', id: pr.id, title: `Reject — ${pr.item_name}` })}
+                              <button onClick={() => setActionModal({ type: 'pr', id: pr.id, title: `${pr.item_name} — ${pr.user_profiles?.full_name ?? ''}`, action: 'reject' })}
                                 className="rounded-xl border border-rose-200 dark:border-rose-800 text-rose-600 px-3 py-1.5 text-xs font-bold hover:bg-rose-50 dark:hover:bg-rose-950/30 flex items-center gap-1.5">
                                 <X className="h-3.5 w-3.5" /> Reject
                               </button>
@@ -2224,34 +2879,37 @@ function ApprovalsTab() {
       )}
 
       {/* Decision modal */}
-      {actionModal && <DecisionModal title={actionModal.title} onDecide={handleDecide} onClose={() => setActionModal(null)} isPending={isPending} />}
+      {actionModal && <DecisionModal title={actionModal.title} action={actionModal.action} onDecide={handleDecide} onClose={() => setActionModal(null)} isPending={isPending} />}
     </div>
   )
 }
 
-function DecisionModal({ title, onDecide, onClose, isPending }: {
-  title: string; onDecide: (d: 'approved' | 'rejected', note: string) => void; onClose: () => void; isPending: boolean
+function DecisionModal({ title, action, onDecide, onClose, isPending }: {
+  title: string; action: 'approve' | 'reject'; onDecide: (note: string) => void; onClose: () => void; isPending: boolean
 }) {
   const [note, setNote] = useState('')
-  const [decision, setDecision] = useState<'approved' | 'rejected' | null>(null)
+  const isApprove = action === 'approve'
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
       <div className="w-full max-w-sm bg-card rounded-3xl shadow-2xl p-6">
-        <h3 className="text-base font-bold text-foreground mb-1">{title}</h3>
-        <p className="text-sm text-muted-foreground mb-4">Add an optional note, then approve or reject.</p>
+        <div className="flex items-center gap-3 mb-1">
+          <div className={cn('h-8 w-8 rounded-xl flex items-center justify-center shrink-0', isApprove ? 'bg-emerald-100 dark:bg-emerald-950/40' : 'bg-rose-100 dark:bg-rose-950/40')}>
+            {isApprove ? <Check className="h-4 w-4 text-emerald-600" /> : <X className="h-4 w-4 text-rose-600" />}
+          </div>
+          <h3 className="text-base font-bold text-foreground">{isApprove ? 'Approve' : 'Reject'}</h3>
+        </div>
+        <p className="text-sm text-muted-foreground mb-4 ml-11">{title}</p>
         <textarea value={note} onChange={e => setNote(e.target.value)}
-          placeholder="Note (optional)..." rows={3}
+          placeholder={isApprove ? 'Add a note (optional)...' : 'Reason for rejection (optional)...'} rows={3}
           className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 resize-none mb-4" />
         <div className="flex gap-3">
-          <button onClick={onClose} className="flex-1 rounded-xl border border-border py-2.5 text-sm font-semibold hover:bg-muted">Cancel</button>
-          <button onClick={() => onDecide('rejected', note)} disabled={isPending}
-            className="flex-1 rounded-xl bg-rose-600 py-2.5 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-50">
-            Reject
-          </button>
-          <button onClick={() => onDecide('approved', note)} disabled={isPending}
-            className="flex-1 rounded-xl bg-emerald-600 py-2.5 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-50 flex items-center justify-center gap-1.5">
-            {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />} Approve
+          <button onClick={onClose} disabled={isPending} className="flex-1 rounded-xl border border-border py-2.5 text-sm font-semibold hover:bg-muted disabled:opacity-50">Cancel</button>
+          <button onClick={() => onDecide(note)} disabled={isPending}
+            className={cn('flex-1 rounded-xl py-2.5 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-50 flex items-center justify-center gap-1.5',
+              isApprove ? 'bg-emerald-600' : 'bg-rose-600')}>
+            {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : isApprove ? <Check className="h-4 w-4" /> : <X className="h-4 w-4" />}
+            {isApprove ? 'Approve' : 'Reject'}
           </button>
         </div>
       </div>
@@ -2287,6 +2945,7 @@ function AnalyticsTab() {
   )
   const [data, setData] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  const [directorData, setDirectorData] = useState<{ ytd: any[]; allStatus: any[]; vatTrend: any[] } | null>(null)
 
   // Available months (last 24)
   const availableMonths = (() => {
@@ -2356,7 +3015,7 @@ function AnalyticsTab() {
   const byPerson = (() => {
     const map: Record<string, { name: string; total: number }> = {}
     data.forEach(e => {
-      const n = e.user_profiles?.full_name ?? 'Unknown'
+      const n = e.user_profiles?.display_name ?? e.user_profiles?.full_name ?? 'Unknown'
       if (!map[n]) map[n] = { name: n, total: 0 }
       map[n].total += e.payment_method === 'refund' ? -(e.converted_gbp ?? e.amount) : (e.converted_gbp ?? e.amount)
     })
@@ -2367,6 +3026,114 @@ function AnalyticsTab() {
   const totalVat     = data.reduce((s, e) => s + (e.payment_method === 'refund' ? -(e.vat_amount ?? 0) : (e.vat_amount ?? 0)), 0)
   const claimsTotal  = data.filter(e => ['personal_card', 'personal_cash'].includes(e.payment_method))
                           .reduce((s, e) => s + (e.converted_gbp ?? e.amount), 0)
+
+  // ── Director analytics computations ─────────────────────────
+  const ytdTotal = (directorData?.ytd ?? []).reduce((s, e) => {
+    const sign = e.payment_method === 'refund' ? -1 : 1
+    return s + (e.converted_gbp ?? e.amount) * sign
+  }, 0)
+  const ytdCount = (directorData?.ytd ?? []).length
+  const ytdAvg = ytdCount > 0 ? ytdTotal / ytdCount : 0
+
+  const pendingTotal = (directorData?.allStatus ?? [])
+    .filter((e: any) => e.status === 'submitted')
+    .reduce((s: number, e: any) => s + (e.converted_gbp ?? e.amount), 0)
+  const pendingCount = (directorData?.allStatus ?? []).filter((e: any) => e.status === 'submitted').length
+
+  // Month vs last month — grouped by category
+  const thisMonthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
+  const lastMonthDate = new Date(now.getFullYear(), now.getMonth() - 1, 1)
+  const lastMonthKey = `${lastMonthDate.getFullYear()}-${String(lastMonthDate.getMonth() + 1).padStart(2, '0')}`
+  const monthVsLastData = (() => {
+    const cats: Record<string, { category: string; thisMonth: number; lastMonth: number }> = {}
+    for (const e of (directorData?.allStatus ?? [])) {
+      const m = e.date?.slice(0, 7)
+      if (m !== thisMonthKey && m !== lastMonthKey) continue
+      const cat = 'Total Spend'
+      if (!cats[cat]) cats[cat] = { category: cat, thisMonth: 0, lastMonth: 0 }
+      const sign = e.payment_method === 'refund' ? -1 : 1
+      const amt = (e.converted_gbp ?? e.amount) * sign
+      if (m === thisMonthKey) cats[cat].thisMonth += amt
+      else cats[cat].lastMonth += amt
+    }
+    // Also break down by payment method — refunds are credits back to company card
+    const methods: Record<string, { category: string; thisMonth: number; lastMonth: number }> = {}
+    for (const e of (directorData?.allStatus ?? [])) {
+      const m = e.date?.slice(0, 7)
+      if (m !== thisMonthKey && m !== lastMonthKey) continue
+      const label = ({ company_card: 'Company Card', company_cash: 'Cash Out', personal_card: 'Personal Card', personal_cash: 'Cash Claim', refund: 'Company Card' } as any)[e.payment_method] ?? e.payment_method
+      if (!methods[label]) methods[label] = { category: label, thisMonth: 0, lastMonth: 0 }
+      const sign = e.payment_method === 'refund' ? -1 : 1
+      const amt = (e.converted_gbp ?? e.amount) * sign
+      if (m === thisMonthKey) methods[label].thisMonth += amt
+      else methods[label].lastMonth += amt
+    }
+    return Object.values(methods).map(v => ({ ...v, thisMonth: Math.round(v.thisMonth * 100) / 100, lastMonth: Math.round(v.lastMonth * 100) / 100 }))
+  })()
+
+  const vatByMonthData = (() => {
+    const map: Record<string, number> = {}
+    for (const e of (directorData?.vatTrend ?? [])) {
+      const m = e.date?.slice(0, 7)
+      if (!m) continue
+      const sign = e.payment_method === 'refund' ? -1 : 1
+      map[m] = (map[m] ?? 0) + (e.vat_amount ?? 0) * sign
+    }
+    return Object.entries(map).sort(([a], [b]) => a.localeCompare(b)).map(([m, vat]) => ({
+      month: new Date(m + '-01').toLocaleDateString('en-GB', { month: 'short', year: '2-digit' }),
+      vat: Math.round((vat as number) * 100) / 100,
+    }))
+  })()
+
+  const paymentMethodData = (() => {
+    const map: Record<string, number> = {}
+    for (const e of (directorData?.allStatus ?? [])) {
+      const m = e.date?.slice(0, 7)
+      if (m !== thisMonthKey) continue
+      // Refunds are credits back to company card — group them there as negative
+      const label = ({ company_card: 'Company Card', company_cash: 'Cash Out', personal_card: 'Personal Card', personal_cash: 'Cash Claim', refund: 'Company Card' } as any)[e.payment_method] ?? e.payment_method
+      const sign = e.payment_method === 'refund' ? -1 : 1
+      map[label] = (map[label] ?? 0) + (e.converted_gbp ?? e.amount) * sign
+    }
+    return Object.entries(map).filter(([, v]) => v > 0).map(([method, total]) => ({ method, total: Math.round((total as number) * 100) / 100 }))
+  })()
+
+  const top5Merchants = (() => {
+    const map: Record<string, number> = {}
+    for (const e of (directorData?.allStatus ?? [])) {
+      if (!e.merchant) continue
+      const sign = e.payment_method === 'refund' ? -1 : 1
+      map[e.merchant] = (map[e.merchant] ?? 0) + (e.converted_gbp ?? e.amount) * sign
+    }
+    return Object.entries(map).filter(([, v]) => v > 0).sort(([, a], [, b]) => (b as number) - (a as number)).slice(0, 5).map(([merchant, total]) => ({ merchant, total: Math.round((total as number) * 100) / 100 }))
+  })()
+
+  const claimsOutstanding = (() => {
+    const map: Record<string, { name: string; total: number; count: number }> = {}
+    for (const e of (directorData?.allStatus ?? [])) {
+      if (e.status !== 'submitted' || !['personal_card', 'personal_cash'].includes(e.payment_method)) continue
+      const n = e.user_profiles?.display_name ?? e.user_profiles?.full_name ?? 'Unknown'
+      if (!map[n]) map[n] = { name: n, total: 0, count: 0 }
+      map[n].total += e.converted_gbp ?? e.amount
+      map[n].count++
+    }
+    return Object.values(map).sort((a, b) => b.total - a.total)
+  })()
+
+  const spendByStatusData = (() => {
+    const map: Record<string, { month: string; approved: number; pending: number; paid: number }> = {}
+    for (const e of (directorData?.allStatus ?? [])) {
+      const m = e.date?.slice(0, 7)
+      if (!m) continue
+      if (!map[m]) map[m] = { month: new Date(m + '-01').toLocaleDateString('en-GB', { month: 'short', year: '2-digit' }), approved: 0, pending: 0, paid: 0 }
+      const sign = e.payment_method === 'refund' ? -1 : 1
+      const amt = (e.converted_gbp ?? e.amount) * sign
+      if (e.status === 'approved') map[m].approved += amt
+      else if (e.status === 'submitted') map[m].pending += amt
+      else if (e.status === 'paid') map[m].paid += amt
+    }
+    return Object.values(map).sort((a, b) => a.month.localeCompare(b.month))
+  })()
 
   return (
     <div className="space-y-6">
@@ -2418,12 +3185,19 @@ function AnalyticsTab() {
         <EmptyState icon={BarChart3} title="No data for this period" sub="Approve some expenses to see analytics" />
       ) : (
         <>
-          {/* KPIs */}
+          {/* KPIs — period */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
             <StatCard label="Total Gross" value={formatCurrency(totalSpend)} icon={TrendingUp} color="bg-gradient-to-br from-blue-500 to-blue-600" />
             <StatCard label="VAT Reclaimable" value={formatCurrency(totalVat)} icon={FileText} color="bg-gradient-to-br from-violet-500 to-violet-600" />
             <StatCard label="Claims to Pay" value={formatCurrency(claimsTotal)} sub="personal card / cash" icon={Wallet} color="bg-gradient-to-br from-amber-500 to-amber-600" />
             <StatCard label="Transactions" value={String(data.length)} icon={Receipt} color="bg-gradient-to-br from-emerald-500 to-emerald-600" />
+          </div>
+          {/* Director KPIs — YTD & live */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <StatCard label="YTD Total (FY)" value={formatCurrency(ytdTotal)} sub={`${ytdCount} expenses`} icon={TrendingUp} color="bg-gradient-to-br from-indigo-500 to-indigo-600" />
+            <StatCard label="Avg per Expense" value={formatCurrency(ytdAvg)} sub="year to date" icon={BarChart3} color="bg-gradient-to-br from-cyan-500 to-cyan-600" />
+            <StatCard label="Pending Approval" value={formatCurrency(pendingTotal)} sub={`${pendingCount} waiting`} icon={Clock} color="bg-gradient-to-br from-amber-500 to-amber-600" />
+            <StatCard label="Claims Outstanding" value={formatCurrency(claimsOutstanding.reduce((s, p) => s + p.total, 0))} sub="to reimburse" icon={Wallet} color="bg-gradient-to-br from-rose-500 to-rose-600" />
           </div>
 
           {/* Spend trend (monthly bars within quarter, or daily within month) */}
@@ -2449,11 +3223,11 @@ function AnalyticsTab() {
             <div className="rounded-2xl border border-border bg-card p-5">
               <h3 className="font-bold text-foreground mb-4">Spend by Category</h3>
               {byCategory.length === 0 ? <EmptyState icon={BarChart3} title="No data" sub="Approve some expenses first" /> : (
-                <div className="flex gap-4">
-                  <ResponsiveContainer width="50%" height={180}>
+                <div className="flex flex-col sm:flex-row gap-4">
+                  <ResponsiveContainer width="100%" height={180}>
                     <PieChart>
                       <Pie data={byCategory} dataKey="total" nameKey="name" cx="50%" cy="50%" outerRadius={80} innerRadius={40}>
-                        {byCategory.map((c, i) => <Cell key={c.name} fill={c.color ?? CHART_COLORS[i % CHART_COLORS.length]} />)}
+                        {byCategory.map((_c, i) => <Cell key={_c.name} fill={CHART_COLORS[i % CHART_COLORS.length]} />)}
                       </Pie>
                       <Tooltip formatter={(v: any) => formatCurrency(v)} />
                     </PieChart>
@@ -2461,7 +3235,7 @@ function AnalyticsTab() {
                   <div className="flex-1 space-y-2 py-2">
                     {byCategory.slice(0, 6).map((c, i) => (
                       <div key={c.name} className="flex items-center gap-2">
-                        <span className="h-2.5 w-2.5 rounded-full shrink-0" style={{ backgroundColor: c.color ?? CHART_COLORS[i % CHART_COLORS.length] }} />
+                        <span className="h-2.5 w-2.5 rounded-full shrink-0" style={{ backgroundColor: CHART_COLORS[i % CHART_COLORS.length] }} />
                         <span className="text-xs text-foreground flex-1 truncate">{c.name}</span>
                         <span className="text-xs font-bold text-foreground">{formatCurrency(c.total)}</span>
                       </div>
@@ -2499,7 +3273,7 @@ function AnalyticsTab() {
             <div className="rounded-2xl border border-border bg-card p-5">
               <h3 className="font-bold text-foreground mb-1">{fyLabel} — All Quarters</h3>
               <p className="text-xs text-muted-foreground mb-4">UK fiscal year: Apr {selectedYear} – Mar {selectedYear + 1}</p>
-              <div className="grid grid-cols-4 gap-3">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 {[1, 2, 3, 4].map(q => (
                   <button key={q} onClick={() => setSelectedQuarter(q)}
                     className={cn('rounded-xl border p-3 text-center transition-all',
@@ -2509,6 +3283,134 @@ function AnalyticsTab() {
                   </button>
                 ))}
               </div>
+            </div>
+          )}
+
+          {/* ── Director Charts ──────────────────────────── */}
+
+          {/* This month vs last month */}
+          {monthVsLastData.length > 0 && (
+            <div className="rounded-2xl border border-border bg-card p-5">
+              <h3 className="font-bold text-foreground mb-1">This Month vs Last Month</h3>
+              <p className="text-xs text-muted-foreground mb-4">Breakdown by payment method</p>
+              <ResponsiveContainer width="100%" height={220}>
+                <BarChart data={monthVsLastData} barGap={4}>
+                  <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
+                  <XAxis dataKey="category" tick={{ fontSize: 10 }} className="fill-muted-foreground" />
+                  <YAxis tick={{ fontSize: 10 }} className="fill-muted-foreground" tickFormatter={v => `£${Math.round(v)}`} />
+                  <Tooltip formatter={(v: any) => formatCurrency(v)} contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 24px rgba(0,0,0,0.12)' }} />
+                  <Legend />
+                  <Bar dataKey="lastMonth" name="Last Month" fill="#94a3b8" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="thisMonth" name="This Month" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          )}
+
+          <div className="grid lg:grid-cols-2 gap-6">
+            {/* VAT reclaimable trend */}
+            {vatByMonthData.length > 0 && (
+              <div className="rounded-2xl border border-border bg-card p-5">
+                <h3 className="font-bold text-foreground mb-1">VAT Reclaimable</h3>
+                <p className="text-xs text-muted-foreground mb-4">Last 6 months</p>
+                <ResponsiveContainer width="100%" height={200}>
+                  <BarChart data={vatByMonthData}>
+                    <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
+                    <XAxis dataKey="month" tick={{ fontSize: 10 }} className="fill-muted-foreground" />
+                    <YAxis tick={{ fontSize: 10 }} className="fill-muted-foreground" tickFormatter={v => `£${v}`} />
+                    <Tooltip formatter={(v: any) => [formatCurrency(v), 'VAT']} contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 24px rgba(0,0,0,0.12)' }} />
+                    <Bar dataKey="vat" fill="#8b5cf6" radius={[6, 6, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            )}
+
+            {/* Payment method split */}
+            {paymentMethodData.length > 0 && (
+              <div className="rounded-2xl border border-border bg-card p-5">
+                <h3 className="font-bold text-foreground mb-1">Payment Method Split</h3>
+                <p className="text-xs text-muted-foreground mb-4">Current month</p>
+                <div className="flex flex-col sm:flex-row gap-4">
+                  <ResponsiveContainer width="100%" height={180}>
+                    <PieChart>
+                      <Pie data={paymentMethodData} dataKey="total" nameKey="method" cx="50%" cy="50%" outerRadius={80} innerRadius={50}>
+                        {paymentMethodData.map((_: any, i: number) => <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />)}
+                      </Pie>
+                      <Tooltip formatter={(v: any) => formatCurrency(v)} contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 24px rgba(0,0,0,0.12)' }} />
+                    </PieChart>
+                  </ResponsiveContainer>
+                  <div className="flex-1 space-y-2 py-2">
+                    {paymentMethodData.map((p: any, i: number) => (
+                      <div key={p.method} className="flex items-center gap-2">
+                        <span className="h-2.5 w-2.5 rounded-full shrink-0" style={{ backgroundColor: CHART_COLORS[i % CHART_COLORS.length] }} />
+                        <span className="text-xs text-foreground flex-1 truncate">{p.method}</span>
+                        <span className="text-xs font-bold">{formatCurrency(p.total)}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div className="grid lg:grid-cols-2 gap-6">
+            {/* Top 5 merchants */}
+            {top5Merchants.length > 0 && (
+              <div className="rounded-2xl border border-border bg-card p-5">
+                <h3 className="font-bold text-foreground mb-1">Top 5 Merchants</h3>
+                <p className="text-xs text-muted-foreground mb-4">All time (approved & paid)</p>
+                <ResponsiveContainer width="100%" height={200}>
+                  <BarChart data={top5Merchants} layout="vertical" margin={{ left: 8 }}>
+                    <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
+                    <XAxis type="number" tick={{ fontSize: 10 }} tickFormatter={v => `£${v}`} />
+                    <YAxis type="category" dataKey="merchant" tick={{ fontSize: 10 }} width={90} />
+                    <Tooltip formatter={(v: any) => formatCurrency(v)} contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 24px rgba(0,0,0,0.12)' }} />
+                    <Bar dataKey="total" fill="#10b981" radius={[0, 6, 6, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            )}
+
+            {/* Claims outstanding */}
+            {claimsOutstanding.length > 0 && (
+              <div className="rounded-2xl border border-border bg-card p-5">
+                <h3 className="font-bold text-foreground mb-1">Claims to Reimburse</h3>
+                <p className="text-xs text-muted-foreground mb-4">Submitted but not yet paid out</p>
+                <div className="space-y-2.5">
+                  {claimsOutstanding.map((p: any, i: number) => (
+                    <div key={p.name} className="flex items-center gap-3">
+                      <span className="w-4 text-xs font-bold text-muted-foreground shrink-0">{i + 1}</span>
+                      <span className="flex-1 text-sm text-foreground truncate">{p.name}</span>
+                      <span className="text-xs text-amber-600 font-semibold shrink-0">{p.count} pending</span>
+                      <span className="text-sm font-bold text-foreground shrink-0">{formatCurrency(p.total)}</span>
+                    </div>
+                  ))}
+                  <div className="border-t border-border pt-2 flex justify-between">
+                    <span className="text-xs font-bold text-foreground">Total</span>
+                    <span className="text-sm font-black text-amber-600">{formatCurrency(claimsOutstanding.reduce((s: number, p: any) => s + p.total, 0))}</span>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Spend by status (stacked bar) */}
+          {spendByStatusData.length > 0 && (
+            <div className="rounded-2xl border border-border bg-card p-5">
+              <h3 className="font-bold text-foreground mb-1">Spend by Approval Status</h3>
+              <p className="text-xs text-muted-foreground mb-4">Monthly breakdown — approved, pending, paid</p>
+              <ResponsiveContainer width="100%" height={220}>
+                <BarChart data={spendByStatusData}>
+                  <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
+                  <XAxis dataKey="month" tick={{ fontSize: 10 }} className="fill-muted-foreground" />
+                  <YAxis tick={{ fontSize: 10 }} className="fill-muted-foreground" tickFormatter={v => `£${Math.round(v)}`} />
+                  <Tooltip formatter={(v: any) => formatCurrency(v)} contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 24px rgba(0,0,0,0.12)' }} />
+                  <Legend />
+                  <Bar dataKey="approved" stackId="a" name="Approved" fill="#10b981" />
+                  <Bar dataKey="pending" stackId="a" name="Pending" fill="#f59e0b" />
+                  <Bar dataKey="paid" stackId="a" name="Paid" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
             </div>
           )}
         </>
@@ -2530,7 +3432,12 @@ function SettingsTab({ isAdmin, isDirector }: { isAdmin: boolean; isDirector: bo
   const [isPending, startTransition] = useTransition()
   const [newCatName, setNewCatName] = useState('')
   const [newCatColor, setNewCatColor] = useState('#6366f1')
+  const [newCatGl, setNewCatGl] = useState('')
   const [addingCat, setAddingCat] = useState(false)
+  const [editingCatId, setEditingCatId] = useState<string | null>(null)
+  const [editCatName, setEditCatName] = useState('')
+  const [editCatColor, setEditCatColor] = useState('')
+  const [editCatGl, setEditCatGl] = useState('')
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -2544,15 +3451,38 @@ function SettingsTab({ isAdmin, isDirector }: { isAdmin: boolean; isDirector: bo
   const handleAddCategory = async () => {
     if (!newCatName.trim()) return
     setAddingCat(true)
-    const result = await createExpenseCategory(newCatName.trim(), 'tag', newCatColor) as any
+    const result = await createExpenseCategory(newCatName.trim(), 'tag', newCatColor, newCatGl.trim() || undefined) as any
     if (result.success) {
       setCategories(c => [...c, result.data])
       setNewCatName('')
+      setNewCatGl('')
       toast.success('Category added')
     } else {
       toast.error(result.error ?? 'Failed to add category')
     }
     setAddingCat(false)
+  }
+
+  const handleSaveCat = async (id: string) => {
+    const result = await updateExpenseCategory(id, { name: editCatName, color: editCatColor, gl_code: editCatGl }) as any
+    if (result.success) {
+      setCategories(cats => cats.map(c => c.id === id ? { ...c, name: editCatName, color: editCatColor, gl_code: editCatGl } : c))
+      setEditingCatId(null)
+      toast.success('Category updated')
+    } else {
+      toast.error(result.error ?? 'Failed to update')
+    }
+  }
+
+  const handleDeleteCat = async (id: string) => {
+    if (!confirm('Delete this category? Expenses using it will be uncategorised.')) return
+    const result = await deleteExpenseCategory(id) as any
+    if (result.success) {
+      setCategories(cats => cats.filter(c => c.id !== id))
+      toast.success('Category deleted')
+    } else {
+      toast.error(result.error ?? 'Failed to delete')
+    }
   }
 
   useEffect(() => { load() }, [load])
@@ -2633,32 +3563,75 @@ function SettingsTab({ isAdmin, isDirector }: { isAdmin: boolean; isDirector: bo
         </div>
       </div>
 
-      {/* Categories */}
+      {/* Categories + GL Codes */}
       <div>
         <div className="mb-4">
-          <h3 className="font-bold text-foreground">Expense Categories</h3>
-          <p className="text-xs text-muted-foreground mt-0.5">Add categories to organise expenses</p>
+          <h3 className="font-bold text-foreground">Expense Categories &amp; GL Codes</h3>
+          <p className="text-xs text-muted-foreground mt-0.5">Set GL codes for Business Central. Click the edit icon to update any category.</p>
         </div>
         <div className="space-y-2 mb-4">
           {categories.map(c => (
-            <div key={c.id} className="rounded-2xl border border-border bg-card p-3 flex items-center gap-3">
-              <div className="h-7 w-7 rounded-lg shrink-0" style={{ backgroundColor: c.color ?? '#6366f1' }} />
-              <p className="text-sm font-semibold text-foreground flex-1">{c.name}</p>
+            <div key={c.id} className="rounded-2xl border border-border bg-card p-3">
+              {editingCatId === c.id ? (
+                <div className="space-y-2">
+                  <div className="flex gap-2">
+                    <input value={editCatName} onChange={ev => setEditCatName(ev.target.value)}
+                      className="flex-1 rounded-xl border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30" />
+                    <input type="color" value={editCatColor} onChange={ev => setEditCatColor(ev.target.value)}
+                      className="h-9 w-9 rounded-xl border border-border cursor-pointer bg-background" />
+                  </div>
+                  <input value={editCatGl} onChange={ev => setEditCatGl(ev.target.value)}
+                    placeholder="GL Code (e.g. 6110, 7400)"
+                    className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30" />
+                  <div className="flex gap-2">
+                    <button onClick={() => handleSaveCat(c.id)}
+                      className="flex-1 rounded-xl bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground hover:opacity-90">Save</button>
+                    <button onClick={() => setEditingCatId(null)}
+                      className="flex-1 rounded-xl border border-border px-3 py-1.5 text-xs font-semibold hover:bg-muted">Cancel</button>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex items-center gap-3">
+                  <div className="h-7 w-7 rounded-lg shrink-0" style={{ backgroundColor: c.color ?? '#6366f1' }} />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-foreground">{c.name}</p>
+                    {c.gl_code && <p className="text-xs text-muted-foreground">GL: {c.gl_code}</p>}
+                  </div>
+                  {!c.gl_code && <span className="text-[10px] text-amber-600 bg-amber-50 dark:bg-amber-950/20 rounded-full px-2 py-0.5 font-semibold">No GL code</span>}
+                  <button onClick={() => { setEditingCatId(c.id); setEditCatName(c.name); setEditCatColor(c.color ?? '#6366f1'); setEditCatGl(c.gl_code ?? '') }}
+                    className="p-1.5 rounded-lg hover:bg-muted transition-colors text-muted-foreground hover:text-foreground">
+                    <Pencil className="h-3.5 w-3.5" />
+                  </button>
+                  <button onClick={() => handleDeleteCat(c.id)}
+                    className="p-1.5 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/20 transition-colors text-muted-foreground hover:text-rose-500">
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              )}
             </div>
           ))}
         </div>
-        <div className="flex gap-2">
-          <input value={newCatName} onChange={e => setNewCatName(e.target.value)}
-            placeholder="New category name"
-            onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleAddCategory() } }}
-            className="flex-1 rounded-xl border border-border bg-background px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30" />
-          <input type="color" value={newCatColor} onChange={e => setNewCatColor(e.target.value)}
-            className="h-10 w-10 rounded-xl border border-border cursor-pointer bg-background" title="Category colour" />
+        <div className="rounded-2xl border border-dashed border-border p-4 space-y-3">
+          <p className="text-xs font-bold text-foreground">Add New Category</p>
+          <div className="flex gap-2">
+            <input value={newCatName} onChange={e => setNewCatName(e.target.value)}
+              placeholder="Category name"
+              onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleAddCategory() } }}
+              className="flex-1 rounded-xl border border-border bg-background px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30" />
+            <input type="color" value={newCatColor} onChange={e => setNewCatColor(e.target.value)}
+              className="h-10 w-10 rounded-xl border border-border cursor-pointer bg-background" title="Category colour" />
+          </div>
+          <input value={newCatGl} onChange={e => setNewCatGl(e.target.value)}
+            placeholder="GL Code for Business Central (optional, e.g. 6110)"
+            className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30" />
           <button onClick={handleAddCategory} disabled={addingCat || !newCatName.trim()}
-            className="rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground hover:opacity-90 disabled:opacity-50 transition-opacity">
-            {addingCat ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Add'}
+            className="w-full rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground hover:opacity-90 disabled:opacity-50 transition-opacity">
+            {addingCat ? <Loader2 className="h-4 w-4 animate-spin mx-auto" /> : '+ Add Category'}
           </button>
         </div>
+        <p className="text-xs text-muted-foreground mt-3 flex items-center gap-1">
+          <Tag className="h-3 w-3" /> Departments are managed in Admin → Organisation Settings
+        </p>
       </div>
 
       {/* Forms */}
@@ -2719,7 +3692,7 @@ function ApprovalChainForm({ chain, users, onClose, onSuccess }: { chain: any; u
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
       <div className="w-full max-w-md bg-card rounded-3xl shadow-2xl p-6 space-y-4">
         <div className="flex items-center justify-between">
           <h3 className="font-bold text-foreground">{chain ? 'Edit Chain' : 'New Approval Chain'}</h3>
@@ -2825,7 +3798,7 @@ function CardForm({ onClose, onSuccess }: { onClose: () => void; onSuccess: () =
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
       <div className="w-full max-w-sm bg-card rounded-3xl shadow-2xl p-6">
         <div className="flex items-center justify-between mb-4">
           <h3 className="font-bold text-foreground">Add Company Card</h3>

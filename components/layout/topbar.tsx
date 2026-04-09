@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import { useAuth, useDisplayName } from "@/lib/providers"
 import { signOut } from "@/lib/actions/auth"
@@ -27,7 +27,11 @@ const NOTIF_CONFIG: Record<NotificationItem["kind"], { icon: React.ElementType; 
   expense_approved:        { icon: CheckCircle, iconClass: "text-emerald-400", bgClass: "bg-emerald-500/10 border-emerald-500/20" },
   expense_rejected:        { icon: XCircle,     iconClass: "text-rose-400",    bgClass: "bg-rose-500/10 border-rose-500/20"      },
   expense_pending:         { icon: Clock,       iconClass: "text-amber-400",   bgClass: "bg-amber-500/10 border-amber-500/20"    },
-  expense_pending_approval:{ icon: AlertCircle, iconClass: "text-blue-400",    bgClass: "bg-blue-500/10 border-blue-500/20"     },
+  expense_pending_approval:{ icon: AlertCircle,    iconClass: "text-blue-400",    bgClass: "bg-blue-500/10 border-blue-500/20"     },
+  pr_approved:             { icon: CheckCircle,   iconClass: "text-emerald-400", bgClass: "bg-emerald-500/10 border-emerald-500/20" },
+  pr_rejected:             { icon: XCircle,       iconClass: "text-rose-400",    bgClass: "bg-rose-500/10 border-rose-500/20"      },
+  pr_pending:              { icon: Clock,         iconClass: "text-amber-400",   bgClass: "bg-amber-500/10 border-amber-500/20"    },
+  pr_submitted:            { icon: ClipboardList, iconClass: "text-violet-400",  bgClass: "bg-violet-500/10 border-violet-500/20"  },
 }
 
 export function Topbar() {
@@ -55,7 +59,11 @@ export function Topbar() {
         ? result.notifications.filter(n => new Date(n.timestamp).getTime() > clearedAt)
         : result.notifications
       setNotifications(filtered)
-      setBadgeCount(filtered.filter(n => n.kind === "team_leave_pending" || n.kind === "leave_approved" || n.kind === "leave_rejected").length)
+      setBadgeCount(filtered.filter(n =>
+        n.kind === "team_leave_pending" || n.kind === "leave_approved" || n.kind === "leave_rejected" ||
+        n.kind === "expense_pending_approval" || n.kind === "expense_approved" || n.kind === "expense_rejected" ||
+        n.kind === "pr_submitted" || n.kind === "pr_approved" || n.kind === "pr_rejected"
+      ).length)
     }
     load()
     const interval = setInterval(load, 60_000)
@@ -90,7 +98,7 @@ export function Topbar() {
       <div className="flex items-center gap-3 md:hidden">
         <Link href="/" className="flex items-center gap-2">
           <img
-            src="/logo.png"
+            src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/MEMO%20LOGO%281%29-LotOho4qrhl0Dxku4Sq22ZlQ7rRIWx.png"
             alt="StaffPortal"
             className="h-6"
           />

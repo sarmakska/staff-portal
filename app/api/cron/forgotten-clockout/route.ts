@@ -1,7 +1,11 @@
+﻿export const dynamic = 'force-dynamic'
+
 import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { sendForgottenClockoutEmail } from '@/lib/email'
 import { getEmailFlags } from '@/lib/actions/app-settings'
+import { fetchBankHolidays } from '@/lib/helpers'
+import { isBankHoliday } from '@/lib/schedule-helpers'
 
 const RECEPTION_EMAIL = process.env.RECEPTION_NOTIFY_EMAIL ?? 'reception@yourcompany.com'
 
@@ -22,10 +26,17 @@ export async function GET(request: Request) {
 
     const today = new Date().toISOString().split('T')[0]
 
+    // Skip bank holidays — check gov.uk API first, fall back to hardcoded list
+    const govHolidays = await fetchBankHolidays()
+    if (govHolidays.has(today) || isBankHoliday(today)) {
+        console.log(`[cron/forgotten-clockout] ${today} is a bank holiday — skipping`)
+        return NextResponse.json({ success: true, skipped: 'bank holiday' })
+    }
+
     // Find attendance rows for today: clocked in but no clock out
     const { data: recordsRaw, error } = await supabaseAdmin
         .from('attendance')
-        .select('id, user_id, clock_in, user_profiles!attendance_user_id_fkey(full_name, email, department_id)')
+        .select('id, user_id, clock_in, user_profiles!attendance_user_id_fkey(full_name, email, department_id, exclude_from_reminders)')
         .eq('work_date', today)
         .not('clock_in', 'is', null)
         .is('clock_out', null)
@@ -60,9 +71,10 @@ export async function GET(request: Request) {
         if (notifiedSet.has(record.user_id)) continue
 
         const profile = record.user_profiles
+        if (profile?.exclude_from_reminders) continue
         const employeeEmail = profile?.email
         const employeeName = profile?.full_name ?? employeeEmail ?? 'Unknown'
-        const departmentName = 'Your Company'
+        const departmentName = 'Your Companys'
 
         if (!employeeEmail) continue
 

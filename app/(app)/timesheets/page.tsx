@@ -58,7 +58,7 @@ export default async function TimesheetsPage({
   const [{ data: records }, { data: wfhRecords }, { data: scheduleData }] = await Promise.all([
     supabaseAdmin
       .from("attendance")
-      .select("id, work_date, clock_in, clock_out, total_hours, status, running_late, late_reason, expected_arrival_time, late_logged_by")
+      .select("id, work_date, clock_in, clock_out, total_hours, status, running_late, late_reason, expected_arrival_time, late_logged_by, clock_in_distance_m")
       .eq("user_id", targetUserId)
       .gte("work_date", from)
       .lte("work_date", to) as any,

@@ -470,6 +470,7 @@ export async function updateUserProfile(
         job_title?: string
         phone?: string
         department_id?: string | null
+        exclude_from_reminders?: boolean
     }
 ): Promise<{ success: boolean; error?: string }> {
     const ctx = await requireAdmin()

@@ -1,4 +1,4 @@
-"use server"
+﻿"use server"
 
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { createClient } from '@/lib/supabase/server'
@@ -70,7 +70,7 @@ async function getNotifyEmail(userId: string): Promise<{ employeeName: string; d
     const employeeName = (profile as any)?.full_name || employeeEmail || 'Unknown'
     const departmentName = (profile as any)?.departments?.name ?? 'Unassigned'
 
-    const notifyEmail = process.env.WFH_NOTIFY_EMAIL ?? 'admin@yourcompany.com'
+    const notifyEmail = process.env.WFH_NOTIFY_EMAIL ?? 'memofashions@yourcompany.com'
     return { employeeName, departmentName, notifyEmail, employeeEmail }
 }
 
@@ -179,7 +179,7 @@ export async function submitEarlyLeave(
 
     const { employeeName, departmentName, notifyEmail } = await getNotifyEmail(userId)
     if (notifyEmail) {
-        const clockOutTime = now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
+        const clockOutTime = now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/London' })
         const workDate = new Date(today).toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' })
         const flags = await getEmailFlags()
         if (flags.email_early_clockout) await sendEarlyClockOutEmail({ notifyEmail, employeeName, departmentName, workDate, clockOutTime, hoursWorked: totalHours, reason }).catch(() => {})
@@ -280,15 +280,18 @@ export async function logRunningLate(
     userId: string,
     reason?: string,
     expectedArrival?: string,
-    loggedBy?: string
+    loggedBy?: string,
+    forDate?: 'today' | 'tomorrow'
 ): Promise<{ success: boolean; error?: string }> {
-    const today = new Date().toISOString().split('T')[0]
+    const baseDate = new Date()
+    if (forDate === 'tomorrow') baseDate.setDate(baseDate.getDate() + 1)
+    const workDate = baseDate.toISOString().split('T')[0]
 
     const { data: existing } = await supabaseAdmin
         .from('attendance')
         .select('id')
         .eq('user_id', userId)
-        .eq('work_date', today)
+        .eq('work_date', workDate)
         .single()
 
     const lateFields = {
@@ -308,7 +311,7 @@ export async function logRunningLate(
     } else {
         const { error } = await supabaseAdmin
             .from('attendance')
-            .insert({ user_id: userId, work_date: today, status: 'present', ...lateFields } as any)
+            .insert({ user_id: userId, work_date: workDate, status: 'present', ...lateFields } as any)
         dbError = error
     }
 
@@ -317,7 +320,7 @@ export async function logRunningLate(
     const flags = await getEmailFlags()
     if (flags.email_running_late) {
         const { employeeName, departmentName, notifyEmail } = await getNotifyEmail(userId)
-        const dateLabel = new Date(today).toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' })
+        const dateLabel = new Date(workDate).toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' })
         await sendRunningLateEmail({ notifyEmail, employeeName, departmentName, date: dateLabel, reason, expectedArrival, loggedBy: loggedBy || 'Self' }).catch(() => {})
     }
 
@@ -328,9 +331,23 @@ export async function logRunningLate(
 }
 
 export async function forceClockOut(recordId: string): Promise<{ success: boolean; error?: string }> {
+    const nowISO = new Date().toISOString()
+
+    const { data: rec } = await supabaseAdmin
+        .from('attendance')
+        .select('clock_in')
+        .eq('id', recordId)
+        .single()
+
+    let total_hours: number | null = null
+    if (rec?.clock_in) {
+        const diff = (new Date(nowISO).getTime() - new Date(rec.clock_in).getTime()) / 3600000
+        total_hours = Math.round(Math.max(0, diff) * 100) / 100
+    }
+
     const { error } = await supabaseAdmin
         .from('attendance')
-        .update({ clock_out: new Date().toISOString() })
+        .update({ clock_out: nowISO, total_hours })
         .eq('id', recordId)
 
     if (error) {

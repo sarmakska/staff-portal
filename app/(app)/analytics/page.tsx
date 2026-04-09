@@ -39,7 +39,7 @@ export default async function AnalyticsPage() {
       .order("full_name"),
     supabaseAdmin
       .from("attendance")
-      .select("id, user_id, work_date, clock_in, clock_out, total_hours, status, expected_arrival_time, early_leave, early_leave_reason")
+      .select("id, user_id, work_date, clock_in, clock_out, total_hours, status, expected_arrival_time, early_leave, early_leave_reason, running_late, late_reason")
       .gte("work_date", yearStart)
       .lte("work_date", yearEnd)
       .order("work_date"),

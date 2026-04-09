@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import { useState, useMemo, useCallback } from "react"
 import {
@@ -12,7 +12,7 @@ import { useTransition } from "react"
 // ── Types ─────────────────────────────────────────────────────────────────────
 
 type UserProfile = { id: string; full_name: string; display_name: string | null }
-type AttendanceRecord = { id: string; user_id: string; work_date: string; clock_in: string | null; clock_out: string | null; total_hours: number | null; status: string; expected_arrival_time?: string | null; early_leave?: boolean | null; early_leave_reason?: string | null }
+type AttendanceRecord = { id: string; user_id: string; work_date: string; clock_in: string | null; clock_out: string | null; total_hours: number | null; status: string; expected_arrival_time?: string | null; early_leave?: boolean | null; early_leave_reason?: string | null; running_late?: boolean | null; late_reason?: string | null }
 type WfhRecord = { user_id: string; wfh_date: string; wfh_type?: string }
 type LeaveRequest = { user_id: string; leave_type: string; start_date: string; end_date: string; days_count: number; status: string }
 type Visitor = { id: string; visitor_name: string; company: string | null; visit_date: string; checked_in_at: string | null; checked_out_at: string | null; status: string; guest_count: number }
@@ -72,7 +72,7 @@ interface Drilldown { title: string; subtitle: string; rows: DrillRow[]; cols: s
 
 function DrillPanel({ drill, onClose }: { drill: Drilldown; onClose: () => void }) {
   return (
-    <div className="fixed inset-0 z-50 flex justify-end">
+    <div className="fixed inset-0 z-[60] flex justify-end">
       <div className="absolute inset-0 bg-black/30 backdrop-blur-sm" onClick={onClose} />
       <div className="relative w-full max-w-xl bg-card border-l border-border shadow-2xl flex flex-col h-full animate-in slide-in-from-right duration-200">
         {/* Header */}
@@ -221,12 +221,7 @@ export function AnalyticsClient({ users, attendance, wfhRecords, leaveRequests, 
   const isLate = useCallback((record: AttendanceRecord) => {
     if (!record.clock_in || record.status === "wfh") return false
     const d = new Date(record.clock_in)
-    const lateThreshold = record.expected_arrival_time
-    if (lateThreshold) {
-      const [lh, lm] = lateThreshold.split(":").map(Number)
-      return d.getHours() > lh || (d.getHours() === lh && d.getMinutes() > lm)
-    }
-    return d.getHours() > DEFAULT_LATE_HOUR || (d.getHours() === DEFAULT_LATE_HOUR && d.getMinutes() >= DEFAULT_LATE_MINUTE)
+    return d.getHours() > DEFAULT_LATE_HOUR || (d.getHours() === DEFAULT_LATE_HOUR && d.getMinutes() > DEFAULT_LATE_MINUTE)
   }, [])
 
   const fmtTime = (ts: string | null) => !ts ? "—" : new Date(ts).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })
@@ -501,21 +496,21 @@ export function AnalyticsClient({ users, attendance, wfhRecords, leaveRequests, 
   }
 
   const openLateDrill = (uid: string, name: string, rows: AttendanceRecord[]) => {
+    const standardStart = `${DEFAULT_LATE_HOUR}:${String(DEFAULT_LATE_MINUTE).padStart(2, "0")}`
     setDrill({
       title: `Late Arrivals — ${name}`,
       subtitle: `${rows.length} late arrival${rows.length !== 1 ? "s" : ""} in ${monthLabel}`,
-      cols: ["Date", "Day", "Clock In", "Expected", "Mins Late"],
+      cols: ["Date", "Day", "Clock In", "Standard Start", "Mins Late", "Reason"],
       rows: rows.map(a => {
         const ci = new Date(a.clock_in!)
-        const lateThreshold = a.expected_arrival_time ?? `${DEFAULT_LATE_HOUR}:${String(DEFAULT_LATE_MINUTE).padStart(2, "0")}`
-        const [lh, lm] = lateThreshold.split(":").map(Number)
-        const minsLate = (ci.getHours() * 60 + ci.getMinutes()) - (lh * 60 + lm)
+        const minsLate = (ci.getHours() * 60 + ci.getMinutes()) - (DEFAULT_LATE_HOUR * 60 + DEFAULT_LATE_MINUTE)
         return {
           "Date": fmtDate(a.work_date),
           "Day": DOW_LABELS[new Date(a.work_date + "T12:00:00").getDay()],
           "Clock In": fmtTime(a.clock_in),
-          "Expected": lateThreshold,
+          "Standard Start": standardStart,
           "Mins Late": `${minsLate} min`,
+          "Reason": a.late_reason || (a.running_late ? "Reported late — no reason given" : "—"),
         }
       })
     })
@@ -585,13 +580,13 @@ export function AnalyticsClient({ users, attendance, wfhRecords, leaveRequests, 
     employeeMetrics.forEach(e => rows.push([q(userName(e.u.id)), q(e.contractedDays), q(e.officeDays), q(e.wfhDays), q(e.leaveDays), q(e.absent), q(e.avgH), q(e.contracted), q(e.lateCount), q(e.attendPct + "%")].join(",")))
 
     rows.push("", q("LATE ARRIVALS"))
-    rows.push([q("Employee"), q("Date"), q("Clock In"), q("Expected"), q("Mins Late")].join(","))
+    rows.push([q("Employee"), q("Date"), q("Clock In"), q("Standard Start"), q("Mins Late"), q("Reason")].join(","))
+    const standardStart = `${DEFAULT_LATE_HOUR}:${String(DEFAULT_LATE_MINUTE).padStart(2, "0")}`
     monthAtt.filter(a => isLate(a)).forEach(a => {
-      const lateThreshold = a.expected_arrival_time ?? `${DEFAULT_LATE_HOUR}:${String(DEFAULT_LATE_MINUTE).padStart(2, "0")}`
-      const [lh, lm] = lateThreshold.split(":").map(Number)
       const ci = new Date(a.clock_in!)
-      const minsLate = (ci.getHours() * 60 + ci.getMinutes()) - (lh * 60 + lm)
-      rows.push([q(userName(a.user_id)), q(a.work_date), q(fmtTime(a.clock_in)), q(lateThreshold), q(minsLate)].join(","))
+      const minsLate = (ci.getHours() * 60 + ci.getMinutes()) - (DEFAULT_LATE_HOUR * 60 + DEFAULT_LATE_MINUTE)
+      const reason = a.late_reason || (a.running_late ? "Reported late — no reason given" : "—")
+      rows.push([q(userName(a.user_id)), q(a.work_date), q(fmtTime(a.clock_in)), q(standardStart), q(minsLate), q(reason)].join(","))
     })
 
     const blob = new Blob([rows.join("\n")], { type: "text/csv" })
@@ -832,6 +827,62 @@ export function AnalyticsClient({ users, attendance, wfhRecords, leaveRequests, 
                 </BarChart>
               </ResponsiveContainer>
           }
+        </Section>
+
+        <Section title="Late Arrivals — Detail" subtitle={`All late arrivals with reason given — ${monthLabel}`}>
+          {(() => {
+            // Always compare against default start time, not the self-reported expected arrival
+            const lateRows = monthAtt.filter(a => {
+              if (!a.clock_in || a.status === "wfh") return false
+              const d = new Date(a.clock_in)
+              return d.getHours() > DEFAULT_LATE_HOUR || (d.getHours() === DEFAULT_LATE_HOUR && d.getMinutes() > DEFAULT_LATE_MINUTE)
+            })
+            if (lateRows.length === 0) return (
+              <div className="flex items-center justify-center h-24 text-sm text-muted-foreground">No late arrivals in {monthLabel} 🎉</div>
+            )
+            return (
+              <div className="overflow-x-auto">
+                <table className="w-full text-xs">
+                  <thead>
+                    <tr className="border-b border-border">
+                      {["Employee","Date","Clocked In","Expected","Mins Late","Reason"].map(c => (
+                        <th key={c} className="text-left pb-2 pr-4 text-[11px] font-semibold text-muted-foreground uppercase tracking-wide whitespace-nowrap">{c}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border/40">
+                    {lateRows.sort((a, b) => a.work_date.localeCompare(b.work_date)).map(a => {
+                      const standardStart = `${DEFAULT_LATE_HOUR}:${String(DEFAULT_LATE_MINUTE).padStart(2, "0")}`
+                      const ci = new Date(a.clock_in!)
+                      const minsLate = (ci.getHours() * 60 + ci.getMinutes()) - (DEFAULT_LATE_HOUR * 60 + DEFAULT_LATE_MINUTE)
+                      return (
+                        <tr key={a.id} className="hover:bg-muted/20">
+                          <td className="py-2.5 pr-4 font-semibold text-foreground whitespace-nowrap">{userName(a.user_id)}</td>
+                          <td className="py-2.5 pr-4 text-muted-foreground whitespace-nowrap">{fmtDate(a.work_date)}</td>
+                          <td className="py-2.5 pr-4 text-muted-foreground whitespace-nowrap">{fmtTime(a.clock_in)}</td>
+                          <td className="py-2.5 pr-4 text-muted-foreground whitespace-nowrap">{standardStart}</td>
+                          <td className="py-2.5 pr-4 whitespace-nowrap">
+                            <span className={`font-semibold ${minsLate >= 30 ? "text-red-500" : minsLate >= 15 ? "text-amber-500" : "text-yellow-500"}`}>
+                              +{minsLate} min
+                            </span>
+                          </td>
+                          <td className="py-2.5 text-muted-foreground">
+                            {a.late_reason
+                              ? a.late_reason
+                              : a.running_late
+                                ? <span className="italic opacity-60">Reported late — no reason given</span>
+                                : <span className="italic opacity-40">No reason given</span>
+                            }
+                          </td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+                <p className="mt-3 text-[11px] text-muted-foreground">{lateRows.length} late arrival{lateRows.length !== 1 ? "s" : ""} this month</p>
+              </div>
+            )
+          })()}
         </Section>
 
         <Section title="Early Departures" subtitle={`Employees who left early with a reason — ${monthLabel}`}>

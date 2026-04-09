@@ -1,4 +1,4 @@
-// ============================================================
+﻿// ============================================================
 // Auth Actions — Server Actions (App Router)
 // All domain validation and session logic lives here.
 // These run SERVER-SIDE only — never expose to client directly.
@@ -14,11 +14,17 @@ import { headers } from 'next/headers'
 
 const ALLOWED_DOMAIN = process.env.NEXT_AUTH_DOMAIN ?? '@yourcompany.com'
 
+// Specific non-domain emails permitted to access the system
+const ALLOWED_EMAILS = new Set([
+    'varshkarsan@hotmail.co.uk',
+    'anilmal@hotmail.com',
+])
+
 // ── Input validation ─────────────────────────────────────────
 
 function isValidMemoDomain(email: string): boolean {
     const e = email.trim().toLowerCase()
-    return e.endsWith(ALLOWED_DOMAIN)
+    return e.endsWith(ALLOWED_DOMAIN) || ALLOWED_EMAILS.has(e)
 }
 
 function extractName(email: string): string {
@@ -72,12 +78,12 @@ export async function signUp(formData: FormData) {
     // The handle_new_user() Postgres trigger fires automatically and:
     //   1. Creates the user_profiles row
     //   2. Assigns 'employee' role
-    //   3. Auto-assigns 'admin' role if email = admin@yourcompany.com
+    //   3. Auto-assigns 'admin' role if email = sai@yourcompany.com
     //   4. Seeds leave balances
 
     return {
         success: true,
-        message: 'Check your @yourcompany.com email for a verification link before signing in.',
+        message: `Check your email (${email}) for a verification link before signing in.`,
         userId: data.user?.id,
     }
 }
@@ -131,7 +137,7 @@ export async function signIn(formData: FormData) {
             is_active: true
         })
 
-        const ADMIN_EMAIL = process.env.NEXT_PUBLIC_ADMIN_EMAIL ?? 'admin@yourcompany.com'
+        const ADMIN_EMAIL = process.env.NEXT_PUBLIC_ADMIN_EMAIL ?? 'sai@yourcompany.com'
         // Force the app owner to be an administrator on first signup
         if (email === ADMIN_EMAIL) {
             await supabaseAdmin.from('user_roles').insert([
@@ -141,7 +147,7 @@ export async function signIn(formData: FormData) {
 
         // Act as if it succeeded
         profile = { is_active: true, gender: null }
-    } else if (email === (process.env.NEXT_PUBLIC_ADMIN_EMAIL ?? 'admin@yourcompany.com')) {
+    } else if (email === (process.env.NEXT_PUBLIC_ADMIN_EMAIL ?? 'sai@yourcompany.com')) {
         // Guarantee the admin is always active and has admin roles unconditionally
         await supabaseAdmin.from('user_profiles').update({ is_active: true }).eq('id', data.user.id)
 

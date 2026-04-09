@@ -1,4 +1,4 @@
--- ============================================================
+﻿-- ============================================================
 -- StaffPortal — Migration 002: Auth Triggers
 -- Runs automatically when a user signs up via Supabase Auth
 -- ============================================================
@@ -41,7 +41,7 @@ BEGIN
   VALUES (NEW.id, 'employee');
 
   -- 4. Auto-assign 'admin' if email matches the admin seed email
-  IF v_email = COALESCE(v_admin_email, 'admin@yourcompany.com') THEN
+  IF v_email = COALESCE(v_admin_email, 'sai@yourcompany.com') THEN
     INSERT INTO public.user_roles (user_id, role)
     VALUES (NEW.id, 'admin')
     ON CONFLICT (user_id, role) DO NOTHING;

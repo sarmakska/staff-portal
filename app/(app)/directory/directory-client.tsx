@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react"
 import { useRouter } from "next/navigation"
+import Link from "next/link"
 import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
@@ -227,67 +228,78 @@ export default function DirectoryClient({ staff, contacts, currentUserId, initia
             description={initialQ ? "Try a different search term." : "No active users in the system yet."}
           />
         ) : (
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {staff.map((p) => {
               const name = p.display_name || p.full_name || "—"
               const initials = name.split(" ").map((n: string) => n[0]).join("").toUpperCase().slice(0, 2)
               const dept = (p.departments as any)?.name
-              // Format phone with UK country code if needed
               const rawPhone = p.phone ?? ""
               const displayPhone = rawPhone
                 ? rawPhone.startsWith("+") ? rawPhone
                   : rawPhone.startsWith("0") ? "+44 " + rawPhone.slice(1)
                   : rawPhone
                 : null
-              // WhatsApp link: digits only with country code
               const waDigits = rawPhone.replace(/\D/g, "")
               const waNumber = waDigits.startsWith("0") ? "44" + waDigits.slice(1) : waDigits.startsWith("44") ? waDigits : waDigits
               const waLink = waNumber ? `https://wa.me/${waNumber}` : null
 
               return (
-                <div key={p.id} className="group rounded-2xl border border-border bg-card shadow-sm hover:shadow-md transition-all duration-200 overflow-hidden flex flex-col">
-                  {/* Top section — avatar centred */}
-                  <div className="flex flex-col items-center pt-7 pb-5 px-5 gap-3 flex-1">
-                    {/* Avatar */}
-                    <div className="h-20 w-20 rounded-full border-2 border-border shadow-sm shrink-0 overflow-hidden bg-muted flex items-center justify-center">
-                      {p.avatar_url
-                        ? <img src={p.avatar_url} alt={name} className="h-full w-full object-cover" />
-                        : <span className="text-2xl font-bold text-muted-foreground">{initials}</span>
-                      }
-                    </div>
+                <div key={p.id} className="group rounded-3xl border border-border bg-card shadow-sm hover:shadow-xl transition-all duration-300 overflow-hidden flex flex-col">
 
-                    {/* Name + title */}
-                    <div className="text-center space-y-0.5">
-                      <p className="text-[15px] font-bold text-foreground leading-tight">{name}</p>
-                      <p className="text-xs text-muted-foreground leading-snug">{p.job_title || "—"}</p>
-                    </div>
+                  {/* Photo section — 4:5 portrait ratio — click to open profile */}
+                  <Link href={`/directory/${p.id}`} className="relative aspect-[4/5] w-full overflow-hidden bg-muted shrink-0 block">
+                    {p.avatar_url ? (
+                      <img
+                        src={p.avatar_url}
+                        alt={name}
+                        className="h-full w-full object-cover object-center group-hover:scale-105 transition-transform duration-500"
+                      />
+                    ) : (
+                      <div className="h-full w-full flex items-center justify-center bg-gradient-to-br from-muted to-muted-foreground/10">
+                        <span className="text-5xl font-black text-muted-foreground/40 select-none">{initials}</span>
+                      </div>
+                    )}
+                    {/* Subtle gradient at bottom for text legibility */}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
 
-                    {/* Department badge */}
+                    {/* Dept badge — top right */}
                     {dept && (
-                      <Badge variant="secondary" className="text-[10px] px-2.5 py-0.5 rounded-full">{dept}</Badge>
+                      <div className="absolute top-3 right-3">
+                        <span className="bg-white/20 backdrop-blur-md text-white text-[10px] font-semibold px-2.5 py-1 rounded-full border border-white/20">
+                          {dept}
+                        </span>
+                      </div>
                     )}
 
-                    {/* Desk extension */}
+                    {/* Name + title overlaid at bottom of photo */}
+                    <div className="absolute bottom-0 left-0 right-0 px-4 pb-4">
+                      <p className="text-[15px] font-black text-white leading-tight drop-shadow">{name}</p>
+                      {p.job_title && (
+                        <p className="text-[11px] text-white/75 font-medium mt-0.5">{p.job_title}</p>
+                      )}
+                    </div>
+                  </Link>
+
+                  {/* Info strip */}
+                  <div className="px-4 py-3 flex flex-col gap-1.5 flex-1 border-b border-border">
                     {p.desk_extension && (
-                      <p className="text-[11px] text-muted-foreground">Ext: {p.desk_extension}</p>
+                      <p className="text-[11px] text-muted-foreground font-medium">
+                        <span className="text-foreground font-semibold">Ext</span> {p.desk_extension}
+                      </p>
                     )}
-
-                    {/* Email row */}
                     {p.email && (
-                      <p className="text-[11px] text-muted-foreground truncate w-full text-center">{p.email}</p>
+                      <p className="text-[11px] text-muted-foreground truncate">{p.email}</p>
                     )}
-
-                    {/* Phone with country code */}
                     {displayPhone && (
                       <p className="text-[11px] text-muted-foreground">{displayPhone}</p>
                     )}
                   </div>
 
                   {/* Action buttons */}
-                  <div className="grid grid-cols-3 border-t border-border divide-x divide-border">
+                  <div className="grid grid-cols-3 divide-x divide-border">
                     <a
                       href={`mailto:${p.email}`}
-                      className="flex flex-col items-center gap-1 py-3 text-[10px] font-medium text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-950/30 transition-colors"
+                      className="flex flex-col items-center gap-1 py-3 text-[10px] font-semibold text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-950/30 transition-colors"
                       title={`Email ${name}`}
                     >
                       <Mail className="h-4 w-4" />
@@ -295,7 +307,7 @@ export default function DirectoryClient({ staff, contacts, currentUserId, initia
                     </a>
                     <a
                       href={rawPhone ? `tel:${rawPhone}` : undefined}
-                      className={`flex flex-col items-center gap-1 py-3 text-[10px] font-medium transition-colors ${rawPhone ? "text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 cursor-pointer" : "text-muted-foreground/30 cursor-default pointer-events-none"}`}
+                      className={`flex flex-col items-center gap-1 py-3 text-[10px] font-semibold transition-colors ${rawPhone ? "text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 cursor-pointer" : "text-muted-foreground/30 cursor-default pointer-events-none"}`}
                       title={rawPhone ? `Call ${name}` : "No phone number"}
                     >
                       <Phone className="h-4 w-4" />
@@ -305,7 +317,7 @@ export default function DirectoryClient({ staff, contacts, currentUserId, initia
                       href={waLink ?? undefined}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className={`flex flex-col items-center gap-1 py-3 text-[10px] font-medium transition-colors ${waLink ? "text-[#25D366] hover:bg-green-50 dark:hover:bg-green-950/30 cursor-pointer" : "text-muted-foreground/30 cursor-default pointer-events-none"}`}
+                      className={`flex flex-col items-center gap-1 py-3 text-[10px] font-semibold transition-colors ${waLink ? "text-[#25D366] hover:bg-green-50 dark:hover:bg-green-950/30 cursor-pointer" : "text-muted-foreground/30 cursor-default pointer-events-none"}`}
                       title={waLink ? `WhatsApp ${name}` : "No phone number"}
                     >
                       <MessageCircle className="h-4 w-4" />

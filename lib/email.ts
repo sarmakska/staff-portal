@@ -1,4 +1,4 @@
-// ============================================================
+﻿// ============================================================
 // Resend Email Client — Server-side only
 // All email sending goes through this module.
 // NEVER import in client components.
@@ -13,7 +13,7 @@ if (!process.env.RESEND_API_KEY) {
 
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null
 
-const FROM_EMAIL = process.env.RESEND_FROM_EMAIL ?? 'noreply@yournotifications.com'
+const FROM_EMAIL = process.env.RESEND_FROM_EMAIL ?? 'noreply@sarmalinux.com'
 
 // ── Template variable replacement ───────────────────────────
 
@@ -179,7 +179,7 @@ export async function sendLeaveApprovedEmail(params: LeaveApprovedParams) {
     await sendEmail({ to: params.employeeEmail, subject, html: employeeHtml, text: `Hi ${params.employeeName}, your ${leaveTypeLabel} request (${params.startDate} to ${params.endDate}, ${params.daysCount} days) has been approved by ${params.approverName}. Remaining balance: ${params.leaveBalanceRemaining} days. — StaffPortal` })
 
     // ── Email 2: Accounts — full details + where to find the PDF ────────────
-    const pdfUrl = `https://your-staffportal-url.com/admin/leave-records`
+    const pdfUrl = `https://your-domain.com/admin/leave-records`
     const accountsHtml = buildSimpleHtml({
         heading: 'Leave Approved — For Your Records',
         accentColor: '#2563eb',
@@ -248,6 +248,49 @@ export async function sendLeaveRejectedEmail(params: LeaveRejectedParams) {
     const text = applyTemplate(getLeaveRejectedText(), vars)
 
     return sendEmail({ to: params.employeeEmail, subject, html, text })
+}
+
+// ── Email: Leave Withdrawn ───────────────────────────────────
+
+export interface LeaveWithdrawnParams {
+    employeeName: string
+    employeeEmail: string
+    leaveType: string
+    startDate: string
+    endDate: string
+    daysCount: number
+    approverName?: string
+    approverEmail?: string
+    accountsEmail: string
+}
+
+export async function sendLeaveWithdrawnEmail(params: LeaveWithdrawnParams) {
+    const leaveTypeLabel = params.leaveType.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
+    const dateRange = params.startDate === params.endDate ? params.startDate : `${params.startDate} to ${params.endDate}`
+    const subject = `Leave Withdrawn — ${params.employeeName} (${leaveTypeLabel}, ${dateRange})`
+
+    const body = `
+        <h2 style="margin:0 0 20px;font-size:20px;color:#111827;font-weight:700;">Leave Request Withdrawn</h2>
+        <p style="margin:0 0 20px;color:#374151;font-size:14px;line-height:1.6;">
+            <strong>${params.employeeName}</strong> has withdrawn a leave request. The days have been returned to their balance.
+        </p>
+        ${infoTable([
+            ['Employee', params.employeeName],
+            ['Leave Type', leaveTypeLabel],
+            ['Dates', dateRange],
+            ['Days Returned', `${params.daysCount} day${params.daysCount !== 1 ? 's' : ''}`],
+        ])}
+        <p style="margin:0;color:#6b7280;font-size:13px;">No action is required. This is a notification only.</p>`
+
+    const html = buildSimpleHtml({ heading: 'Leave Withdrawn', accentColor: '#6b7280', body })
+
+    const recipients = new Set<string>()
+    if (params.approverEmail && params.approverEmail !== params.employeeEmail) recipients.add(params.approverEmail)
+    if (params.accountsEmail && params.accountsEmail !== params.employeeEmail) recipients.add(params.accountsEmail)
+
+    if (recipients.size > 0) {
+        await sendEmail({ to: Array.from(recipients), subject, html, text: `${params.employeeName} has withdrawn their ${leaveTypeLabel} leave (${dateRange}, ${params.daysCount} days). Days returned to balance. — StaffPortal` })
+    }
 }
 
 // ── Email: WFH Notification ──────────────────────────────────
@@ -352,7 +395,7 @@ export interface ForgottenClockoutParams {
 }
 
 export async function sendForgottenClockoutEmail(params: ForgottenClockoutParams) {
-    const correctionsUrl = 'https://your-staffportal-url.com/corrections'
+    const correctionsUrl = 'https://your-domain.com/corrections'
     const body = `
     <h2 style="margin:0 0 8px;font-size:20px;color:#dc2626;font-weight:700;">You Forgot to Clock Out</h2>
     <p style="margin:0 0 20px;color:#374151;font-size:14px;line-height:1.6;">
@@ -585,7 +628,7 @@ export async function sendDiaryReminderEmail(params: DiaryReminderParams) {
                 <tr>
                   <td>
                     <span style="color:#ffffff;font-size:18px;font-weight:800;letter-spacing:-0.3px;">StaffPortal</span><br>
-                    <span style="color:#a5b4fc;font-size:11px;letter-spacing:0.03em;">Your Company &bull; Personal Diary</span>
+                    <span style="color:#a5b4fc;font-size:11px;letter-spacing:0.03em;">Your Companys Ltd &bull; Personal Diary</span>
                   </td>
                   <td align="right" style="font-size:36px;line-height:1;">&#128214;</td>
                 </tr>
@@ -641,7 +684,7 @@ export async function sendDiaryReminderEmail(params: DiaryReminderParams) {
               <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:28px auto 4px;">
                 <tr>
                   <td align="center" style="border-radius:10px;background:#4f46e5;">
-                    <a href="https://your-staffportal-url.com/diary" target="_blank"
+                    <a href="https://your-domain.com/diary" target="_blank"
                       style="display:inline-block;padding:13px 32px;font-size:14px;font-weight:700;color:#ffffff;text-decoration:none;letter-spacing:0.01em;">
                       Open Diary &#8594;
                     </a>
@@ -657,7 +700,7 @@ export async function sendDiaryReminderEmail(params: DiaryReminderParams) {
                     <p style="margin:0 0 4px;color:#9ca3af;font-size:12px;font-style:italic;">
                       This reminder was set by you in StaffPortal. Please do not reply to this email.
                     </p>
-                    <p style="margin:0;color:#d1d5db;font-size:11px;">&copy; Your Company &bull; Internal communications only</p>
+                    <p style="margin:0;color:#d1d5db;font-size:11px;">&copy; Your Companys Ltd &bull; Internal communications only</p>
                   </td>
                 </tr>
               </table>
@@ -681,9 +724,9 @@ export async function sendDiaryReminderEmail(params: DiaryReminderParams) {
         ``,
         plainContent ? `Notes:\n${plainContent}` : '',
         ``,
-        `Open your diary: https://your-staffportal-url.com/diary`,
+        `Open your diary: https://your-domain.com/diary`,
         ``,
-        `— StaffPortal, Your Company`,
+        `— StaffPortal, Your Companys Ltd`,
     ].filter(Boolean).join('\n')
 
     return sendEmail({ to: params.to, subject, html, text })
@@ -716,7 +759,7 @@ export async function sendBirthdayReminderEmail(params: BirthdayReminderParams) 
         <tr>
           <td style="background:#111827;border-radius:12px 12px 0 0;padding:20px 32px 0;">
             <span style="color:#fff;font-size:15px;font-weight:700;">StaffPortal</span>&nbsp;
-            <span style="color:#6b7280;font-size:11px;">· Your Company</span>
+            <span style="color:#6b7280;font-size:11px;">· Your Companys Ltd</span>
           </td>
         </tr>
 
@@ -760,14 +803,14 @@ export async function sendBirthdayReminderEmail(params: BirthdayReminderParams) 
             </table>
 
             <p style="margin:0 0 28px;font-size:14px;color:#374151;text-align:center;line-height:1.7;">
-              From all of us at <strong>Your Company</strong> — let's make today memorable! 🎂
+              From all of us at <strong>Your Companys</strong> — let's make today memorable! 🎂
             </p>
 
             <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"
               style="margin-top:20px;border-top:1px solid #e5e7eb;padding-top:20px;">
               <tr><td>
                 <p style="margin:0 0 4px;color:#6b7280;font-size:12px;font-style:italic;">This is a system-generated email from StaffPortal. Please do not reply.</p>
-                <p style="margin:0;color:#9ca3af;font-size:11px;">&copy; Your Company &bull; Internal communications only</p>
+                <p style="margin:0;color:#9ca3af;font-size:11px;">&copy; Your Companys Ltd &bull; Internal communications only</p>
               </td></tr>
             </table>
           </td>
@@ -779,7 +822,7 @@ export async function sendBirthdayReminderEmail(params: BirthdayReminderParams) 
 </body>
 </html>`
 
-    const text = `Hi ${params.recipientName}! Today is ${params.birthdayPersonName}'s birthday! Give them a big birthday wish — a message, smile, or coffee makes all the difference. From all of us at Your Company 🎂 — StaffPortal`
+    const text = `Hi ${params.recipientName}! Today is ${params.birthdayPersonName}'s birthday! Give them a big birthday wish — a message, smile, or coffee makes all the difference. From all of us at Your Companys 🎂 — StaffPortal`
 
     return sendEmail({ to: params.to, subject, html, text })
 }
@@ -793,7 +836,7 @@ export interface BirthdayWishParams {
 }
 
 export async function sendBirthdayWishEmail(params: BirthdayWishParams) {
-    const subject = `🎂 Happy Birthday from Your Company, ${params.name}!`
+    const subject = `🎂 Happy Birthday from Your Companys, ${params.name}!`
 
     const html = `<!DOCTYPE html>
 <html lang="en">
@@ -810,7 +853,7 @@ export async function sendBirthdayWishEmail(params: BirthdayWishParams) {
         <!-- Deep navy hero for the birthday person -->
         <tr>
           <td style="background:linear-gradient(135deg,#1e1b4b 0%,#312e81 45%,#1e3a5f 100%);border-radius:12px 12px 0 0;padding:44px 32px 36px;text-align:center;">
-            <p style="margin:0 0 8px;font-size:11px;font-weight:700;color:rgba(255,255,255,0.4);letter-spacing:0.18em;text-transform:uppercase;">Your Company</p>
+            <p style="margin:0 0 8px;font-size:11px;font-weight:700;color:rgba(255,255,255,0.4);letter-spacing:0.18em;text-transform:uppercase;">Your Companys Ltd</p>
             <div style="font-size:88px;line-height:1;margin:16px 0 20px;">🎂</div>
             <h1 style="margin:0 0 8px;font-size:34px;font-weight:900;color:#fff;letter-spacing:-0.5px;line-height:1.1;">
               Happy Birthday,<br><span style="color:#fbbf24;">${params.name}!</span>
@@ -828,7 +871,7 @@ export async function sendBirthdayWishEmail(params: BirthdayWishParams) {
 
             <p style="margin:0 0 20px;font-size:16px;font-weight:700;color:#111827;">Dear ${params.name},</p>
             <p style="margin:0 0 20px;font-size:15px;color:#374151;line-height:1.8;">
-              On behalf of everyone at <strong>Your Company</strong>, we want to take a moment
+              On behalf of everyone at <strong>Your Companys</strong>, we want to take a moment
               to celebrate <em>you</em> and wish you a truly special birthday today! 🥳
             </p>
 
@@ -850,8 +893,8 @@ export async function sendBirthdayWishEmail(params: BirthdayWishParams) {
               style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:12px;margin:0 0 28px;">
               <tr><td style="padding:20px 24px;">
                 <p style="margin:0 0 4px;font-size:14px;font-weight:700;color:#111827;">With warmest wishes,</p>
-                <p style="margin:0 0 4px;font-size:14px;color:#374151;font-weight:600;">The Your Company Team 💙</p>
-                <p style="margin:0;font-size:13px;color:#9ca3af;">your-staffportal-url.com</p>
+                <p style="margin:0 0 4px;font-size:14px;color:#374151;font-weight:600;">The Your Companys Team 💙</p>
+                <p style="margin:0;font-size:13px;color:#9ca3af;">your-domain.com</p>
               </td></tr>
             </table>
 
@@ -863,7 +906,7 @@ export async function sendBirthdayWishEmail(params: BirthdayWishParams) {
               style="margin-top:20px;border-top:1px solid #e5e7eb;padding-top:20px;">
               <tr><td>
                 <p style="margin:0 0 4px;color:#6b7280;font-size:12px;font-style:italic;">This is a system-generated email from StaffPortal. Please do not reply.</p>
-                <p style="margin:0;color:#9ca3af;font-size:11px;">&copy; Your Company &bull; Internal communications only</p>
+                <p style="margin:0;color:#9ca3af;font-size:11px;">&copy; Your Companys Ltd &bull; Internal communications only</p>
               </td></tr>
             </table>
           </td>
@@ -875,7 +918,7 @@ export async function sendBirthdayWishEmail(params: BirthdayWishParams) {
 </body>
 </html>`
 
-    const text = `Happy Birthday ${params.name}! On behalf of everyone at Your Company, we wish you a wonderful day! You're a valued part of our team. Have a fantastic birthday! — The Your Company Team 🎂`
+    const text = `Happy Birthday ${params.name}! On behalf of everyone at Your Companys, we wish you a wonderful day! You're a valued part of our team. Have a fantastic birthday! — The Your Companys Team 🎂`
 
     return sendEmail({ to: params.to, subject, html, text })
 }
@@ -900,9 +943,9 @@ function buildSimpleHtml({ heading, accentColor = '#111827', body }: {
 
           <!-- Header -->
           <tr>
-            <td style="background-color:#111827;border-radius:12px 12px 0 0;padding:24px 32px;">
+            <td bgcolor="#111827" style="background-color:#111827;border-radius:12px 12px 0 0;padding:24px 32px;">
               <span style="color:#ffffff;font-size:17px;font-weight:700;letter-spacing:-0.2px;">StaffPortal</span><br>
-              <span style="color:#9ca3af;font-size:11px;">Your Company &bull; Internal Office System</span>
+              <span style="color:#9ca3af;font-size:11px;">Your Companys Ltd &bull; Internal Office System</span>
             </td>
           </tr>
 
@@ -913,7 +956,7 @@ function buildSimpleHtml({ heading, accentColor = '#111827', body }: {
 
           <!-- Body -->
           <tr>
-            <td style="background-color:#ffffff;padding:32px;border-radius:0 0 12px 12px;">
+            <td bgcolor="#ffffff" style="background-color:#ffffff;padding:32px;border-radius:0 0 12px 12px;">
               ${body}
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:28px;">
                 <tr>
@@ -922,7 +965,7 @@ function buildSimpleHtml({ heading, accentColor = '#111827', body }: {
                       This is a system-generated email from StaffPortal. Please do not reply.
                     </p>
                     <p style="margin:0;color:#9ca3af;font-size:11px;line-height:1.6;">
-                      &copy; Your Company &bull; Internal communications only
+                      &copy; Your Companys Ltd &bull; Internal communications only
                     </p>
                   </td>
                 </tr>
@@ -996,7 +1039,7 @@ async function generateLeaveApprovalPdf(params: LeaveApprovedParams & { approval
         // Header bar
         doc.rect(0, 0, 595, 70).fill(dark)
         doc.fontSize(18).fillColor('#ffffff').font('Helvetica-Bold').text('StaffPortal', 50, 22)
-        doc.fontSize(10).fillColor('#9ca3af').font('Helvetica').text('Your Company  •  Internal Office System', 50, 44)
+        doc.fontSize(10).fillColor('#9ca3af').font('Helvetica').text('Your Companys Ltd  •  Internal Office System', 50, 44)
 
         // Green accent stripe
         doc.rect(0, 70, 595, 4).fill(green)
@@ -1039,7 +1082,7 @@ async function generateLeaveApprovalPdf(params: LeaveApprovedParams & { approval
         doc.fontSize(9).fillColor(muted).font('Helvetica-Oblique')
             .text('This is a system-generated document from StaffPortal. Please do not reply to the accompanying email.', 50, 778, { width: 495 })
         doc.fontSize(9).fillColor(muted).font('Helvetica')
-            .text('© Your Company  •  Internal communications only', 50, 795)
+            .text('© Your Companys Ltd  •  Internal communications only', 50, 795)
 
         doc.end()
     })
@@ -1158,7 +1201,7 @@ const FIELD_LABEL: Record<string, string> = {
 
 function fmtIsoTime(iso: string | null): string {
     if (!iso) return '—'
-    return new Date(iso).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
+    return new Date(iso).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/London' })
 }
 
 function fmtIsoDate(iso: string): string {
@@ -1231,7 +1274,7 @@ export async function sendVisitorBookingEmail(params: VisitorBookingParams) {
     const text = [
         `Hello ${params.visitorName},`,
         '',
-        `Your visit to Your Company has been confirmed.`,
+        `Your visit to Your Companys has been confirmed.`,
         '',
         `Reference Code: ${params.referenceCode}`,
         `Date: ${params.visitDate}`,
@@ -1240,7 +1283,7 @@ export async function sendVisitorBookingEmail(params: VisitorBookingParams) {
         `Purpose: ${params.purpose}`,
         '',
         `Office Address:`,
-        `Your Company`,
+        `Your Companys Ltd`,
         `3rd Floor, Kantar Building`,
         `Westgate, Hanger Lane`,
         `London W5 1UA`,
@@ -1252,7 +1295,7 @@ export async function sendVisitorBookingEmail(params: VisitorBookingParams) {
         `We look forward to welcoming you!`,
         '',
         `Warm regards,`,
-        `The Your Company Team`,
+        `The Your Companys Team`,
     ].join('\n')
 
     const receptionEmail = process.env.RECEPTION_NOTIFY_EMAIL ?? 'reception@yourcompany.com'
@@ -1260,7 +1303,7 @@ export async function sendVisitorBookingEmail(params: VisitorBookingParams) {
     return sendEmail({
         to: params.visitorEmail,
         cc: receptionEmail,
-        subject: `Your Visit to Your Company — ${params.visitDate} · Ref: ${params.referenceCode}`,
+        subject: `Your Visit to Your Companys — ${params.visitDate} · Ref: ${params.referenceCode}`,
         html,
         text,
     })
@@ -1283,7 +1326,7 @@ function getVisitorBookingHtml(p: VisitorBookingParams): string {
           <!-- Header -->
           <tr>
             <td style="background-color:#111827;border-radius:12px 12px 0 0;padding:28px 32px;text-align:center;">
-              <p style="margin:0;color:#ffffff;font-size:20px;font-weight:700;letter-spacing:-0.3px;">Your Company</p>
+              <p style="margin:0;color:#ffffff;font-size:20px;font-weight:700;letter-spacing:-0.3px;">Your Companys</p>
               <p style="margin:6px 0 0;color:#9ca3af;font-size:12px;letter-spacing:0.5px;text-transform:uppercase;">Visitor Booking Confirmation</p>
             </td>
           </tr>
@@ -1300,7 +1343,7 @@ function getVisitorBookingHtml(p: VisitorBookingParams): string {
               <h2 style="margin:0 0 8px;font-size:22px;color:#111827;font-weight:700;">Your visit is confirmed!</h2>
               <p style="margin:0 0 24px;color:#374151;font-size:14px;line-height:1.7;">
                 Dear <strong>${p.visitorName}</strong>,<br><br>
-                We are delighted to welcome you to Your Company. Your booking has been confirmed — please find your visit details below and keep your reference code handy for a smooth check-in.
+                We are delighted to welcome you to Your Companys. Your booking has been confirmed — please find your visit details below and keep your reference code handy for a smooth check-in.
               </p>
 
               <!-- Reference Code Box -->
@@ -1344,7 +1387,7 @@ function getVisitorBookingHtml(p: VisitorBookingParams): string {
                 <tr>
                   <td style="background-color:#f0f4ff;border-radius:8px;padding:18px 20px;">
                     <p style="margin:0 0 10px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:#6b7280;">Getting Here</p>
-                    <p style="margin:0 0 2px;font-size:14px;color:#111827;font-weight:700;">Your Company</p>
+                    <p style="margin:0 0 2px;font-size:14px;color:#111827;font-weight:700;">Your Companys Ltd</p>
                     <p style="margin:0 0 12px;font-size:13px;color:#374151;line-height:1.7;">3rd Floor, Kantar Building<br>Westgate, Hanger Lane<br>London W5 1UA</p>
                     <p style="margin:0;font-size:13px;color:#374151;">&#128222; Reception: <a href="tel:+442087537100" style="color:#4f46e5;text-decoration:none;font-weight:600;">+44 208 753 7100</a></p>
                   </td>
@@ -1360,9 +1403,9 @@ function getVisitorBookingHtml(p: VisitorBookingParams): string {
                 <tr>
                   <td style="padding-top:20px;border-top:1px solid #e5e7eb;">
                     <p style="margin:0 0 4px;color:#6b7280;font-size:12px;">Warm regards,</p>
-                    <p style="margin:0 0 16px;color:#111827;font-size:13px;font-weight:600;">The Your Company Team</p>
+                    <p style="margin:0 0 16px;color:#111827;font-size:13px;font-weight:600;">The Your Companys Team</p>
                     <p style="margin:0;color:#9ca3af;font-size:11px;line-height:1.6;">
-                      This is an automated booking confirmation from Your Company. &copy; Your Company
+                      This is an automated booking confirmation from Your Companys. &copy; Your Companys Ltd
                     </p>
                   </td>
                 </tr>
@@ -1383,7 +1426,7 @@ function getVisitorBookingHtml(p: VisitorBookingParams): string {
 // EXPENSE MODULE EMAILS
 // ============================================================
 
-const NEXUS_URL = 'https://your-staffportal-url.com'
+const NEXUS_URL = 'https://your-domain.com'
 
 function expenseEmailBase(title: string, content: string) {
     return `<!DOCTYPE html>
@@ -1392,15 +1435,15 @@ function expenseEmailBase(title: string, content: string) {
   <table width="100%" cellpadding="0" cellspacing="0" style="background:#f1f5f9;padding:32px 16px;">
     <tr><td align="center">
       <table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;">
-        <tr><td style="background:linear-gradient(135deg,#1e293b 0%,#334155 100%);border-radius:16px 16px 0 0;padding:32px;text-align:center;">
-          <img src="/logo.png" alt="StaffPortal" height="36" style="display:block;margin:0 auto 12px;">
-          <h1 style="margin:0;color:#fff;font-size:20px;font-weight:700;">${title}</h1>
+        <tr><td bgcolor="#1e293b" style="background-color:#1e293b;background:linear-gradient(135deg,#1e293b 0%,#334155 100%);border-radius:16px 16px 0 0;padding:32px;text-align:center;">
+          <img src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/MEMO%20LOGO%281%29-LotOho4qrhl0Dxku4Sq22ZlQ7rRIWx.png" alt="Memo" height="36" style="display:block;margin:0 auto 12px;">
+          <h1 style="margin:0;color:#ffffff;font-size:20px;font-weight:700;">${title}</h1>
         </td></tr>
-        <tr><td style="background:#fff;padding:32px;border-left:1px solid #e2e8f0;border-right:1px solid #e2e8f0;">
+        <tr><td bgcolor="#ffffff" style="background-color:#ffffff;padding:32px;border-left:1px solid #e2e8f0;border-right:1px solid #e2e8f0;">
           ${content}
         </td></tr>
-        <tr><td style="background:#1e293b;border-radius:0 0 16px 16px;padding:20px;text-align:center;">
-          <p style="margin:0;color:#94a3b8;font-size:12px;">StaffPortal &bull; Your Company &bull; Internal use only</p>
+        <tr><td bgcolor="#1e293b" style="background-color:#1e293b;border-radius:0 0 16px 16px;padding:20px;text-align:center;">
+          <p style="margin:0;color:#94a3b8;font-size:12px;">StaffPortal &bull; Your Companys Ltd &bull; Internal use only</p>
           <p style="margin:4px 0 0;color:#64748b;font-size:11px;">Designed and developed by Sarma Linux</p>
         </td></tr>
       </table>
@@ -1474,7 +1517,7 @@ export async function generateExpenseClaimPdf(expense: any): Promise<Buffer> {
 
         doc.rect(0, 0, PAGE_W, 70).fill('#0f172a')
         doc.fillColor('#ffffff').font('Helvetica-Bold').fontSize(16).text('EXPENSE CLAIM FORM', 0, 22, { align: 'center' })
-        doc.font('Helvetica').fontSize(9).fillColor('#94a3b8').text('StaffPortal · Your Company', 0, 43, { align: 'center' })
+        doc.font('Helvetica').fontSize(9).fillColor('#94a3b8').text('StaffPortal · Your Company Limited', 0, 43, { align: 'center' })
         y = 90
 
         doc.fillColor('#64748b').font('Helvetica').fontSize(8)
@@ -1687,7 +1730,7 @@ export async function sendPurchaseRequestDecisionEmail(params: PurchaseRequestDe
 
 // ── Staff Announcement Email ─────────────────────────────────
 
-const ANNOUNCE_FROM = 'notifications@sarmalinux.com'
+const ANNOUNCE_FROM = process.env.RESEND_FROM_EMAIL ?? 'noreply@sarmalinux.com'
 
 export interface AnnouncementEvent {
     title: string
@@ -1736,7 +1779,7 @@ function generateIcs(event: AnnouncementEvent, subject: string): Buffer {
         dtEnd = `${endD.getUTCFullYear()}${String(endD.getUTCMonth() + 1).padStart(2, '0')}${String(endD.getUTCDate()).padStart(2, '0')}`
     }
 
-    const uid = `${stamp}-${Math.random().toString(36).slice(2)}@your-staffportal-url.com`
+    const uid = `${stamp}-${Math.random().toString(36).slice(2)}@your-domain.com`
     const ics = [
         'BEGIN:VCALENDAR',
         'VERSION:2.0',
@@ -1801,7 +1844,7 @@ function announcementHtml(params: AnnouncementParams): string {
     <table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;">
 
       <!-- Header -->
-      <tr><td style="background:linear-gradient(135deg,#111827 0%,#1f2937 100%);border-radius:16px 16px 0 0;padding:28px 32px;">
+      <tr><td bgcolor="#111827" style="background-color:#111827;border-radius:16px 16px 0 0;padding:28px 32px;">
         <table width="100%" cellpadding="0" cellspacing="0">
           <tr>
             <td>
@@ -1839,10 +1882,10 @@ function announcementHtml(params: AnnouncementParams): string {
           <tr>
             <td>
               <p style="margin:0;font-size:12px;color:#6b7280;">Sent via <strong style="color:#374151;">StaffPortal</strong> by ${params.sentByName}</p>
-              <p style="margin:4px 0 0;font-size:11px;color:#9ca3af;">This is an internal staff announcement from Your Company.</p>
+              <p style="margin:4px 0 0;font-size:11px;color:#9ca3af;">This is an internal staff announcement from Your Companys Limited.</p>
             </td>
             <td align="right">
-              <a href="${NEXUS_URL}" style="font-size:11px;color:#6b7280;text-decoration:none;">your-staffportal-url.com</a>
+              <a href="${NEXUS_URL}" style="font-size:11px;color:#6b7280;text-decoration:none;">your-domain.com</a>
             </td>
           </tr>
         </table>
@@ -1868,7 +1911,7 @@ export async function sendStaffAnnouncement(params: AnnouncementParams): Promise
     try {
         const { error } = await resend.emails.send({
             from: `StaffPortal <${ANNOUNCE_FROM}>`,
-            to: [process.env.WFH_NOTIFY_EMAIL ?? 'admin@yourcompany.com'],
+            to: [process.env.WFH_NOTIFY_EMAIL ?? 'memofashions@yourcompany.com'],
             subject: params.subject,
             html: announcementHtml(params),
             text: `${params.categoryEmoji ?? '📢'} ${params.category ?? 'Announcement'} from ${params.sentByName}\n\n${params.subject}\n\n${params.body}${params.event ? `\n\nEvent: ${params.event.title}\nDate: ${params.event.date}${params.event.endDate ? ' to ' + params.event.endDate : ''}${params.event.time ? ' at ' + params.event.time : ''}${params.event.location ? '\nLocation: ' + params.event.location : ''}` : ''}`,
@@ -1884,4 +1927,437 @@ export async function sendStaffAnnouncement(params: AnnouncementParams): Promise
         console.error('[Announcement] Error:', message)
         return { success: false, error: message }
     }
+}
+
+// ── Email: Poll Created ──────────────────────────────────────
+
+export interface PollCreatedParams {
+    recipients: string[]
+    question: string
+    options: string[]
+    deadline: string
+    creatorName: string
+    pollId: string
+}
+
+export async function sendPollCreatedEmail(params: PollCreatedParams): Promise<{ success: boolean; error?: string }> {
+    if (!resend) return { success: true }
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://memo-nexus.vercel.app'
+    const pollUrl = `${appUrl}/polls`
+    const deadlineFormatted = new Date(params.deadline).toLocaleDateString('en-GB', {
+        weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit',
+    })
+    const optionsHtml = params.options.map((opt, i) => `
+        <tr>
+            <td style="padding:8px 12px;border-bottom:1px solid #f1f5f9;">
+                <span style="display:inline-block;width:24px;height:24px;background:#6366f1;color:#fff;border-radius:50%;text-align:center;line-height:24px;font-size:12px;font-weight:700;margin-right:10px;">${i + 1}</span>
+                <span style="font-size:15px;color:#1e293b;">${opt}</span>
+            </td>
+        </tr>`).join('')
+    const html = `<!DOCTYPE html>
+<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#f8fafc;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
+  <div style="max-width:600px;margin:32px auto;background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.07);">
+    <div style="background:linear-gradient(135deg,#6366f1 0%,#8b5cf6 100%);padding:32px 32px 28px;">
+      <div style="font-size:36px;margin-bottom:8px;">📊</div>
+      <h1 style="margin:0;color:#fff;font-size:22px;font-weight:800;">New Poll - Your Vote Counts!</h1>
+      <p style="margin:6px 0 0;color:rgba(255,255,255,0.8);font-size:14px;">${params.creatorName} wants to hear from you</p>
+    </div>
+    <div style="padding:28px 32px 0;">
+      <p style="margin:0 0 6px;font-size:11px;font-weight:700;color:#6366f1;text-transform:uppercase;letter-spacing:1px;">The Question</p>
+      <h2 style="margin:0 0 24px;font-size:20px;font-weight:800;color:#0f172a;line-height:1.3;">${params.question}</h2>
+      <p style="margin:0 0 10px;font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:1px;">Options</p>
+      <table style="width:100%;border-collapse:collapse;border-radius:10px;overflow:hidden;border:1px solid #e2e8f0;">${optionsHtml}</table>
+    </div>
+    <div style="margin:24px 32px;background:#fef3c7;border:1px solid #fde68a;border-radius:10px;padding:14px 16px;">
+      <p style="margin:0;font-size:11px;font-weight:700;color:#92400e;text-transform:uppercase;letter-spacing:0.5px;">Closes</p>
+      <p style="margin:2px 0 0;font-size:14px;font-weight:600;color:#78350f;">${deadlineFormatted}</p>
+    </div>
+    <div style="padding:0 32px 32px;text-align:center;">
+      <a href="${pollUrl}" style="display:inline-block;background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;text-decoration:none;padding:14px 36px;border-radius:50px;font-weight:700;font-size:15px;">Cast My Vote</a>
+      <p style="margin:16px 0 0;font-size:12px;color:#94a3b8;">Results visible to everyone in real time</p>
+    </div>
+    <div style="background:#f8fafc;padding:16px 32px;border-top:1px solid #e2e8f0;text-align:center;">
+      <p style="margin:0;font-size:11px;color:#94a3b8;">StaffPortal - You received this because you are an active staff member</p>
+    </div>
+  </div>
+</body></html>`
+    try {
+        const BATCH = 50
+        for (let i = 0; i < params.recipients.length; i += BATCH) {
+            const batch = params.recipients.slice(i, i + BATCH)
+            await resend.emails.send({ from: FROM_EMAIL, to: batch, subject: `📊 New Poll: ${params.question}`, html })
+        }
+        return { success: true }
+    } catch (err) {
+        const message = err instanceof Error ? err.message : 'Unknown error'
+        console.error('[Poll Email] Error:', message)
+        return { success: false, error: message }
+    }
+}
+
+// ── Email: Absent Reminder ───────────────────────────────────
+
+export interface AbsentReminderParams {
+    employeeEmail: string
+    employeeName: string
+}
+
+export async function sendAbsentReminderEmail(params: AbsentReminderParams): Promise<{ success: boolean; error?: string }> {
+    const attendanceUrl = 'https://your-domain.com/attendance'
+    const body = `
+    <h2 style="margin:0 0 8px;font-size:20px;color:#d97706;font-weight:700;">You haven't clocked in today</h2>
+    <p style="margin:0 0 24px;color:#374151;font-size:14px;line-height:1.6;">
+      Hi <strong>${params.employeeName}</strong>, we noticed you haven't clocked in today and no holiday has been booked.
+      Please let us know what applies so we can keep attendance accurate.
+    </p>
+
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+
+      <tr>
+        <td style="padding:0 0 16px;">
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:16px;">
+            <tr>
+              <td width="32" valign="top" style="font-size:20px;line-height:1;">&#128336;</td>
+              <td style="padding-left:10px;">
+                <p style="margin:0 0 3px;font-size:14px;font-weight:700;color:#111827;">Running late?</p>
+                <p style="margin:0;font-size:13px;color:#4b5563;line-height:1.5;">Select <strong>Running Late</strong> in StaffPortal so the team is aware.</p>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+
+      <tr>
+        <td style="padding:0 0 16px;">
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:16px;">
+            <tr>
+              <td width="32" valign="top" style="font-size:20px;line-height:1;">&#127968;</td>
+              <td style="padding-left:10px;">
+                <p style="margin:0 0 3px;font-size:14px;font-weight:700;color:#111827;">Working from home?</p>
+                <p style="margin:0;font-size:13px;color:#4b5563;line-height:1.5;">Select <strong>Working from Home</strong> so your attendance is recorded correctly.</p>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+
+      <tr>
+        <td style="padding:0 0 16px;">
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:16px;">
+            <tr>
+              <td width="32" valign="top" style="font-size:20px;line-height:1;">&#128276;</td>
+              <td style="padding-left:10px;">
+                <p style="margin:0 0 3px;font-size:14px;font-weight:700;color:#111827;">Forgot to clock in?</p>
+                <p style="margin:0;font-size:13px;color:#4b5563;line-height:1.5;">Clock in now and submit a <strong>Correction Request</strong> with your correct time.</p>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+
+      <tr>
+        <td style="padding:0 0 0;">
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#fdf4ff;border:1px solid #e9d5ff;border-radius:8px;padding:16px;">
+            <tr>
+              <td width="32" valign="top" style="font-size:20px;line-height:1;">&#128233;</td>
+              <td style="padding-left:10px;">
+                <p style="margin:0 0 3px;font-size:14px;font-weight:700;color:#111827;">Something else?</p>
+                <p style="margin:0;font-size:13px;color:#4b5563;line-height:1.5;">Please inform reception as soon as possible or email <a href="mailto:reception@yourcompany.com" style="color:#7c3aed;font-weight:600;">reception@yourcompany.com</a></p>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+
+    </table>
+
+    <p style="margin:24px 0 0;text-align:center;">
+      <a href="${attendanceUrl}" style="display:inline-block;padding:10px 28px;background:#d97706;color:#fff;border-radius:8px;text-decoration:none;font-size:14px;font-weight:600;">Go to Attendance</a>
+    </p>`
+
+    const html = buildSimpleHtml({ heading: 'Absent Reminder', accentColor: '#d97706', body })
+    const text = `Hi ${params.employeeName}, you haven't clocked in today and no holiday is booked. Please select Running Late, WFH, clock in with a correction, or contact reception@yourcompany.com. — StaffPortal`
+
+    return sendEmail({
+        to: params.employeeEmail,
+        subject: "You haven't clocked in today",
+        html,
+        text,
+    })
+}
+
+// ── Missing Attendance: to employee ──────────────────────────
+
+export async function sendMissingAttendanceEmail(params: {
+    employeeEmail: string
+    employeeName: string
+    dateLabel: string
+    receptionName: string
+}): Promise<{ success: boolean; error?: string }> {
+    const body = `
+    <h2 style="margin:0 0 8px;font-size:20px;color:#d97706;font-weight:700;">Attendance Record Missing</h2>
+    <p style="margin:0 0 24px;color:#374151;font-size:14px;line-height:1.6;">
+      Hi <strong style="color:#111827;">${params.employeeName}</strong>, we noticed that your attendance record for the following date is missing from the system.
+    </p>
+
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 24px;border:1px solid #e5e7eb;border-radius:10px;overflow:hidden;">
+      <tr>
+        <td bgcolor="#f9fafb" style="padding:11px 16px;color:#6b7280;font-size:13px;width:42%;border-bottom:1px solid #e5e7eb;">Date</td>
+        <td bgcolor="#f9fafb" style="padding:11px 16px;color:#111827;font-size:13px;font-weight:600;border-bottom:1px solid #e5e7eb;">${params.dateLabel}</td>
+      </tr>
+      <tr>
+        <td bgcolor="#ffffff" style="padding:11px 16px;color:#6b7280;font-size:13px;width:42%;border-bottom:1px solid #e5e7eb;">Clock In</td>
+        <td bgcolor="#ffffff" style="padding:11px 16px;color:#dc2626;font-size:13px;font-weight:600;border-bottom:1px solid #e5e7eb;">No record</td>
+      </tr>
+      <tr>
+        <td bgcolor="#f9fafb" style="padding:11px 16px;color:#6b7280;font-size:13px;width:42%;">Leave / WFH</td>
+        <td bgcolor="#f9fafb" style="padding:11px 16px;color:#dc2626;font-size:13px;font-weight:600;">Not logged</td>
+      </tr>
+    </table>
+
+    <p style="margin:0 0 12px;font-size:14px;font-weight:700;color:#111827;">Please check which applies to you:</p>
+
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 10px;">
+      <tr>
+        <td bgcolor="#f0fdf4" style="padding:14px 18px;border:1px solid #bbf7d0;border-radius:10px;">
+          <p style="margin:0 0 4px;font-size:13px;font-weight:700;color:#15803d;">&#127796; Pre-booked Annual Leave</p>
+          <p style="margin:0;font-size:13px;color:#374151;line-height:1.6;">If you were on annual leave that day and it was already approved, please ignore this email &mdash; no action needed.</p>
+        </td>
+      </tr>
+    </table>
+
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 10px;">
+      <tr>
+        <td bgcolor="#eff6ff" style="padding:14px 18px;border:1px solid #bfdbfe;border-radius:10px;">
+          <p style="margin:0 0 4px;font-size:13px;font-weight:700;color:#1d4ed8;">&#129298; Sick Leave</p>
+          <p style="margin:0;font-size:13px;color:#374151;line-height:1.6;">If you were off sick on this date, please log it as sick leave on the system so your record is up to date. You can do this from the <strong>Leave</strong> page in StaffPortal.</p>
+        </td>
+      </tr>
+    </table>
+
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 24px;">
+      <tr>
+        <td bgcolor="#faf5ff" style="padding:14px 18px;border:1px solid #e9d5ff;border-radius:10px;">
+          <p style="margin:0 0 4px;font-size:13px;font-weight:700;color:#7e22ce;">&#128187; Clock-in Issue</p>
+          <p style="margin:0;font-size:13px;color:#374151;line-height:1.6;">If you were in the office but had trouble clocking in, please speak to <strong>${params.receptionName}</strong> at reception so a correction can be submitted.</p>
+        </td>
+      </tr>
+    </table>
+
+    <p style="margin:0;font-size:13px;color:#6b7280;line-height:1.6;">This is a system-generated alert to keep you updated.</p>`
+
+    const html = buildSimpleHtml({ heading: 'Attendance Record', accentColor: '#d97706', body })
+    return sendEmail({
+        to: params.employeeEmail,
+        subject: `Attendance Record Missing — ${params.dateLabel}`,
+        html,
+        text: `Hi ${params.employeeName}, your attendance record for ${params.dateLabel} is missing. No clock-in, leave, or WFH was logged. If on pre-booked leave, ignore this. If sick, please log it on the Leave page. If clock-in issue, speak to ${params.receptionName} at reception.`,
+    })
+}
+
+// ── Missing Attendance: to accounts ─────────────────────────
+
+export async function sendMissingAttendanceAccountsEmail(params: {
+    accountsEmail: string
+    dateLabel: string
+    missingNames: string[]
+}): Promise<{ success: boolean; error?: string }> {
+    const nameRows = params.missingNames.map((name, i) =>
+        `<tr><td bgcolor="${i % 2 === 0 ? '#f9fafb' : '#ffffff'}" style="padding:10px 16px;color:#111827;font-size:13px;font-weight:500;border-bottom:1px solid #e5e7eb;">${name}</td><td bgcolor="${i % 2 === 0 ? '#f9fafb' : '#ffffff'}" style="padding:10px 16px;color:#dc2626;font-size:13px;font-weight:600;border-bottom:1px solid #e5e7eb;">No record</td></tr>`
+    ).join('')
+
+    const body = `
+    <h2 style="margin:0 0 8px;font-size:20px;color:#dc2626;font-weight:700;">Missing Attendance Records</h2>
+    <p style="margin:0 0 24px;color:#374151;font-size:14px;line-height:1.6;">
+      Hi <strong style="color:#111827;">Sonal</strong>, the following staff have no attendance record for today. They have no clock-in, no approved leave, and no WFH logged.
+    </p>
+
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 8px;border:1px solid #e5e7eb;border-radius:10px;overflow:hidden;">
+      <tr>
+        <td bgcolor="#111827" style="padding:10px 16px;color:#ffffff;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;border-bottom:1px solid #e5e7eb;">Employee</td>
+        <td bgcolor="#111827" style="padding:10px 16px;color:#ffffff;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;border-bottom:1px solid #e5e7eb;">Status</td>
+      </tr>
+      ${nameRows}
+    </table>
+
+    <p style="margin:0 0 24px;color:#6b7280;font-size:12px;">${params.missingNames.length} staff member${params.missingNames.length !== 1 ? 's' : ''} with missing records for ${params.dateLabel}</p>
+
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 0;">
+      <tr>
+        <td bgcolor="#fffbeb" style="padding:16px 20px;border:1px solid #fde68a;border-radius:10px;">
+          <p style="margin:0 0 6px;font-size:13px;font-weight:700;color:#92400e;">&#128203; Action Required</p>
+          <p style="margin:0;font-size:13px;color:#78350f;line-height:1.6;">Each person listed above has been emailed individually to update their record. Please follow up if no update is received so this can be resolved before the next payroll run.</p>
+        </td>
+      </tr>
+    </table>`
+
+    const html = buildSimpleHtml({ heading: 'Missing Attendance', accentColor: '#dc2626', body })
+    return sendEmail({
+        to: params.accountsEmail,
+        subject: `Missing Attendance Records — ${params.dateLabel}`,
+        html,
+        text: `Hi Sonal, the following staff have no attendance record for ${params.dateLabel}: ${params.missingNames.join(', ')}. They have been emailed individually. Please follow up before the next payroll run.`,
+    })
+}
+
+// ── IT Ticket: Submitted (to admin) ──────────────────────────
+
+export async function sendITTicketSubmittedEmail(params: {
+    adminEmail: string
+    adminName: string
+    submitterName: string
+    submitterEmail: string
+    ticketNumber: number
+    title: string
+    category: string
+    priority: string
+    description: string
+}): Promise<{ success: boolean; error?: string }> {
+    const nexusUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://your-domain.com'
+    const priorityColor = params.priority === 'critical' ? '#dc2626' : params.priority === 'high' ? '#ea580c' : params.priority === 'medium' ? '#d97706' : '#16a34a'
+    const priorityLabel = params.priority.charAt(0).toUpperCase() + params.priority.slice(1)
+    const categoryLabel = params.category.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
+
+    const body = `
+    <h2 style="margin:0 0 4px;font-size:20px;color:#111827;font-weight:700;">New IT Support Ticket</h2>
+    <p style="margin:0 0 20px;color:#6b7280;font-size:13px;">Ticket #${params.ticketNumber}</p>
+    <p style="margin:0 0 20px;color:#374151;font-size:14px;line-height:1.6;">Hi <strong>${params.adminName}</strong>, a new support ticket has been submitted and requires your attention.</p>
+    ${infoTable([
+        ['Ticket #', `#${params.ticketNumber}`],
+        ['Submitted by', `${params.submitterName} (${params.submitterEmail})`],
+        ['Category', categoryLabel],
+        ['Priority', priorityLabel, priorityColor],
+        ['Title', params.title],
+    ])}
+    <div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:16px;margin:0 0 20px;">
+      <p style="margin:0 0 6px;color:#6b7280;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;">Description</p>
+      <p style="margin:0;color:#374151;font-size:14px;line-height:1.6;">${params.description.replace(/\n/g, '<br>')}</p>
+    </div>
+    <p style="margin:24px 0 0;text-align:center;">
+      <a href="${nexusUrl}/admin/it" style="display:inline-block;padding:10px 28px;background:#7c3aed;color:#fff;border-radius:8px;text-decoration:none;font-size:14px;font-weight:600;">View in IT Portal</a>
+    </p>`
+
+    const html = buildSimpleHtml({ heading: 'New IT Ticket', accentColor: '#7c3aed', body })
+    return sendEmail({
+        to: params.adminEmail,
+        subject: `[IT #${params.ticketNumber}] ${params.title}`,
+        html,
+    })
+}
+
+// ── IT Ticket: Status Update (to submitter) ───────────────────
+
+export async function sendITTicketStatusEmail(params: {
+    to: string
+    recipientName: string
+    ticketNumber: number
+    ticketTitle: string
+    newStatus: string
+}): Promise<{ success: boolean; error?: string }> {
+    const nexusUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://your-domain.com'
+    const statusLabels: Record<string, { label: string; color: string; msg: string }> = {
+        open: { label: 'Open', color: '#2563eb', msg: 'Your ticket has been reopened.' },
+        in_progress: { label: 'In Progress', color: '#d97706', msg: 'Your ticket is now being worked on by the IT team.' },
+        resolved: { label: 'Resolved', color: '#16a34a', msg: 'Great news — your ticket has been resolved. Please check and confirm everything is working.' },
+        closed: { label: 'Closed', color: '#6b7280', msg: 'Your ticket has been closed. If the issue persists, please raise a new ticket.' },
+    }
+    const s = statusLabels[params.newStatus] ?? { label: params.newStatus, color: '#111827', msg: 'Your ticket status has been updated.' }
+
+    const body = `
+    <h2 style="margin:0 0 4px;font-size:20px;color:#111827;font-weight:700;">Ticket Status Updated</h2>
+    <p style="margin:0 0 20px;color:#6b7280;font-size:13px;">Ticket #${params.ticketNumber}</p>
+    <p style="margin:0 0 20px;color:#374151;font-size:14px;line-height:1.6;">Hi <strong>${params.recipientName}</strong>, ${s.msg}</p>
+    ${infoTable([
+        ['Ticket #', `#${params.ticketNumber}`],
+        ['Title', params.ticketTitle],
+        ['New Status', s.label, s.color],
+    ])}
+    <p style="margin:24px 0 0;text-align:center;">
+      <a href="${nexusUrl}/it" style="display:inline-block;padding:10px 28px;background:#7c3aed;color:#fff;border-radius:8px;text-decoration:none;font-size:14px;font-weight:600;">View My Tickets</a>
+    </p>`
+
+    const html = buildSimpleHtml({ heading: 'IT Ticket Update', accentColor: '#7c3aed', body })
+    return sendEmail({
+        to: params.to,
+        subject: `[IT #${params.ticketNumber}] Status: ${s.label}`,
+        html,
+    })
+}
+
+// ── IT Ticket: New Comment (to submitter) ─────────────────────
+
+export async function sendITTicketCommentEmail(params: {
+    to: string
+    recipientName: string
+    ticketNumber: number
+    ticketTitle: string
+    commenterName: string
+    commentBody: string
+}): Promise<{ success: boolean; error?: string }> {
+    const nexusUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://your-domain.com'
+
+    const body = `
+    <h2 style="margin:0 0 4px;font-size:20px;color:#111827;font-weight:700;">New Reply on Your Ticket</h2>
+    <p style="margin:0 0 20px;color:#6b7280;font-size:13px;">Ticket #${params.ticketNumber}</p>
+    <p style="margin:0 0 20px;color:#374151;font-size:14px;line-height:1.6;">Hi <strong>${params.recipientName}</strong>, <strong>${params.commenterName}</strong> has replied to your IT ticket.</p>
+    ${infoTable([
+        ['Ticket #', `#${params.ticketNumber}`],
+        ['Title', params.ticketTitle],
+        ['Reply from', params.commenterName],
+    ])}
+    <div style="background:#f5f3ff;border-left:3px solid #7c3aed;border-radius:0 8px 8px 0;padding:16px;margin:0 0 20px;">
+      <p style="margin:0 0 6px;color:#7c3aed;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;">Their message</p>
+      <p style="margin:0;color:#374151;font-size:14px;line-height:1.6;">${params.commentBody.replace(/\n/g, '<br>')}</p>
+    </div>
+    <p style="margin:24px 0 0;text-align:center;">
+      <a href="${nexusUrl}/it" style="display:inline-block;padding:10px 28px;background:#7c3aed;color:#fff;border-radius:8px;text-decoration:none;font-size:14px;font-weight:600;">Reply in Nexus</a>
+    </p>`
+
+    const html = buildSimpleHtml({ heading: 'IT Ticket Reply', accentColor: '#7c3aed', body })
+    return sendEmail({
+        to: params.to,
+        subject: `[IT #${params.ticketNumber}] New reply: ${params.ticketTitle}`,
+        html,
+    })
+}
+
+// ── Wellness: New Event (to all staff) ────────────────────────
+
+export async function sendWellnessEventEmail(params: {
+    to: string
+    recipientName: string
+    eventTitle: string
+    eventDate: string
+    eventTime: string | null
+    location: string | null
+    description: string | null
+    organiserName: string
+    eventId: string
+}): Promise<{ success: boolean; error?: string }> {
+    const nexusUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://your-domain.com'
+    const rows: [string, string][] = [
+        ['Event', params.eventTitle],
+        ['Date', params.eventDate],
+    ]
+    if (params.eventTime) rows.push(['Time', params.eventTime])
+    if (params.location) rows.push(['Location', params.location])
+    rows.push(['Organised by', params.organiserName])
+
+    const body = `
+    <h2 style="margin:0 0 4px;font-size:20px;color:#111827;font-weight:700;">New Wellness Event</h2>
+    <p style="margin:0 0 20px;color:#6b7280;font-size:13px;">StaffPortal &bull; Wellness Hub</p>
+    <p style="margin:0 0 20px;color:#374151;font-size:14px;line-height:1.6;">Hi <strong>${params.recipientName}</strong>, a new wellness event has been added. Join in and take care of yourself!</p>
+    ${infoTable(rows as [string, string, string?][])}
+    ${params.description ? `<div style="background:#f0fdf4;border-left:3px solid #16a34a;border-radius:0 8px 8px 0;padding:14px;margin:0 0 20px;"><p style="margin:0;color:#374151;font-size:14px;line-height:1.6;">${params.description}</p></div>` : ''}
+    <p style="margin:24px 0 0;text-align:center;">
+      <a href="${nexusUrl}/wellness/events/${params.eventId}" style="display:inline-block;padding:10px 28px;background:#16a34a;color:#fff;border-radius:8px;text-decoration:none;font-size:14px;font-weight:600;">View &amp; RSVP</a>
+    </p>`
+
+    const html = buildSimpleHtml({ heading: 'New Wellness Event', accentColor: '#16a34a', body })
+    return sendEmail({
+        to: params.to,
+        subject: `Wellness Event: ${params.eventTitle} on ${params.eventDate}`,
+        html,
+    })
 }

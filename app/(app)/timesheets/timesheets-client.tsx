@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input"
 import { EmptyState } from "@/components/shared/empty-state"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
 import { Select as UISelect, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { FileSpreadsheet, Download, Pencil, Trash2, Users, Clock, ArrowRight, ArrowLeft } from "lucide-react"
+import { FileSpreadsheet, Download, Pencil, Trash2, Users, Clock, ArrowRight, ArrowLeft, MapPin } from "lucide-react"
 import { toast } from "sonner"
 import { updateAttendanceEntry, deleteAttendanceEntry } from "@/lib/actions/admin"
 import { generateIndividualTimesheetExcel, generateAllTimesheetsExcel } from "@/lib/actions/timesheet-export"
@@ -22,6 +22,7 @@ export type AttendanceRow = {
   late_reason?: string | null
   expected_arrival_time?: string | null
   late_logged_by?: string | null
+  clock_in_distance_m?: number | null
 }
 
 interface Props {
@@ -168,7 +169,14 @@ export function TimesheetsClient({ records, isAdmin, canExport, viewingName, vie
       ) : (
         <div className="space-y-4">
           {Object.entries(weeks).map(([weekStart, days]) => {
-            const total = days.reduce((s, d) => s + (d.total_hours ?? 0), 0)
+            const total = days.reduce((s, d) => {
+              const h = d.total_hours != null
+                ? d.total_hours
+                : (d.clock_in && d.clock_out)
+                  ? Math.round(Math.max(0, (new Date(d.clock_out).getTime() - new Date(d.clock_in).getTime()) / 36000)) / 100
+                  : 0
+              return s + h
+            }, 0)
             const weekLabel = new Date(weekStart + "T12:00:00").toLocaleDateString("en-GB", { day: "numeric", month: "short" })
             const presentDays = days.filter(d => d.status === "present" || d.status === "late").length
             const wfhDays = days.filter(d => d.status === "wfh").length
@@ -228,14 +236,27 @@ export function TimesheetsClient({ records, isAdmin, canExport, viewingName, vie
                         <span className="text-sm text-foreground font-medium">{d.work_date}</span>
 
                         {/* Clock In */}
-                        <div className="flex items-center gap-1.5">
-                          {clockIn ? (
-                            <>
-                              <ArrowRight className="h-3 w-3 text-emerald-500 shrink-0" />
-                              <span className="text-sm font-semibold text-foreground tabular-nums">{clockIn}</span>
-                            </>
-                          ) : (
-                            <span className="text-sm text-muted-foreground/40">—</span>
+                        <div className="flex flex-col gap-0.5">
+                          <div className="flex items-center gap-1.5">
+                            {clockIn ? (
+                              <>
+                                <ArrowRight className="h-3 w-3 text-emerald-500 shrink-0" />
+                                <span className="text-sm font-semibold text-foreground tabular-nums">{clockIn}</span>
+                              </>
+                            ) : (
+                              <span className="text-sm text-muted-foreground/40">—</span>
+                            )}
+                          </div>
+                          {d.clock_in_distance_m != null && d.clock_in_distance_m > 300 && (
+                            <span
+                              className="inline-flex items-center gap-0.5 text-[10px] font-semibold text-orange-600 bg-orange-100 dark:bg-orange-900/30 dark:text-orange-400 px-1.5 py-0.5 rounded-full w-fit"
+                              title={`Clocked in ${d.clock_in_distance_m}m from office`}
+                            >
+                              <MapPin className="h-2.5 w-2.5" />
+                              {d.clock_in_distance_m >= 1000
+                                ? `${(d.clock_in_distance_m / 1000).toFixed(1)}km away`
+                                : `${d.clock_in_distance_m}m away`}
+                            </span>
                           )}
                         </div>
 
@@ -267,7 +288,14 @@ export function TimesheetsClient({ records, isAdmin, canExport, viewingName, vie
                             </span>
                           )}
                           <span className="text-sm font-bold text-foreground tabular-nums">
-                            {d.total_hours != null ? `${d.total_hours}h` : ""}
+                            {(() => {
+                              const h = d.total_hours != null
+                                ? d.total_hours
+                                : (d.clock_in && d.clock_out)
+                                  ? Math.round(Math.max(0, (new Date(d.clock_out).getTime() - new Date(d.clock_in).getTime()) / 36000)) / 100
+                                  : null
+                              return h != null ? `${h}h` : ""
+                            })()}
                           </span>
                         </div>
 

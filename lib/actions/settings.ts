@@ -193,3 +193,163 @@ export async function clearKioskPin(): Promise<{ success: boolean; error?: strin
     revalidatePath('/settings')
     return { success: true }
 }
+
+// ── Profile extras: bio, hobbies, social links, cover photo ─────────────────
+// Stored as JSON in Supabase Storage — no DB schema changes required
+
+interface ProfileExtras {
+    bio: string | null
+    hobbies: string[]
+    linkedin_url: string | null
+    instagram_url: string | null
+    twitter_url: string | null
+    facebook_url: string | null
+    discord_url: string | null
+    teams_url: string | null
+    website_url: string | null
+    cover_photo_url: string | null
+    cover_position: number | null
+}
+
+const EXTRAS_BUCKET = 'profile-extras'
+const EXTRAS_PATH = (userId: string) => `${userId}/extras.json`
+
+async function ensureExtrasBucket() {
+    const { error } = await supabaseAdmin.storage.createBucket(EXTRAS_BUCKET, {
+        public: false,
+        fileSizeLimit: 102400,
+    })
+    // Ignore "already exists" error
+    if (error && !error.message.includes('already exists') && !error.message.includes('duplicate')) {
+        console.error('Bucket creation error:', error.message)
+    }
+}
+
+export async function getProfileExtras(userId: string): Promise<ProfileExtras> {
+    try {
+        const { data, error } = await supabaseAdmin.storage.from(EXTRAS_BUCKET).download(EXTRAS_PATH(userId))
+        if (error || !data) return { bio: null, hobbies: [], linkedin_url: null, instagram_url: null, twitter_url: null, facebook_url: null, discord_url: null, teams_url: null, website_url: null, cover_photo_url: null, cover_position: null }
+        const text = await data.text()
+        const parsed = JSON.parse(text)
+        return {
+            bio: parsed.bio ?? null,
+            hobbies: Array.isArray(parsed.hobbies) ? parsed.hobbies : [],
+            linkedin_url: parsed.linkedin_url ?? null,
+            instagram_url: parsed.instagram_url ?? null,
+            twitter_url: parsed.twitter_url ?? null,
+            facebook_url: parsed.facebook_url ?? null,
+            discord_url: parsed.discord_url ?? null,
+            teams_url: parsed.teams_url ?? null,
+            website_url: parsed.website_url ?? null,
+            cover_photo_url: parsed.cover_photo_url ?? null,
+            cover_position: parsed.cover_position ?? null,
+        }
+    } catch {
+        return { bio: null, hobbies: [], linkedin_url: null, instagram_url: null, twitter_url: null, facebook_url: null, discord_url: null, teams_url: null, website_url: null, cover_photo_url: null, cover_position: null }
+    }
+}
+
+async function writeExtras(userId: string, extras: ProfileExtras): Promise<string | null> {
+    await ensureExtrasBucket()
+    const buffer = Buffer.from(JSON.stringify(extras), 'utf-8')
+    const { error } = await supabaseAdmin.storage
+        .from(EXTRAS_BUCKET)
+        .upload(EXTRAS_PATH(userId), buffer, { upsert: true, contentType: 'text/plain' })
+    return error ? error.message : null
+}
+
+export async function updateProfileExtras(data: {
+    bio: string | null
+    hobbies: string[]
+    linkedin_url: string | null
+    instagram_url: string | null
+    twitter_url: string | null
+    facebook_url: string | null
+    discord_url: string | null
+    teams_url: string | null
+    website_url: string | null
+}): Promise<{ success: boolean; error?: string }> {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { success: false, error: 'Not authenticated' }
+
+    const existing = await getProfileExtras(user.id)
+    const err = await writeExtras(user.id, { ...data, cover_photo_url: existing.cover_photo_url })
+    if (err) return { success: false, error: err }
+
+    revalidatePath('/settings')
+    revalidatePath('/directory')
+    revalidatePath(`/directory/${user.id}`)
+    return { success: true }
+}
+
+export async function updateJoinedAt(dateStr: string): Promise<{ success: boolean; error?: string }> {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { success: false, error: 'Not authenticated' }
+
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return { success: false, error: 'Invalid date format' }
+
+    const { error } = await supabaseAdmin
+        .from('user_profiles')
+        .update({ joined_at: dateStr } as any)
+        .eq('id', user.id)
+
+    if (error) return { success: false, error: error.message }
+
+    revalidatePath('/settings')
+    revalidatePath('/directory')
+    revalidatePath(`/directory/${user.id}`)
+    return { success: true }
+}
+
+export async function saveCoverPosition(position: number): Promise<{ success: boolean; error?: string }> {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { success: false, error: 'Not authenticated' }
+
+    const existing = await getProfileExtras(user.id)
+    const err = await writeExtras(user.id, { ...existing, cover_position: Math.round(position) })
+    if (err) return { success: false, error: err }
+
+    revalidatePath(`/directory/${user.id}`)
+    return { success: true }
+}
+
+export async function getCoverUploadUrl(contentType: string, userId: string): Promise<{ success: boolean; signedUrl?: string; path?: string; publicUrl?: string; error?: string }> {
+    try {
+        const supabase = await createClient()
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user || user.id !== userId) return { success: false, error: 'Not authenticated' }
+
+        const ext = contentType === 'image/png' ? 'png' : contentType === 'image/webp' ? 'webp' : 'jpg'
+        const path = `${user.id}/cover.${ext}`
+
+        const { data, error } = await supabaseAdmin.storage.from('avatars').createSignedUploadUrl(path, { upsert: true })
+        if (error) return { success: false, error: error.message }
+
+        const { data: { publicUrl } } = supabaseAdmin.storage.from('avatars').getPublicUrl(path)
+        return { success: true, signedUrl: data.signedUrl, path, publicUrl }
+    } catch (err: any) {
+        return { success: false, error: err?.message ?? 'Failed to prepare upload' }
+    }
+}
+
+export async function saveCoverUrl(publicUrl: string): Promise<{ success: boolean; url?: string; error?: string }> {
+    try {
+        const supabase = await createClient()
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) return { success: false, error: 'Not authenticated' }
+
+        const urlWithCacheBuster = `${publicUrl}?t=${Date.now()}`
+        const existing = await getProfileExtras(user.id)
+        const err = await writeExtras(user.id, { ...existing, cover_photo_url: urlWithCacheBuster })
+        if (err) return { success: false, error: err }
+
+        revalidatePath('/settings')
+        revalidatePath(`/directory/${user.id}`)
+        return { success: true, url: urlWithCacheBuster }
+    } catch (err: any) {
+        return { success: false, error: err?.message ?? 'Failed to save cover photo' }
+    }
+}

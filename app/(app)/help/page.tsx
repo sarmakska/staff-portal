@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import { useState } from "react"
 import {
@@ -6,7 +6,8 @@ import {
     AlertTriangle, Users, UserPlus, Bell, Settings,
     CheckCircle, Coffee, Home, ClipboardList, Search, Package2, TableProperties,
     Monitor, ShieldCheck, Receipt, CreditCard, Banknote, Camera, ShoppingCart,
-    BarChart3, Mail, CheckCircle2, Megaphone, MapPin,
+    BarChart3, Mail, CheckCircle2, Megaphone, MapPin, Pin, StickyNote,
+    Ticket, Heart, Wind, Dumbbell, Bot,
 } from "lucide-react"
 
 interface Section {
@@ -106,10 +107,17 @@ const sections: Section[] = [
 
                 <SubHeading text="Running Late" />
                 <div className="space-y-2">
-                    <Step n={1} text={"Tap \"I'm Running Late\" on the Attendance page before you arrive."} />
-                    <Step n={2} text="Enter your expected arrival time and an optional reason." />
-                    <Step n={3} text="The office is notified immediately by email. When you arrive, clock in as normal." />
+                    <Step n={1} text={'Tap "Running Late" on the Dashboard quick actions (or the Attendance page).'} />
+                    <Step n={2} text='Choose "Today" or "Tomorrow" — you can pre-log for the next day the evening before.' />
+                    <Step n={3} text="Enter your expected arrival time and an optional reason." />
+                    <Step n={4} text="The office is notified immediately by email. When you arrive, clock in as normal." />
                 </div>
+                <Note text="Running late entries are visible across the system. They appear as orange events on the Team Calendar so everyone can see. If you pre-logged for tomorrow, an amber banner also appears on your Dashboard. Reception can see a Running Late filter tab showing who has pre-logged for today." />
+
+                <SubHeading text="Live Time in Office" />
+                <p className="text-sm text-muted-foreground leading-relaxed">
+                    While you are clocked in, a live counter shows exactly how long you have been in the office. It updates every second and automatically deducts any break time. You can see it on both the Attendance page (in the Current Status card) and on the Dashboard (in the stat strip at the top).
+                </p>
 
                 <SubHeading text="Working From Home (WFH)" />
                 <p className="text-sm text-muted-foreground leading-relaxed">
@@ -282,7 +290,17 @@ new_year_available = new_year_total + carry_amount`}</Formula>
 
                 <SubHeading text="Withdrawing a Request" />
                 <p className="text-sm text-muted-foreground leading-relaxed">
-                    If your leave has not yet been approved you can withdraw it from the Leave page. Your pending days are released back to your balance immediately. If it has already been approved, speak to the office to cancel it.
+                    You can withdraw any pending or approved leave request directly from the Leave page — just find the request and click Withdraw. Your days are returned to your balance immediately regardless of whether the request was pending or approved.
+                </p>
+                <InfoTable rows={[
+                    ["Withdraw (pending) →", "pending -= days_count. Days back in your available balance instantly."],
+                    ["Withdraw (approved) →", "used -= days_count. Days back in your available balance instantly."],
+                ]} />
+                <p className="text-sm text-muted-foreground leading-relaxed">
+                    Your withdrawn requests are kept on record and visible under the <span className="font-semibold text-foreground">Withdrawn</span> tab on your Leave page — they are never deleted. Your approver and the accounts team are automatically notified by email when you withdraw leave.
+                </p>
+                <p className="text-sm text-muted-foreground leading-relaxed">
+                    You can download a withdrawal record PDF from your Leave page for any withdrawn request. The PDF shows the leave details, your updated balance, and is marked <span className="font-semibold text-foreground">WITHDRAWN</span> — it is for audit reference only and is not an approved leave form.
                 </p>
             </div>
         ),
@@ -472,6 +490,7 @@ new_year_available = new_year_total + carry_amount`}</Formula>
                     <p>• <span className="font-semibold text-emerald-600 dark:text-emerald-400">Green</span> — colleague is in the office (clocked in)</p>
                     <p>• <span className="font-semibold text-blue-600 dark:text-blue-400">Blue</span> — colleague is working from home</p>
                     <p>• <span className="font-semibold text-amber-600 dark:text-amber-400">Amber</span> — colleague is on approved leave</p>
+                    <p>• <span className="font-semibold text-orange-600 dark:text-orange-400">Orange</span> — colleague has logged running late (including pre-logged for a future date)</p>
                     <p>• <span className="font-semibold text-purple-600 dark:text-purple-400">Events</span> — company meetings, appointments, or custom events</p>
                 </div>
 
@@ -541,7 +560,7 @@ new_year_available = new_year_total + carry_amount`}</Formula>
         content: (
             <div className="space-y-4">
                 <p className="text-sm text-muted-foreground leading-relaxed">
-                    The Directory is your internal phonebook. It has two tabs — Staff (everyone at Your Company) and External (suppliers, clients, and other outside contacts).
+                    The Directory is your internal phonebook. It has two tabs — Staff (everyone at Your Companys) and External (suppliers, clients, and other outside contacts).
                 </p>
 
                 <SubHeading text="Staff Directory" />
@@ -699,11 +718,28 @@ new_year_available = new_year_total + carry_amount`}</Formula>
                     ["New leave request (to approver)", "Sent to your designated approver whenever you submit a leave request. Includes all details and a direct link to the Approvals page."],
                     ["WFH notification", "Sent to the office when you log a WFH day. Includes your name, department, the date, WFH type (full/half), and your reason if provided."],
                     ["Early clock-out", "Sent to the office when you use Early Leave. Includes your name, department, the date, time left, hours worked, and your reason."],
-                    ["Running late", "Sent to the office when you log Running Late. Includes your name, expected arrival time, and reason."],
-                    ["Forgotten clock-out", "Sent to you at 7pm if you clocked in but never clocked out. Reminds you to submit a correction request."],
-                    ["Correction reviewed", "Sent to you when your correction request is approved or rejected. Includes the outcome and any notes."],
-                    ["Birthday wish", "Sent to you on your birthday — a personal message from Your Company."],
-                    ["Birthday reminder", "Sent 2 days before a colleague's birthday so you have time to prepare."],
+                    ["Running late", "Sent to the office immediately when you log Running Late — for today or tomorrow. Includes your name, the date, expected arrival time, and reason."],
+                    ["Correction submitted", "Sent to reception when you submit a correction request. Includes the date, the field being corrected, the new value, and your reason."],
+                    ["Correction reviewed", "Sent to you when your correction request is approved or rejected. Includes the outcome and any notes from reception."],
+                    ["Visitor pre-registered", "Sent to reception when you pre-register a visitor. Includes visitor name, company, expected arrival time, and who they are visiting."],
+                    ["Expense claim submitted (to approver)", "Sent to your chosen approver when you submit a personal card or cash expense claim. Includes all expense details, receipt link, and a one-click review link."],
+                    ["Expense approved", "Sent to you with a download link to your signed Claim Sheet PDF. A separate email is sent to accounts with the reimbursement amount and their own download link."],
+                    ["Expense rejected", "Sent to you with the rejection reason from your approver so you can correct and resubmit if needed."],
+                    ["Company card expense recorded", "Sent to you as confirmation when you record a company card expense. No approval needed — company already paid."],
+                    ["Purchase request submitted (to approver)", "Sent to your chosen approver when you submit a purchase request. Includes item, cost, urgency, justification, and any attachments."],
+                    ["Purchase request decision", "Sent to you when your purchase request is approved or rejected. Includes the approver's decision and any notes."],
+                    ["Staff announcement", "Sent to memofashions@yourcompany.com when anyone creates a staff announcement. Includes the message, type badge, optional date range, and optional calendar invite (.ics file)."],
+                    ["New poll created", "Sent to all active staff (except Directors) when a new poll is created. Includes the question, all options, deadline, and a direct link to vote."],
+                    ["Absent reminder", "Sent to you at 10am if you have not clocked in and have no holiday, calendar leave, WFH, or running-late recorded for the day. Asks you to select the right option or contact reception. Automatically skips UK bank holidays (checked via gov.uk). Directors and staff marked as excluded from reminders are never sent this email."],
+                    ["Missing attendance report", "Sent at 7pm if you have no attendance record at all for the day — no clock-in, no leave, no WFH. You'll receive an email asking you to confirm if you were on pre-booked annual leave, sick leave, or had a clock-in issue. A separate summary is sent to the accounts team so they can follow up before payroll. Skips bank holidays automatically."],
+                    ["Forgotten clock-out reminder", "Sent to you at 7pm if you clocked in but never clocked out. Reminds you to submit a correction request. Reception also receives a copy. Skips bank holidays automatically."],
+                    ["Birthday wish", "Sent to you on your birthday — a personal message from Your Companys."],
+                    ["Birthday reminder", "Sent to the office 2 days before a colleague's birthday so they have time to prepare."],
+                    ["Diary reminder", "Optional reminder sent if you have not filled in your diary entry for the day. This is a gentle nudge and is not mandatory."],
+                    ["IT ticket submitted", "Sent to the IT admin when you raise a new support ticket. Includes category, priority, and description."],
+                    ["IT ticket status update", "Sent to you when your IT ticket status changes (Open, In Progress, Resolved, Closed)."],
+                    ["IT ticket reply", "Sent to you when the IT admin replies to your ticket. Includes the reply text so you can read it without opening Nexus."],
+                    ["New wellness event", "Sent to all staff when a new wellness event is created. Includes date, time, location, and organiser."],
                 ].map(([event, desc]) => (
                     <div key={event} className="flex gap-3 items-start rounded-xl border border-border bg-muted/20 px-3 py-2.5">
                         <CheckCircle className="h-4 w-4 text-emerald-500 shrink-0 mt-0.5" />
@@ -762,7 +798,7 @@ new_year_available = new_year_total + carry_amount`}</Formula>
 
                 <SubHeading text="Resetting Your Password" />
                 <div className="space-y-2">
-                    <Step n={1} text="Go to your-staffportal-url.com and click Forgot password? on the login page." />
+                    <Step n={1} text="Go to your-domain.com and click Forgot password? on the login page." />
                     <Step n={2} text="Enter your @yourcompany.com email address." />
                     <Step n={3} text="Check your email — click the reset link and set a new password." />
                 </div>
@@ -880,19 +916,24 @@ new_year_available = new_year_total + carry_amount`}</Formula>
         color: "text-blue-600 dark:text-blue-400",
         bg: "bg-blue-50 dark:bg-blue-950/40",
         title: "Expense Manager",
-        subtitle: "AI-powered expense claims, VAT tracking, bank reconciliation, and Excel exports",
+        subtitle: "AI receipt scanning, VAT tracking, bank reconciliation with manual fix tools, and director analytics",
         content: (
             <div className="space-y-4">
                 <p className="text-sm text-muted-foreground leading-relaxed">
-                    The Expense Manager handles everything from submitting a £5 coffee receipt to full monthly accounting reconciliation with your bank. It uses <strong>Google Gemini 1.5 Flash AI</strong> for automatic receipt scanning and intelligent bank statement matching. Access it from <strong>Expenses</strong> in the sidebar.
+                    The Expense Manager handles everything from submitting a £5 coffee receipt to full monthly accounting reconciliation with sign-off. It uses <strong>Google Gemini AI</strong> (with <strong>Claude AI</strong> as automatic fallback) for receipt scanning and bank statement matching. Built so the accountant does almost no manual work — just upload the HSBC statement, fix a few edge cases, sign off. Access it from <strong>Expenses</strong> in the sidebar.
                 </p>
 
                 {/* AI banner */}
                 <div className="rounded-xl border border-violet-200 dark:border-violet-800 bg-violet-50 dark:bg-violet-950/30 px-4 py-3 space-y-2">
                     <p className="text-xs font-bold text-violet-800 dark:text-violet-300 uppercase tracking-wider">🤖 AI-Powered Features</p>
                     <InfoTable rows={[
-                        ["Receipt OCR (Optical Character Recognition)", "Upload a photo or PDF receipt — AI instantly reads merchant name, total amount, date, description, suggested category, receipt number, VAT details (amount, rate, supplier VAT number), and currency. ~90% accuracy on UK receipts. <1 second processing."],
-                        ["Bank Statement AI Matching", "Upload your bank statement (PDF/image) — AI extracts EVERY transaction and auto-matches debits to company card expenses using a smart scoring system (60pts for amount match + 40pts for date match). Matches within ±7 days and ±15% amount variance. Performance: 95% faster than manual (100 transactions × 100 expenses in <0.5s)."],
+                        ["Receipt OCR", "Upload a photo or PDF receipt — AI reads merchant, total, currency (GBP/USD/EUR etc.), date, description, category, receipt number, VAT details, and supplier VAT number in under 1 second. ~90% accuracy. Gemini runs first; Claude picks up automatically if Gemini is unavailable."],
+                        ["Bank Statement Parsing", "Upload a statement (PDF/image) — AI extracts every transaction automatically, reads the card number from the statement header, and identifies the exact cardholder from their registered card's last 4 digits. Also extracts FX conversion rates, foreign currency amounts, and cash advance fees. Gemini runs first; Claude picks up if Gemini is unavailable."],
+                        ["Cardholder Detection", "AI reads the card number from the statement and matches the last 4 digits against company cards registered in Settings → Company Cards. No name guessing — it's always the exact card owner."],
+                        ["Auto-Matching", "Each bank debit is scored against company card expenses using amount similarity (60pts) + date proximity (40pts). ≥70 = Matched · 40–69 = Suggested · <40 = No Match."],
+                        ["Auto VAT Update", "When a bank transaction matches an expense, the system updates converted_gbp, recalculates VAT and net amount from the bank's actual GBP charge, and stores the bank's FX rate."],
+                        ["Stub Creation", "Any unmatched debit automatically creates an expense stub under the cardholder, marked [Receipt needed], status Approved. It appears in the monthly sheet immediately so the cardholder can open it, upload the receipt, and save."],
+                        ["Missing Receipt Emails (Manual)", "A mail icon button appears on each statement card. Click it to send the cardholder a personal email listing their specific missing transactions with step-by-step upload instructions. Never sent automatically — you control when it goes."],
                     ]} />
                 </div>
 
@@ -900,108 +941,150 @@ new_year_available = new_year_total + carry_amount`}</Formula>
                 <InfoTable rows={[
                     ["My Expenses", "Submit and track your own expense claims, company card records, and refunds"],
                     ["Purchase Requests", "Request approval to buy something before spending the money"],
-                    ["Monthly Sheet", "Full accounting view — 3 views, bank reconciliation, VAT summary, CSV export"],
+                    ["Monthly Sheet", "Full accounting view — 3 views, bank reconciliation with sign-off, CSV and Excel export"],
                     ["Approvals", "Approve or reject expenses and purchase requests assigned to you"],
-                    ["Analytics", "Spend by month or UK fiscal quarter — category, person, VAT (admin/director/accounts)"],
+                    ["Analytics", "Period KPIs, 9 director charts, spend trends, VAT, merchant analysis (admin/director/accounts)"],
                     ["Settings", "Manage company cards and per-person auto-approve (admin/director/accounts)"],
                 ]} />
 
                 <SubHeading text="Payment Types" />
                 <InfoTable rows={[
-                    ["Company Card", "Money already spent from the company account. Auto-approved instantly — no claim needed. Company card transactions appear in the bank statement reconciliation."],
-                    ["Personal Card (Claim)", "You paid with your own card. Pick an approver → they get an email → once approved, download the signed Claim Sheet PDF."],
+                    ["Company Card", "Money already spent from the company account. Auto-approved instantly — no claim needed. Appears in bank statement reconciliation."],
+                    ["Cash Withdrawal", "Company cash taken out. Auto-recorded, no claim. Tracked separately in accounting summary."],
+                    ["Personal Card (Claim)", "You paid from your own card. Pick an approver → email sent → once approved, download your signed Claim Sheet PDF."],
                     ["Cash (Claim)", "Same as personal card but paid in cash. Same approval and claim sheet flow."],
-                    ["Return / Refund", "Money returned to the company. Auto-approved, no claim. Shown separately in the accounting summary."],
+                    ["Return / Refund", "Money returned to the company. Auto-approved, shown as negative in all totals and exports."],
                 ]} />
 
                 <SubHeading text="Submitting an Expense — Step by Step" />
                 <div className="space-y-2">
                     <Step n={1} text='Go to My Expenses tab → click "Add Expense" (blue button, top right).' />
-                    <Step n={2} text='Upload receipt: Click "Upload Receipt" → choose image/PDF → wait 1-2 seconds for green "Receipt uploaded ✓". AI now processes it in the background.' />
-                    <Step n={3} text='AI auto-fill: Within 1 second, form fields populate automatically (merchant, amount, date, description, category). If OCR fails, you get a warning toast — just fill manually.' />
-                    <Step n={4} text="Review AI data: Check all auto-filled fields. Edit anything wrong. AI is ~90% accurate but not perfect." />
-                    <Step n={5} text='Choose payment method: Company Card (auto-approved) | Personal Card (needs approval) | Cash (needs approval) | Return/Refund (auto-approved).' />
-                    <Step n={6} text="VAT (optional): Toggle Includes VAT? → select rate (20%, 5%, 0%, custom) → AI may have pre-filled VAT amount, rate, and supplier VAT number from receipt. System calculates Net automatically." />
-                    <Step n={7} text="Approver (if needed): For Personal Card/Cash → select who approves → they get email immediately with receipt link." />
-                    <Step n={8} text='Category: Choose from dropdown (or click "+ New category" to add inline with color picker).' />
-                    <Step n={9} text='Submit: Click blue "Submit Expense" button → Done! Status shows in My Expenses list.' />
+                    <Step n={2} text='Upload receipt: Click "Upload Receipt" → choose image/PDF → AI scans it in ~1 second and auto-fills the form.' />
+                    <Step n={3} text="Check all auto-filled fields. Edit anything wrong — AI is ~90% accurate but not perfect." />
+                    <Step n={4} text='Choose payment method: Company Card / Cash Withdrawal (auto-approved, no claim) | Personal Card / Cash (needs approval).' />
+                    <Step n={5} text="VAT: If the receipt has VAT, the AI pre-fills the rate and supplier VAT number. You can also click '+ Add VAT details manually' at any time to add or change it." />
+                    <Step n={6} text="Approver (personal claims only): pick anyone from staff — they get an email immediately with the receipt link." />
+                    <Step n={7} text='Category: Choose from the dropdown. Click "+ New category" to add one inline with a colour picker.' />
+                    <Step n={8} text='Click "Submit Expense". Done — status updates in your list immediately.' />
                 </div>
-                <Note text="Company card purchases are auto-approved instantly (no claim needed — company already paid). Personal card/cash go to your selected approver first." />
+                <Note text="Company card and cash withdrawal expenses are auto-approved instantly. Personal card and cash claims go to your chosen approver first." />
 
-                <SubHeading text="VAT Tracking" />
+                <SubHeading text="Adding or Editing VAT on Existing Expenses" />
                 <p className="text-sm text-muted-foreground leading-relaxed">
-                    When you toggle <strong>Includes VAT?</strong> on an expense, you set the VAT rate and the system stores:
+                    If VAT was not captured at submission time (or was wrong), you can add or correct it later without resubmitting the expense.
                 </p>
+                <div className="space-y-2">
+                    <Step n={1} text='Open the expense from My Expenses or Monthly Sheet → click Edit.' />
+                    <Step n={2} text='If no VAT is set: click "+ Add VAT details manually" — the full VAT panel opens.' />
+                    <Step n={3} text='If VAT is already set: the panel shows automatically — change the rate, update the supplier VAT number, or click Remove to clear it.' />
+                    <Step n={4} text='The panel shows a live Gross / Net / VAT breakdown as you type. Click Save Changes.' />
+                </div>
                 <InfoTable rows={[
-                    ["Gross amount", "The total you paid (what you enter in the Amount field)"],
-                    ["Net amount", "Gross ÷ (1 + VAT rate) — stored automatically"],
-                    ["VAT amount", "Gross − Net — stored automatically"],
-                    ["VAT rate", "The percentage (20%, 5%, etc.)"],
-                    ["Supplier VAT number", "The supplier's VAT registration number from the receipt"],
-                    ["Receipt / invoice number", "The reference number from the document — for accounting reconciliation"],
+                    ["Gross amount", "The total you paid — what you enter in the Amount field"],
+                    ["Net amount", "Gross ÷ (1 + VAT rate) — calculated and stored automatically"],
+                    ["VAT amount", "Gross − Net — calculated and stored automatically"],
+                    ["VAT rate", "The percentage: 20%, 5%, 0%, or any custom rate"],
+                    ["Supplier VAT number", "The supplier's VAT registration number (e.g. GB123456789)"],
                 ]} />
-                <Note text="All VAT fields appear in the Monthly Sheet CSV and the Accounting Summary view for finance reporting." />
+                <Note text="All VAT fields appear in the Monthly Sheet, CSV export, Excel export (all sheets), and on the claim sheet PDF." />
 
                 <SubHeading text="Claim Sheet PDF (Personal Claims)" />
                 <p className="text-sm text-muted-foreground leading-relaxed">
-                    Once a personal claim is approved, a <strong>Download Claim Form</strong> button appears on the expense detail. You can download and print it for your records. A download link is also sent automatically by email to both you and the accounts team.
+                    Once approved, a <strong>Download Claim Form</strong> button appears. A download link is also sent automatically by email to both you and the accounts team.
                 </p>
                 <InfoTable rows={[
                     ["Employee details", "Name, email, date of submission"],
                     ["Expense details", "Description, date, merchant, category, amount, GBP equivalent"],
                     ["VAT details", "Net, VAT amount, VAT rate, VAT number (if recorded)"],
                     ["Approval details", "Who approved it and on what date"],
-                    ["Receipt link", "Direct link to the digital receipt"],
+                    ["Receipt link", "Direct clickable link to the digital receipt"],
                     ["Signature lines", "For employee and authorised signatory on the printed copy"],
                 ]} />
 
                 <SubHeading text="Approval Flow (Personal Claims)" />
                 <div className="rounded-xl border border-border bg-muted/30 p-4 font-mono text-xs text-foreground space-y-1">
                     <p>Submit with personal card or cash</p>
-                    <p className="text-muted-foreground">→ Pick an approver from the dropdown (any staff member)</p>
-                    <p className="text-muted-foreground">→ Approver gets email with all expense details + one-click review link</p>
+                    <p className="text-muted-foreground">→ Pick an approver from the dropdown</p>
+                    <p className="text-muted-foreground">→ Approver gets email with all details + one-click review link</p>
                     <p className="text-muted-foreground">→ Approver opens Approvals tab → approves or rejects with optional note</p>
                     <p className="text-muted-foreground">→ You get an approval email with a link to download your claim form PDF</p>
-                    <p className="text-muted-foreground">→ Accounts team automatically gets an email with the amount to reimburse + claim form download link</p>
-                    <p className="text-muted-foreground">→ Accounts processes the reimbursement — no paper needed, everything is in StaffPortal</p>
+                    <p className="text-muted-foreground">→ Accounts team gets a separate email: reimbursement amount + their own download link</p>
+                    <p className="text-muted-foreground">→ Accounts processes reimbursement — no paper needed</p>
                 </div>
-                <Note text="Company card and cash withdrawal expenses do not go through approval — they are recorded instantly. Accounts are not notified as no personal money is involved." />
 
                 <SubHeading text="Monthly Sheet — Three Views" />
-                <p className="text-sm text-muted-foreground leading-relaxed">
-                    The Monthly Sheet shows all expenses for any selected month. Switch between three views using the buttons at the top:
-                </p>
                 <InfoTable rows={[
-                    ["Transaction List", "Every expense in a table — columns include Gross, Net, VAT, Receipt Number, Bank Amount, Bank Adjustment, and reconciliation status. Filterable. Full accounting CSV export."],
-                    ["By Person", "Collapsible sections per employee with subtotals: gross spend, VAT, and personal claims to reimburse. Grand total at the bottom."],
-                    ["Accounting Summary", "Grand totals (Gross / Net / VAT), spend by category with percentages, by payment method, bank adjustments log, and refunds reconciliation — built for the finance team."],
+                    ["Transaction List", "Every expense in a table — Gross, Net, VAT, Receipt Number, Bank Amount, Bank Adjustment. Filterable by name/description. CSV export. Amber badge shown on rows where bank amount differs."],
+                    ["By Person", "Collapsible sections per employee with subtotals: gross spend, VAT, and claims to reimburse. Grand total at bottom."],
+                    ["Accounting Summary", "Grand totals (Gross / Net / VAT), spend by category and payment method, bank adjustments log, refunds reconciliation."],
                 ]} />
 
-                <SubHeading text="Bank Statement Reconciliation — AI Magic (Admin / Accounts / Director)" />
+                <SubHeading text="Bank Statement Reconciliation — Month-End Flow (Accounts / Admin / Director)" />
                 <p className="text-sm text-muted-foreground leading-relaxed">
-                    The Monthly Sheet has a powerful AI reconciliation feature. Upload your bank statement and watch AI automatically match every transaction to expenses in seconds.
+                    Designed for monthly company credit card statements. Upload once, fix any edge cases in the app, then sign off. No spreadsheets needed.
                 </p>
                 <div className="space-y-2">
-                    <Step n={1} text='Monthly Sheet → Select month (e.g. March 2026) → Click blue "Upload Statement" button (center top).' />
-                    <Step n={2} text="Choose bank statement file (JPG/PNG/PDF, max 10MB) → Upload begins." />
-                    <Step n={3} text="AI Processing Phase 1: Gemini reads the statement image and extracts bank name, account holder, statement period, and EVERY transaction (date, description, amount, debit/credit). Takes ~5-10 seconds." />
-                    <Step n={4} text="AI Processing Phase 2: Smart matching algorithm runs. For each DEBIT transaction, AI scores it against ALL company card expenses in that month using: Amount similarity (60pts max if within 1%) + Date proximity (40pts max if same day) = Total score 0-100." />
-                    <Step n={5} text="Match classification: ≥70pts = ✓ Matched (green, auto-linked) | 40-69pts = ~ Suggested (amber, review needed) | <40pts = ✗ Unmatched (red, investigate)." />
-                    <Step n={6} text='Reconciliation panel appears below: Shows all bank transactions with colored rows. Click any "Suggested" match to review. Unmatched items (bank fees, missing expenses) are highlighted for investigation.' />
-                    <Step n={7} text='Matched expenses: actual_bank_amount field updates automatically. If amount differs from expense → bank_adjustment calculated (e.g. £15.99 expense vs £16.00 bank = +£0.01 adjustment).' />
-                    <Step n={8} text='Export: Click "Export Reconciliation" → Downloads 3-sheet Excel file: (1) All expenses with VAT breakdown + clickable receipt links, (2) Bank statement with match status + confidence scores, (3) Unmatched debits only for investigation.' />
+                    <Step n={1} text='Monthly Sheet → select the correct month → click "Upload Statement".' />
+                    <Step n={2} text="Choose the statement file (JPG/PNG/PDF, max 10MB)." />
+                    <Step n={3} text="AI parses every transaction (5–10 seconds). It also reads the card number from the statement header and matches the last 4 digits against registered company cards to identify the exact cardholder — no manual selection needed." />
+                    <Step n={4} text="Smart matching runs: each debit is scored against that cardholder's company card expenses. ≥70pts = ✓ Matched (green) · 40–69pts = ~ Suggested (amber) · <40pts = ✗ No Match (red)." />
+                    <Step n={5} text="For every matched expense: converted GBP, VAT, net amount, and exchange rate are updated automatically to the bank's actual figures. A note is saved (e.g. 'Bank charged £24.32 (USD 30.00 @ 1.2348) | FX difference: +£0.18')." />
+                    <Step n={6} text="Any unmatched debit automatically creates an expense stub under the cardholder's name, marked [Receipt needed], with status Approved. It appears in their My Expenses immediately so they can open it, upload the receipt, and save." />
+                    <Step n={7} text="To notify the cardholder: click the mail icon (✉) on the statement card. This sends them a personal email listing only their missing transactions with step-by-step instructions. The email is never sent automatically — you decide when to send it." />
+                    <Step n={8} text="Reconciliation panel shows every transaction with its status. For each row you can take action:" />
                 </div>
-                <Note text="Performance: The matching algo is optimized (O(n²) → O(n × 15 days)) so 100 transactions × 100 expenses complete in <0.5 seconds instead of 3-5 seconds." />
+                <InfoTable rows={[
+                    ["✓ Matched — Unlink", "AI matched it but got it wrong? Click Unlink to send it back to unmatched."],
+                    ["~ Suggested — Accept", "AI found a likely match. Review the suggested expense and click Accept to confirm."],
+                    ["~ Suggested — Skip", "Suggestion is wrong. Click Skip to send it to unmatched for manual review."],
+                    ["✗ No Match — Mark Reviewed", "Bank fee, direct debit, or anything with no corresponding expense. Click Mark Reviewed — it's noted and no longer blocks sign-off."],
+                    ["✗ No Match — Find Expense", "Opens a search modal. Type description, merchant, or amount to find the right expense and link it manually."],
+                ]} />
+                <div className="space-y-2 mt-2">
+                    <Step n={9} text="Once all transactions are resolved (matched or reviewed), a green 'Mark Month as Reconciled' button appears at the bottom of the statement card." />
+                    <Step n={10} text="Click it — the month is signed off, timestamped, and your name is recorded. The status badge changes to ✓ Reconciled." />
+                </div>
+                <Note text="Bank discrepancies (where the bank charged a different amount than the expense) show as an amber badge on the expense row throughout the app, with the exact difference shown in the expense detail." />
 
-                <SubHeading text="Analytics (Admin / Director / Accounts)" />
+                <SubHeading text="Excel Export — 4 Sheets (Admin / Accounts / Director)" />
                 <p className="text-sm text-muted-foreground leading-relaxed">
-                    Switch between two modes using the Monthly / By Quarter toggle:
+                    Click <strong>Export Reconciliation</strong> in the Monthly Sheet to download a fully formatted Excel workbook for the accountant.
                 </p>
                 <InfoTable rows={[
-                    ["Monthly", "Pick any individual month from the last 24. Shows: Gross total, VAT reclaimable, claims to pay, transaction count, category pie chart, top spenders."],
-                    ["By Quarter (UK Fiscal)", "UK fiscal year starts April. Q1 = Apr–Jun, Q2 = Jul–Sep, Q3 = Oct–Dec, Q4 = Jan–Mar. Select FY year (e.g. FY 2025/26) and quarter. Shows monthly breakdown bar chart within the quarter and a quarter-selector grid for quick switching."],
+                    ["Sheet 1 — All Expenses", "Every expense for the month: date, employee, description, merchant, category, payment method, currency, gross, net ex VAT, VAT amount, VAT rate, VAT number, receipt number, status, bank amount, bank adjustment. Refunds shown as negative. Totals row at the bottom. Clickable receipt links."],
+                    ["Sheet 2 — Bank Statement", "All bank transactions with match status, confidence score, matched expense details, and difference. Colour-coded: green = matched, amber = suggested, red = unmatched."],
+                    ["Sheet 3 — Unmatched Debits", "Only the red rows — transactions that still need investigation. Total unmatched amount shown. Empty if fully reconciled."],
+                    ["Sheet 4 — By Employee", "Summary table at the top: one row per employee showing gross, net, VAT, company card spend, cash withdrawals, and claims to reimburse. Full detailed expense listing per employee below, with subtotals and a claims note per person. Grand total at the bottom."],
                 ]} />
-                <Note text="Only approved and paid expenses are included in Analytics. The VAT reclaimable figure shows the total input VAT across all VAT-tracked expenses in the period." />
+                <Note text="Refunds are correctly shown as negative figures in all sheets. All employee names use display name where set." />
+
+                <SubHeading text="Analytics — Director Dashboard (Admin / Director / Accounts)" />
+                <p className="text-sm text-muted-foreground leading-relaxed">
+                    The Analytics tab has two rows of KPI cards and eight charts. The first row covers the selected period; the second row covers year-to-date and live figures.
+                </p>
+                <InfoTable rows={[
+                    ["Total Gross", "Total spend for the selected period (approved + paid)"],
+                    ["VAT Reclaimable", "Total input VAT for the period"],
+                    ["Claims to Pay", "Personal card and cash claims for the period"],
+                    ["Transactions", "Count of expenses in the period"],
+                    ["YTD Total (FY)", "Running total from start of UK financial year (April) to today"],
+                    ["Avg per Expense", "Average transaction value year to date"],
+                    ["Pending Approval", "£ value and count of expenses currently waiting for approval"],
+                    ["Claims Outstanding", "Total money owed to staff across all submitted but unpaid personal claims"],
+                ]} />
+                <p className="text-sm font-semibold text-foreground mt-3 mb-2">Charts</p>
+                <InfoTable rows={[
+                    ["Spend Trend", "Bar chart of monthly totals within the selected quarter or month"],
+                    ["Spend by Category", "Donut chart + legend for the top categories"],
+                    ["Top Spenders", "Horizontal progress bars showing the top 10 employees by spend"],
+                    ["This Month vs Last Month", "Side-by-side bars broken down by payment method — instant trend check"],
+                    ["VAT Reclaimable (last 6 months)", "Violet bar chart showing monthly VAT to reclaim — for the accountant to plan submissions"],
+                    ["Payment Method Split", "Donut chart for current month — company card vs personal claims vs cash"],
+                    ["Top 5 Merchants", "Horizontal bars showing where the most money is going across all time"],
+                    ["Claims to Reimburse", "Ranked list of staff with outstanding personal claims — name, count, and total owed"],
+                    ["Spend by Approval Status", "Stacked bar chart by month — approved, pending, and paid — so you can see what is stuck in the queue"],
+                ]} />
+                <Note text="Only approved and paid expenses are included in period and YTD totals. Pending figures include all submitted expenses regardless of approval status." />
 
                 <SubHeading text="Purchase Requests" />
                 <div className="space-y-2">
@@ -1019,8 +1102,8 @@ new_year_available = new_year_total + carry_amount`}</Formula>
                 <SubHeading text="Email Notifications" />
                 <InfoTable rows={[
                     ["Personal claim submitted", "Approver gets email with amount, merchant, date, and one-click review link"],
-                    ["Personal claim approved", "You get a confirmation email with a link to download your claim form PDF. The accounts team automatically receives a separate email with the reimbursement amount and their own download link."],
-                    ["Company card approved", "You get a confirmation email only. No accounts notification — company already paid."],
+                    ["Personal claim approved", "You get a confirmation email with your claim form PDF link. Accounts get a separate email with the reimbursement amount and their own download link."],
+                    ["Company card recorded", "You get a confirmation email only. No accounts notification — company already paid."],
                     ["Claim rejected", "You get the rejection reason from the approver"],
                     ["Purchase request submitted", "Approver gets email with item, cost, urgency, justification, and attachments"],
                     ["Purchase request approved/rejected", "You receive the decision with any approver notes"],
@@ -1028,7 +1111,7 @@ new_year_available = new_year_total + carry_amount`}</Formula>
 
                 <SubHeading text="Settings (Admin / Director / Accounts)" />
                 <div className="space-y-2">
-                    <p className="text-sm text-muted-foreground"><strong>Company Cards</strong> — Register company cards and link each one to the employee who holds it (name + last 4 digits). When submitting a company card expense, the employee picks whose card was used from a dropdown. The AI receipt scanner also reads the last 4 digits from the receipt automatically and pre-selects the correct card. This ensures every expense is correctly linked to the right card for bank reconciliation.</p>
+                    <p className="text-sm text-muted-foreground"><strong>Company Cards</strong> — Register cards with the employee name and last 4 digits. When submitting an expense, the employee picks whose card was used. The AI receipt scanner reads the last 4 digits from the receipt and pre-selects the correct card automatically. When a bank statement is uploaded, the AI reads the card number from the statement header and uses the last 4 digits to identify the cardholder — so the right person's stubs and email are always used.</p>
                     <p className="text-sm text-muted-foreground"><strong>Auto-Approve Users</strong> — Toggle per person. When on, that employee's personal claims skip the approval step and are approved instantly.</p>
                 </div>
             </div>
@@ -1044,7 +1127,7 @@ new_year_available = new_year_total + carry_amount`}</Formula>
         content: (
             <div className="space-y-4">
                 <p className="text-sm text-muted-foreground leading-relaxed">
-                    The Announcements page lets <strong>anyone</strong> send a formatted email to the whole company. The email goes to <strong>admin@yourcompany.com</strong> — the company group inbox. Go to <strong>My Work → Announcements</strong> in the sidebar, or use the <strong>Announce</strong> quick action on the dashboard.
+                    The Announcements page lets <strong>anyone</strong> send a formatted email to the whole company. The email goes to <strong>memofashions@yourcompany.com</strong> — the company group inbox. Go to <strong>My Work → Announcements</strong> in the sidebar, or use the <strong>Announce</strong> quick action on the dashboard.
                 </p>
 
                 <SubHeading text="Announcement Types" />
@@ -1070,7 +1153,7 @@ new_year_available = new_year_total + carry_amount`}</Formula>
                     ["4. Set dates (optional)", "From Date and To Date are always visible — fill them in for any event or absence"],
                     ["5. Calendar invite (optional)", "Toggle 'Send calendar invite (.ics)' — enter a title, and the dates above are attached automatically"],
                     ["6. Preview", "Click Preview Email to see exactly what staff will receive before sending"],
-                    ["7. Send", "Click Send to All Staff — email fires instantly to admin@yourcompany.com"],
+                    ["7. Send", "Click Send to All Staff — email fires instantly to memofashions@yourcompany.com"],
                 ]} />
 
                 <SubHeading text="Calendar Events & Date Ranges" />
@@ -1089,12 +1172,12 @@ new_year_available = new_year_total + carry_amount`}</Formula>
                 <SubHeading text="What the Email Looks Like" />
                 <div className="rounded-xl border border-border bg-muted/20 p-4 space-y-2">
                     {[
-                        { mono: true,  text: "From: notifications@sarmalinux.com → admin@yourcompany.com" },
+                        { mono: true,  text: "From: noreply@sarmalinux.com → memofashions@yourcompany.com" },
                         { mono: false, text: "Dark branded header with Staff Announcement title, your name, and the type badge (e.g. 🏖️ Out of Office)" },
                         { mono: false, text: "Blue subject bar with the emoji and your subject line" },
                         { mono: false, text: "Your message as clean paragraphs" },
                         { mono: false, text: "Event card (if included) showing date range, time, and location in a styled blue box" },
-                        { mono: false, text: "Footer with your name and your-staffportal-url.com" },
+                        { mono: false, text: "Footer with your name and your-domain.com" },
                         { mono: false, text: "📎 event-invite.ics attachment (if event included)" },
                     ].map((item, i) => (
                         <div key={i} className="flex items-start gap-2">
@@ -1109,7 +1192,306 @@ new_year_available = new_year_total + carry_amount`}</Formula>
                     Every announcement is logged on the Announcements page. Expand any entry to see the full message, type, date range, and event details. The <strong>Announcements dashboard widget</strong> shows the last 4 sent at a glance.
                 </p>
 
-                <Note text="Add notifications@sarmalinux.com to your Outlook safe senders list so announcements don't go to junk. Settings → Safe senders → Add → notifications@sarmalinux.com → Save." />
+                <Note text="Add noreply@sarmalinux.com to your Outlook safe senders list so announcements don't go to junk. Settings → Safe senders → Add → noreply@sarmalinux.com → Save." />
+            </div>
+        ),
+    },
+    {
+        id: "polls",
+        icon: BarChart3,
+        color: "text-violet-600 dark:text-violet-400",
+        bg: "bg-violet-50 dark:bg-violet-950/40",
+        title: "Staff Polls",
+        subtitle: "Create quick votes, see live results, and get notified when new polls go up",
+        content: (
+            <div className="space-y-4">
+                <p className="text-sm text-muted-foreground leading-relaxed">
+                    Staff Polls let anyone in the team put a question to a vote — whether it's picking a date for the Christmas party, choosing lunch options, or gathering feedback on a new process. Everyone can see all polls and all results in real time.
+                </p>
+
+                <SubHeading text="Creating a Poll" />
+                <div className="space-y-2">
+                    <Step n={1} text="Go to Polls from the sidebar (under TEAM)." />
+                    <Step n={2} text="Click the + New Poll button at the top right." />
+                    <Step n={3} text="Write your question — be clear and concise so people know exactly what they're voting on." />
+                    <Step n={4} text="Add between 2 and 8 answer options. Each option has a colour-coded label." />
+                    <Step n={5} text="Set a deadline — this is required. Voting closes automatically once the deadline passes." />
+                    <Step n={6} text="Click Create Poll. An email notification fires instantly to all active staff (except Directors)." />
+                </div>
+                <Note text="Anyone can create a poll — you don't need to be an admin. Just hit + New Poll and fill in the form." />
+
+                <SubHeading text="Voting" />
+                <div className="space-y-2">
+                    <Step n={1} text="Open the Polls page or scroll to the Polls widget on your dashboard." />
+                    <Step n={2} text="Click any option bar to cast your vote." />
+                    <Step n={3} text="Your vote is highlighted with a VOTED badge. You can change your vote any time before the deadline by clicking a different option." />
+                </div>
+
+                <SubHeading text="Results" />
+                <p className="text-sm text-muted-foreground leading-relaxed">
+                    Results are always visible to everyone — there are no private polls. Each option shows a live percentage bar and the exact vote count. The winning option (most votes) gets a trophy icon once the deadline passes. Click the chart icon on any poll to see a full breakdown with a bar chart.
+                </p>
+
+                <SubHeading text="Expired Polls" />
+                <p className="text-sm text-muted-foreground leading-relaxed">
+                    Once the deadline passes, a poll is automatically archived. Active polls appear at the top of the page. Archived polls are stored in a collapsible section below — you can still view results but voting is closed.
+                </p>
+
+                <SubHeading text="Email Notifications" />
+                <InfoTable rows={[
+                    ["Who gets notified", "All active staff — except Directors"],
+                    ["When", "Every time a new poll is created"],
+                    ["Email subject", "📊 New Poll: [Your Question]"],
+                    ["Email contains", "The poll question, all options, the deadline, and a direct link to vote in Nexus"],
+                    ["On/Off switch", "Admins can turn poll emails on or off in Admin → Notifications"],
+                ]} />
+
+                <SubHeading text="Dashboard Widget" />
+                <p className="text-sm text-muted-foreground leading-relaxed">
+                    The Polls widget at the bottom of your dashboard shows all active polls with live vote bars. You can vote directly from the dashboard without opening the full Polls page.
+                </p>
+                <Note text="Polls are visible to everyone — results are never hidden. If you need a private vote, use the Feedback or Complaints pages instead." />
+            </div>
+        ),
+    },
+    {
+        id: "notice-board",
+        icon: Pin,
+        color: "text-amber-600 dark:text-amber-400",
+        bg: "bg-amber-50 dark:bg-amber-950/40",
+        title: "Notice Board",
+        subtitle: "Pin messages, links, and reminders for the whole team to see",
+        content: (
+            <div className="space-y-4">
+                <p className="text-sm text-muted-foreground leading-relaxed">
+                    The Notice Board is a shared digital pinboard where anyone in the team can pin sticky notes — quick reminders, useful links, important info, or anything the team should know about. It's fully open: anyone can add a note and anyone can remove one.
+                </p>
+
+                <SubHeading text="Adding a Note" />
+                <div className="space-y-2">
+                    <Step n={1} text="Go to Notice Board from the sidebar (under TEAM)." />
+                    <Step n={2} text="Click + Pin a Note." />
+                    <Step n={3} text="Write your message — keep it short so it fits on the sticky note." />
+                    <Step n={4} text="Pick a colour — choose from 8 colours. The preview on the right updates live." />
+                    <Step n={5} text="Optionally add a link (URL) — a clickable button appears on the note so people can open it directly." />
+                    <Step n={6} text="Optionally set an expiry date — the note fades out automatically on that date (still visible at 40% opacity so nothing disappears silently)." />
+                    <Step n={7} text="Click Pin It to add it to the board." />
+                </div>
+
+                <SubHeading text="Removing a Note" />
+                <p className="text-sm text-muted-foreground leading-relaxed">
+                    Hover over any note and a trash icon appears in the corner. Click it to remove the note. Anyone can remove any note — there's no ownership restriction. Treat the board as a shared space and tidy up old notes when they're no longer relevant.
+                </p>
+
+                <SubHeading text="Note Features" />
+                <InfoTable rows={[
+                    ["Colour", "8 colours to choose from — use colour to categorise (e.g. yellow = reminder, red = urgent)"],
+                    ["Link", "Optional URL — shows as a clickable 'Open Link' button on the note"],
+                    ["Expiry", "Optional date — expired notes appear at the bottom of the board at 40% opacity"],
+                    ["Tilt", "Each note has a slight random tilt so the board feels natural — hover to straighten it"],
+                    ["Pin graphic", "Each note shows a coloured pin at the top — the pin colour matches the note colour"],
+                ]} />
+
+                <SubHeading text="Expired Notes" />
+                <p className="text-sm text-muted-foreground leading-relaxed">
+                    Notes with an expiry date don't vanish — they move to the bottom of the board at 40% opacity with an 'Expired' badge. You can still read them and remove them when you're done. This way nothing gets silently deleted.
+                </p>
+
+                <Note text="There are no private notes on the Notice Board — everything is visible to all staff. For private messages, use the Feedback or internal chat tools." />
+            </div>
+        ),
+    },
+    {
+        id: "it-support",
+        icon: Ticket,
+        color: "text-violet-600",
+        bg: "bg-violet-50 dark:bg-violet-950/30",
+        title: "IT Support",
+        subtitle: "Raise and track IT support tickets",
+        content: (
+            <div className="space-y-4">
+                <p className="text-sm text-muted-foreground leading-relaxed">
+                    The IT Support Portal lets you raise a ticket for any technical issue — from broken hardware to software problems, network issues, or access requests. The IT admin (currently Sai) is notified by email immediately and can update your ticket, reply to you, and mark it as resolved — all from within Nexus.
+                </p>
+
+                <SubHeading text="Raising a ticket" />
+                <Step n={1} text="Go to IT Support from the sidebar (under MY WORK)." />
+                <Step n={2} text="Click New Ticket and choose a category: Hardware, Software, Network, Email, Printer, Access, or Other." />
+                <Step n={3} text="Set a priority — Low, Medium, High, or Critical. Use Critical only for urgent issues that are blocking your work." />
+                <Step n={4} text="Give the ticket a clear title and describe the problem in detail. Include any error messages, what you were doing when it happened, and what you expected to happen." />
+                <Step n={5} text="Click Submit. The IT admin is emailed immediately with the full details." />
+
+                <SubHeading text="After submitting" />
+                <p className="text-sm text-muted-foreground leading-relaxed">
+                    You'll receive an email every time the status changes (In Progress, Resolved, Closed) or when IT adds a reply to your ticket. You can also open the ticket at any time to add more details, upload screenshots, or reply to a comment from IT.
+                </p>
+
+                <SubHeading text="Attaching screenshots or files" />
+                <Step n={1} text="Open your ticket after submitting it." />
+                <Step n={2} text="Click the Upload button in the Attachments section." />
+                <Step n={3} text="Select a screenshot, photo, PDF, or document (max 10MB per file)." />
+                <Step n={4} text="The file is saved to your ticket. IT can view it when reviewing your case." />
+
+                <SubHeading text="Ticket statuses" />
+                <InfoTable rows={[
+                    ["Open", "Your ticket has been received — IT admin will pick it up shortly"],
+                    ["In Progress", "IT is actively working on your issue"],
+                    ["Resolved", "IT has fixed the issue — please check and confirm it works"],
+                    ["Closed", "The ticket is complete. Raise a new one if the issue returns"],
+                ]} />
+
+                <SubHeading text="Auto-delete" />
+                <p className="text-sm text-muted-foreground leading-relaxed">
+                    Resolved and closed tickets — along with all their attachments — are automatically deleted 30 days after resolution to keep the system clean. Download any important attachments before then.
+                </p>
+
+                <SubHeading text="Priorities explained" />
+                <InfoTable rows={[
+                    ["Low", "Not urgent — can wait a day or two (e.g. slow software, cosmetic issues)"],
+                    ["Medium", "Should be fixed this week (e.g. email not syncing, printer jammed)"],
+                    ["High", "Affecting your work today (e.g. can't access a file, system crashes)"],
+                    ["Critical", "Completely blocking you or the whole office (e.g. no internet, total system failure)"],
+                ]} />
+
+                <SubHeading text="Public board" />
+                <p className="text-sm text-muted-foreground leading-relaxed">
+                    All staff can see all tickets on the IT Support page so you can check if an issue has already been reported before raising a duplicate.
+                </p>
+
+                <SubHeading text="Email notifications" />
+                <InfoTable rows={[
+                    ["Ticket submitted", "IT admin receives an email with full ticket details"],
+                    ["Status changed", "You receive an email explaining what the new status means"],
+                    ["IT replies", "You receive an email quoting their reply — no need to check Nexus"],
+                ]} />
+            </div>
+        ),
+    },
+    {
+        id: "wellness",
+        icon: Heart,
+        color: "text-green-600",
+        bg: "bg-green-50 dark:bg-green-950/30",
+        title: "Wellness Hub",
+        subtitle: "Daily mood, stretches, breathing exercises, and team events",
+        content: (
+            <div className="space-y-4">
+                <p className="text-sm text-muted-foreground leading-relaxed">
+                    The Wellness Hub is your personal wellbeing space within Nexus. Check in with how you're feeling, take a guided stretch break, practise breathing exercises, join team wellness events, and track your journey over time.
+                </p>
+
+                <SubHeading text="Daily mood check-in" />
+                <Step n={1} text="Go to Wellness Hub from the sidebar (under MY WORK)." />
+                <Step n={2} text="Tap one of the 5 mood emojis — Struggling, Low, Okay, Good, or Great." />
+                <Step n={3} text="Optionally add a private note about how you're feeling." />
+                <Step n={4} text="Click Log mood. Your rating is saved for today." />
+                <Note text="Mood ratings are private to you — management only sees team averages and participation counts, never individual scores or notes." />
+
+                <SubHeading text="Streak" />
+                <p className="text-sm text-muted-foreground leading-relaxed">
+                    Check in every day to build your streak. Your current streak is shown on the Wellness Hub home and in My Journey. Missing a day resets the streak.
+                </p>
+
+                <SubHeading text="Stretch library" />
+                <p className="text-sm text-muted-foreground leading-relaxed">
+                    Go to Wellness → Stretching to find 8 guided desk-friendly exercises covering Upper Body, Core & Back, Lower Body, Hands & Wrists, and Eye Rest. Each stretch includes step-by-step instructions and a timed countdown.
+                </p>
+                <Step n={1} text="Choose a quick session (3-min, upper body, or full body) or pick an individual stretch." />
+                <Step n={2} text="Click Start. A countdown timer guides you through each exercise." />
+                <Step n={3} text="Click Skip to move to the next stretch, or Pause to take a break." />
+                <Step n={4} text="At the end, click Save & finish to log the session in My Journey." />
+
+                <SubHeading text="Breathing exercises" />
+                <p className="text-sm text-muted-foreground leading-relaxed">
+                    Go to Wellness → Breathing to choose from four guided techniques:
+                </p>
+                <InfoTable rows={[
+                    ["4-7-8", "Calm anxiety fast — breathe in 4s, hold 7s, exhale 8s"],
+                    ["Box Breathing", "Focus and clarity — 4s for all four phases, used by Navy SEALs"],
+                    ["Deep Belly", "Relax and restore — slow 5s inhale, 6s exhale, 6 cycles"],
+                    ["Energizing Breath", "Beat the afternoon slump — quick inhales, slow exhales"],
+                ]} />
+                <p className="text-sm text-muted-foreground leading-relaxed">
+                    An animated bubble expands and contracts in time with your breath. Press Start to begin, Pause to stop, or the reset button to start over. Sessions are saved to My Journey.
+                </p>
+
+                <SubHeading text="Team events" />
+                <Step n={1} text="Go to Wellness → Events to see all upcoming wellness activities." />
+                <Step n={2} text="Click Join to RSVP. You can cancel your spot any time." />
+                <Step n={3} text="To create an event, click Add event and fill in the details — title, type, date, time, location, duration, and optional max participants." />
+                <Step n={4} text="Once created, all staff who have event emails turned on will be notified automatically." />
+
+                <SubHeading text="Event types" />
+                <InfoTable rows={[
+                    ["Team Activity", "Group activities involving the whole team"],
+                    ["Workout", "Exercise sessions — gym, stretching, yoga"],
+                    ["Meditation", "Guided meditation or mindfulness sessions"],
+                    ["Walk / Run", "Group walks or runs around the local area"],
+                    ["Social", "Coffee catch-ups, team lunches, informal social time"],
+                    ["Workshop", "Learning sessions, talks, or skills workshops"],
+                ]} />
+
+                <SubHeading text="My Journey" />
+                <p className="text-sm text-muted-foreground leading-relaxed">
+                    Go to Wellness → My Journey to see your full history: mood chart for the last 30 days, every stretch session, every breathing session, and your summary stats (streak, average mood, total stretch time).
+                </p>
+                <p className="text-sm text-muted-foreground leading-relaxed">
+                    The Notifications tab in My Journey lets you control which wellness emails you receive — you can turn off stretch reminders, event notifications, and weekly summaries individually.
+                </p>
+
+                <SubHeading text="Stretch reminders" />
+                <p className="text-sm text-muted-foreground leading-relaxed">
+                    By default, you'll receive a short email at 11am and 3pm on weekdays reminding you to take a stretch break. Each email includes a random desk-friendly tip. You can turn these off in Wellness → My Journey → Notifications.
+                </p>
+
+                <SubHeading text="Admin: Wellness Trends" />
+                <p className="text-sm text-muted-foreground leading-relaxed">
+                    Admins and Directors can view the Wellness Trends dashboard at Admin → Wellness Trends. It shows the team's average mood each day for the last 30 days, today's and this week's average, and a participation breakdown by staff member. Individual notes and daily ratings are never shown here — only aggregated averages.
+                </p>
+            </div>
+        ),
+    },
+    {
+        id: "jarvis",
+        icon: Bot,
+        color: "text-violet-600 dark:text-violet-400",
+        bg: "bg-violet-50 dark:bg-violet-950/40",
+        title: "Jarvis AI Assistant",
+        subtitle: "Your personal AI helper — ask anything about your data or how to use Nexus",
+        content: (
+            <div className="space-y-4">
+                <p className="text-sm text-muted-foreground leading-relaxed">
+                    Jarvis is your personal AI assistant built into StaffPortal. Click the floating button in the bottom-right corner of any page to open a chat with Jarvis.
+                </p>
+
+                <SubHeading text="What Jarvis can do" />
+                <InfoTable rows={[
+                    ["Your data", "Ask about your attendance, leave balance, work schedule, hours this week, and more"],
+                    ["How-to help", "Step-by-step guidance for any feature — requesting leave, uploading receipts, booking visitors, etc."],
+                    ["Office presence", "Ask who's in the office, who's working from home, or who's on leave today"],
+                    ["WiFi passwords", "Ask for the staff or guest WiFi password"],
+                    ["Wellness support", "If you're having a tough day, Jarvis can suggest breathing exercises or stretches"],
+                    ["Report issues", "Tell Jarvis about a bug or problem — it collects the details and notifies the admin team"],
+                ]} />
+
+                <SubHeading text="How to use it" />
+                <Step n={1} text="Click the floating Jarvis button in the bottom-right corner of any page." />
+                <Step n={2} text="Type your question or message in the chat box." />
+                <Step n={3} text="Jarvis responds instantly with your real-time data or step-by-step instructions." />
+                <Step n={4} text="Close the chat by clicking the X button. Your conversation is kept for the session." />
+
+                <SubHeading text="Reporting an issue" />
+                <Step n={1} text={"Tell Jarvis something like \"the calendar isn't loading\" or \"my leave balance looks wrong\"."} />
+                <Step n={2} text="Jarvis will ask you for more details — what page, what happened, what you expected." />
+                <Step n={3} text="Once Jarvis has enough info, it sends a detailed report to the admin team by email." />
+                <Step n={4} text="You'll see a confirmation that the issue has been flagged." />
+
+                <SubHeading text="Privacy" />
+                <p className="text-sm text-muted-foreground leading-relaxed">
+                    Jarvis only shows you your own personal data. It will never reveal other employees' attendance times, leave balances, or personal details. It can only tell you whether a colleague is In Office, WFH, On Leave, or Running Late — nothing more.
+                </p>
+
+                <Note text="Jarvis was designed and built by Sai. It runs on a custom AI engine and is available to all logged-in staff." />
             </div>
         ),
     },

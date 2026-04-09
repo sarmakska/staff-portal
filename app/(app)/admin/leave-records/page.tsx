@@ -20,8 +20,8 @@ export default async function LeaveRecordsPage() {
       employee:user_profiles!leave_requests_user_id_fkey(full_name, display_name, email),
       approver:user_profiles!leave_requests_approver_id_fkey(full_name, display_name)
     `)
-    .eq("status", "approved")
-    .order("reviewed_at", { ascending: false })
+    .in("status", ["approved", "withdrawn"])
+    .order("start_date", { ascending: false })
     .limit(200)
 
   return (

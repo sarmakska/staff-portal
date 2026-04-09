@@ -9,7 +9,9 @@ export default async function AttendancePage() {
   const user = _authCtx!
   const { isAdmin, isReception, isAccounts } = _authCtx!
 
-  // Get this week's attendance records for the logged-in user
+  const today = new Date().toISOString().split("T")[0]
+
+  // Get this week's attendance records for the logged-in user (capped at today — no future pre-logs)
   const weekStart = new Date()
   weekStart.setDate(weekStart.getDate() - weekStart.getDay() + 1) // Monday
   weekStart.setHours(0, 0, 0, 0)
@@ -19,10 +21,10 @@ export default async function AttendancePage() {
     .select("*")
     .eq("user_id", user.id)
     .gte("work_date", weekStart.toISOString().split("T")[0])
+    .lte("work_date", today)
     .order("work_date", { ascending: true })
 
   // Today's record
-  const today = new Date().toISOString().split("T")[0]
   const todayRecord = records?.find(r => r.work_date === today) ?? null
 
   const { data: wfhRecord } = await supabase

@@ -1,4 +1,4 @@
-// ============================================================
+﻿// ============================================================
 // TypeScript Database Types — StaffPortal
 // All Insert/Update types are explicit (no self-referential Omit).
 // Every table MUST have Relationships: [] to satisfy GenericTable
@@ -163,6 +163,7 @@ export interface Database {
                     gender?: string | null
                     is_active: boolean
                     is_email_verified: boolean
+                    exclude_from_reminders: boolean
                     created_at: string
                     updated_at: string
                 }
@@ -181,6 +182,7 @@ export interface Database {
                     gender?: string | null
                     is_active?: boolean
                     is_email_verified?: boolean
+                    exclude_from_reminders?: boolean
                 }
                 Update: {
                     email?: string
@@ -196,6 +198,7 @@ export interface Database {
                     gender?: string | null
                     is_active?: boolean
                     is_email_verified?: boolean
+                    exclude_from_reminders?: boolean
                 }
                 Relationships: []
             }

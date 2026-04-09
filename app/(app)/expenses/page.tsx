@@ -6,7 +6,7 @@ import ExpensesClient from './expenses-client'
 import { getAllUsersForExpenseSettings } from '@/lib/actions/expenses'
 
 const supabaseAdmin = admin(
-  'https://your-supabase-project-ref.supabase.co',
+  'https://imhwbpkaxfuamrxzljdx.supabase.co',
   process.env.SUPABASE_SERVICE_ROLE_KEY!,
   { auth: { autoRefreshToken: false, persistSession: false } }
 )

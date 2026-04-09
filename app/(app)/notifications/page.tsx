@@ -1,7 +1,8 @@
-import Link from 'next/link'
+﻿import Link from 'next/link'
 import {
   Mail, CheckCircle2, XCircle, Clock, Receipt, ShoppingCart,
   CalendarDays, AlertCircle, Bell, ArrowRight, Zap, FileText, ShieldCheck, Megaphone,
+  Ticket, Heart,
 } from 'lucide-react'
 
 export default function NotificationsPage() {
@@ -21,9 +22,9 @@ export default function NotificationsPage() {
           <Mail className="h-5 w-5 text-blue-600 dark:text-blue-400 shrink-0 mt-0.5" />
           <div className="space-y-1 min-w-0">
             <p className="text-sm font-bold text-blue-900 dark:text-blue-200">All system emails are sent from</p>
-            <p className="font-mono text-base font-bold text-blue-700 dark:text-blue-300 break-all">noreply@yournotifications.com</p>
+            <p className="font-mono text-base font-bold text-blue-700 dark:text-blue-300 break-all">noreply@sarmalinux.com</p>
             <p className="text-sm font-bold text-blue-900 dark:text-blue-200 mt-3">Staff announcements are sent from</p>
-            <p className="font-mono text-base font-bold text-blue-700 dark:text-blue-300 break-all">notifications@sarmalinux.com</p>
+            <p className="font-mono text-base font-bold text-blue-700 dark:text-blue-300 break-all">noreply@sarmalinux.com</p>
             <p className="text-xs text-blue-700/80 dark:text-blue-300/80 mt-2">
               Add <strong>both addresses</strong> to your Outlook safe senders list so all Nexus emails land in your inbox, not junk.
             </p>
@@ -43,8 +44,8 @@ export default function NotificationsPage() {
             {[
               { step: "1", text: "Open Outlook and click the gear icon (⚙) in the top-right corner." },
               { step: "2", text: 'In the search box, type "Safe senders" and click the result.' },
-              { step: "3", text: 'Click "Add" and type: noreply@yournotifications.com — then click Save.' },
-              { step: "4", text: 'Click "Add" again and type: notifications@sarmalinux.com — then click Save.' },
+              { step: "3", text: 'Click "Add" and type: noreply@sarmalinux.com — then click Save.' },
+              { step: "4", text: 'Click "Add" again for any other Nexus addresses — then click Save.' },
             ].map(({ step, text }) => (
               <li key={step} className="flex items-start gap-3">
                 <span className="shrink-0 h-5 w-5 rounded-full bg-primary/10 text-primary text-[11px] font-bold flex items-center justify-center">{step}</span>
@@ -68,7 +69,7 @@ export default function NotificationsPage() {
         items={[
           {
             trigger: 'Any staff member sends an announcement',
-            recipient: 'admin@yourcompany.com — company group inbox',
+            recipient: 'memofashions@yourcompany.com — company group inbox',
             subject: '{Category Emoji} {Announcement Subject}',
             contains: [
               'Category badge (General / OOO / Event / Closure / Celebration / New Joiner / Policy / Urgent / Meeting / IT)',
@@ -82,7 +83,7 @@ export default function NotificationsPage() {
           },
           {
             trigger: 'Out of Office announcement (OOO category)',
-            recipient: 'admin@yourcompany.com',
+            recipient: 'memofashions@yourcompany.com',
             subject: '🌴 {Subject} — Away from [Start Date] to [End Date]',
             contains: [
               'OOO category auto-shows absence date range',
@@ -95,7 +96,7 @@ export default function NotificationsPage() {
           },
           {
             trigger: 'Announcement includes a calendar event',
-            recipient: 'admin@yourcompany.com',
+            recipient: 'memofashions@yourcompany.com',
             subject: '{Category Emoji} {Announcement Subject}',
             contains: [
               'event-invite.ics file attached automatically',
@@ -156,6 +157,20 @@ export default function NotificationsPage() {
             contains: ['Amount & description', 'Rejection reason from approver', 'Option to resubmit with more info'],
             badge: 'To Employee',
             badgeColor: 'bg-rose-100 text-rose-700',
+          },
+          {
+            trigger: 'Admin clicks the mail icon on a statement card (manual — not automatic)',
+            recipient: 'The cardholder only — identified by the card\'s last 4 digits matched against registered company cards',
+            subject: '[StaffPortal] Please upload receipts for your company card — {Month Year}',
+            contains: [
+              'Personalised to the cardholder by first name',
+              'Full table of their specific transactions with no receipt — date, merchant, amount',
+              'Step-by-step instructions to find the [Receipt needed] stub in My Expenses, upload the receipt, and save',
+              'For March 2026 statements: a note explaining Nexus launched mid-March, so they don\'t need to worry about March transactions',
+              'No one else receives this email — only that card\'s holder',
+            ],
+            badge: 'To Cardholder',
+            badgeColor: 'bg-blue-100 text-blue-700',
           },
         ]}
       />
@@ -226,6 +241,81 @@ export default function NotificationsPage() {
         ]}
       />
 
+      {/* Polls */}
+      <Section
+        icon={Bell}
+        title="Staff Polls"
+        color="from-violet-600 to-purple-700"
+        items={[
+          {
+            trigger: 'New poll created by any staff member',
+            recipient: 'All active staff (excluding Directors)',
+            subject: '📊 New Poll: [Poll Question]',
+            contains: ['Poll question', 'All available options', 'Deadline date', 'Direct link to vote in Nexus'],
+            badge: 'All Staff',
+            badgeColor: 'bg-violet-100 text-violet-700 dark:bg-violet-900/40 dark:text-violet-300',
+          },
+        ]}
+      />
+
+      {/* IT Support */}
+      <Section
+        icon={Ticket}
+        title="IT Support Tickets"
+        color="from-violet-600 to-violet-700"
+        items={[
+          {
+            trigger: 'New IT support ticket submitted',
+            recipient: 'IT Admin',
+            subject: '[IT #123] [Ticket Title]',
+            contains: ['Ticket number', 'Category & priority', 'Full description from staff member', 'Direct link to IT Admin Portal'],
+            badge: 'To IT Admin',
+            badgeColor: 'bg-violet-100 text-violet-700 dark:bg-violet-900/40 dark:text-violet-300',
+          },
+          {
+            trigger: 'Ticket status changed (In Progress / Resolved / Closed)',
+            recipient: 'Staff member who submitted the ticket',
+            subject: '[IT #123] Status: [New Status]',
+            contains: ['Ticket title', 'New status with plain-English explanation', 'Link to view your tickets'],
+            badge: 'To Employee',
+            badgeColor: 'bg-emerald-100 text-emerald-700',
+          },
+          {
+            trigger: 'IT admin posts a public reply on a ticket',
+            recipient: 'Staff member who submitted the ticket',
+            subject: '[IT #123] New reply: [Ticket Title]',
+            contains: ['Reply message quoted in full', 'Commenter name', 'Link to reply back in Nexus'],
+            badge: 'To Employee',
+            badgeColor: 'bg-blue-100 text-blue-700',
+          },
+        ]}
+      />
+
+      {/* Wellness Hub */}
+      <Section
+        icon={Heart}
+        title="Wellness Hub"
+        color="from-green-600 to-emerald-600"
+        items={[
+          {
+            trigger: 'New wellness event created by any staff member',
+            recipient: 'All active staff who have not opted out of event emails',
+            subject: 'Wellness Event: [Event Title] on [Date]',
+            contains: ['Event title, date, and time', 'Location (if set)', 'Organiser name', 'RSVP link to join in Nexus'],
+            badge: 'All Staff',
+            badgeColor: 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300',
+          },
+          {
+            trigger: 'Stretch reminder (Mon–Fri, 11am and 3pm)',
+            recipient: 'Staff who have stretch reminders turned on (default: on)',
+            subject: '🧘 Time to stretch, [Name]!',
+            contains: ['Random desk-friendly stretch tip', 'Link to full stretch library in Nexus', 'Link to turn off future reminders'],
+            badge: 'Automated',
+            badgeColor: 'bg-teal-100 text-teal-700',
+          },
+        ]}
+      />
+
       {/* Other */}
       <Section
         icon={Bell}
@@ -273,7 +363,7 @@ export default function NotificationsPage() {
           <Zap className="h-5 w-5 text-muted-foreground shrink-0 mt-0.5" />
           <div className="space-y-1">
             <p className="text-sm font-bold text-foreground">Technical Details</p>
-            <p className="text-sm text-muted-foreground">All emails are sent via <strong>Resend</strong>. System notifications come from <code className="bg-muted px-1.5 py-0.5 rounded text-xs">noreply@yournotifications.com</code>. Staff announcements come from <code className="bg-muted px-1.5 py-0.5 rounded text-xs">notifications@sarmalinux.com</code>. Add both to your Outlook safe senders list. The Expense Manager uses <strong>Google Gemini Vision AI</strong> in two places: (1) Receipt OCR — reads merchant, amount, date, category, receipt number, VAT amount, VAT rate, and supplier VAT number from any receipt photo or PDF; (2) Bank Statement Parser — uploads a bank statement image/PDF, extracts every transaction, and auto-matches debits to company card expenses by amount and date.</p>
+            <p className="text-sm text-muted-foreground">All emails are sent via <strong>Resend</strong>. All system notifications and announcements come from <code className="bg-muted px-1.5 py-0.5 rounded text-xs">noreply@sarmalinux.com</code>. Add this to your Outlook safe senders list. The Expense Manager uses <strong>Google Gemini Vision AI</strong> (with <strong>Claude AI</strong> as automatic fallback) in two places: (1) Receipt OCR — reads merchant, amount, currency, date, category, VAT amount, VAT rate, and supplier VAT number from any receipt photo or PDF; (2) Bank Statement Parser — reads the card number from the statement header, matches the last 4 digits to a registered company card to identify the cardholder, extracts every transaction including FX rates and cash advance fees, auto-matches debits to expenses, updates VAT from the bank's actual GBP amount, and auto-creates stubs for unmatched transactions. Missing receipt emails are sent manually via the mail icon button on each statement card — they are never sent automatically.</p>
           </div>
         </div>
       </div>

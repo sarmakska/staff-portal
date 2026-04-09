@@ -82,6 +82,28 @@ export default async function CalendarPage(
     }
   })
 
+  // Running late entries (including pre-logged future dates)
+  const { data: runningLateRecords } = await supabaseAdmin
+    .from("attendance")
+    .select("user_id, work_date, late_reason, user_profiles:user_id(full_name, display_name)")
+    .eq("running_late", true)
+    .gte("work_date", calStartStr)
+    .lte("work_date", calEndStr)
+    .returns<any[]>()
+
+  const runningLateEvents = (runningLateRecords ?? []).map((r: any) => {
+    const profile = r.user_profiles as any
+    const name = profile?.display_name || profile?.full_name || "Unknown"
+    return {
+      id: `rl-${r.user_id}-${r.work_date}`,
+      title: `${name} (Running Late)`,
+      event_date: r.work_date,
+      event_type: "running_late",
+      description: r.late_reason ? `Running late — ${r.late_reason}` : "Running late",
+      user_id: r.user_id as string | null,
+    }
+  })
+
   const { data: approvedLeaves } = await supabaseAdmin
     .from("leave_requests")
     .select("id, leave_type, start_date, end_date, day_type, employee:user_profiles!leave_requests_user_id_fkey(full_name, display_name)")
@@ -132,6 +154,7 @@ export default async function CalendarPage(
     ...publicHolidays,
     ...wfhEvents,
     ...leaveEvents,
+    ...runningLateEvents,
   ]
 
   const allDays = eachDayOfInterval({ start: calendarStart, end: calendarEnd })

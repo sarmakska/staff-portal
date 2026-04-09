@@ -125,7 +125,7 @@ export default function LeaveClient({ balances, requests }: Props) {
                 <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between pb-3">
                     <CardTitle className="text-base font-semibold">My Requests</CardTitle>
                     <div className="flex gap-1.5 flex-wrap">
-                        {["all", "pending", "approved", "rejected"].map((f) => (
+                        {["all", "pending", "approved", "rejected", "withdrawn"].map((f) => (
                             <Button
                                 key={f}
                                 variant={filter === f ? "default" : "outline"}
@@ -153,7 +153,7 @@ export default function LeaveClient({ balances, requests }: Props) {
                     ) : (
                         <div className="space-y-3">
                             {filtered.map((req) => (
-                                <div key={req.id} className="flex flex-col gap-3 rounded-xl border border-border bg-muted/20 p-4 sm:flex-row sm:items-center sm:justify-between">
+                                <div key={req.id} className={`flex flex-col gap-3 rounded-xl border p-4 sm:flex-row sm:items-center sm:justify-between ${req.status === 'withdrawn' ? 'border-border/40 bg-muted/10 opacity-60' : 'border-border bg-muted/20'}`}>
                                     <div className="space-y-1">
                                         <div className="flex items-center gap-2">
                                             <span className="text-sm font-semibold text-foreground capitalize">{req.leave_type} Leave</span>
@@ -167,14 +167,14 @@ export default function LeaveClient({ balances, requests }: Props) {
                                         {req.reason && <p className="text-xs text-muted-foreground">{req.reason}</p>}
                                     </div>
                                     <div className="flex gap-2 shrink-0 mt-3 sm:mt-0">
-                                        {req.status === 'approved' && (
+                                        {(req.status === 'approved' || req.status === 'withdrawn') && (
                                             <Button
                                                 variant="outline"
                                                 size="sm"
                                                 onClick={() => handleDownload(req.id)}
                                                 className="gap-1.5 rounded-xl"
                                             >
-                                                <FileDown className="h-4 w-4" /> Download Form
+                                                <FileDown className="h-4 w-4" /> {req.status === 'withdrawn' ? 'Download Record' : 'Download Form'}
                                             </Button>
                                         )}
                                         {(req.status === 'pending' || req.status === 'approved') && (

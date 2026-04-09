@@ -39,7 +39,7 @@ export default async function ReceptionPage() {
     // Today's attendance
     const { data: todayAttendance } = await supabaseAdmin
         .from("attendance")
-        .select("user_id, clock_in, clock_out, status")
+        .select("user_id, clock_in, clock_out, status, running_late")
         .eq("work_date", todayStr)
 
     // Today's WFH
@@ -70,11 +70,12 @@ export default async function ReceptionPage() {
     const staffLog = (allStaff || []).map((s: any) => {
         const att = attendanceMap.get(s.id)
         const dept = (s.departments as any)?.name ?? null
-        let statusType: 'in_office' | 'clocked_out' | 'wfh' | 'on_leave' | 'not_in'
+        let statusType: 'in_office' | 'clocked_out' | 'wfh' | 'on_leave' | 'running_late' | 'not_in'
         if (leaveMap.has(s.id)) statusType = 'on_leave'
         else if (wfhSet.has(s.id)) statusType = 'wfh'
         else if (att?.clock_in && att?.clock_out) statusType = 'clocked_out'
         else if (att?.clock_in) statusType = 'in_office'
+        else if (att?.running_late) statusType = 'running_late'
         else statusType = 'not_in'
         return {
             id: s.id,

@@ -78,10 +78,12 @@ export function LeaveRecordsClient({ requests }: Props) {
       })
     : requests
 
-  // Stats
-  const totalDays = filtered.reduce((s, r) => s + Number(r.days_count), 0)
+  // Stats — only count approved for days/type breakdown; withdrawn shown separately
+  const approvedOnly = filtered.filter(r => r.status === "approved")
+  const withdrawnOnly = filtered.filter(r => r.status === "withdrawn")
+  const totalDays = approvedOnly.reduce((s, r) => s + Number(r.days_count), 0)
   const uniqueEmployees = new Set(filtered.map(r => r.employee?.email)).size
-  const byType = filtered.reduce<Record<string, number>>((acc, r) => {
+  const byType = approvedOnly.reduce<Record<string, number>>((acc, r) => {
     acc[r.leave_type] = (acc[r.leave_type] ?? 0) + 1
     return acc
   }, {})
@@ -97,7 +99,7 @@ export function LeaveRecordsClient({ requests }: Props) {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Leave Records</h1>
-          <p className="text-sm text-muted-foreground">Approved leave forms for payroll and records</p>
+          <p className="text-sm text-muted-foreground">Approved and withdrawn leave records for payroll and audit</p>
         </div>
         <div className="relative w-full sm:w-64">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -114,12 +116,12 @@ export function LeaveRecordsClient({ requests }: Props) {
       {/* Stats strip */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <div className="rounded-2xl border border-border bg-card px-4 py-3">
-          <p className="text-xs text-muted-foreground">Total Records</p>
-          <p className="text-2xl font-bold text-foreground mt-0.5">{filtered.length}</p>
+          <p className="text-xs text-muted-foreground">Approved</p>
+          <p className="text-2xl font-bold text-foreground mt-0.5">{approvedOnly.length} <span className="text-sm font-normal text-muted-foreground">records</span></p>
         </div>
         <div className="rounded-2xl border border-border bg-card px-4 py-3">
-          <p className="text-xs text-muted-foreground">Total Days</p>
-          <p className="text-2xl font-bold text-foreground mt-0.5">{totalDays}</p>
+          <p className="text-xs text-muted-foreground">Approved Days</p>
+          <p className="text-2xl font-bold text-foreground mt-0.5">{totalDays} <span className="text-sm font-normal text-muted-foreground">{withdrawnOnly.length > 0 ? `· ${withdrawnOnly.length} withdrawn` : ""}</span></p>
         </div>
         <div className="rounded-2xl border border-border bg-card px-4 py-3">
           <p className="text-xs text-muted-foreground">Employees</p>
@@ -143,8 +145,8 @@ export function LeaveRecordsClient({ requests }: Props) {
       {filtered.length === 0 ? (
         <EmptyState
           icon={<CalendarDays className="h-7 w-7 text-muted-foreground" />}
-          title="No approved leave records"
-          description="Approved leave requests will appear here."
+          title="No leave records"
+          description="Approved and withdrawn leave requests will appear here."
         />
       ) : (
         <div className="rounded-2xl border border-border bg-card overflow-hidden shadow-sm">
@@ -166,11 +168,12 @@ export function LeaveRecordsClient({ requests }: Props) {
               const dateRange = req.start_date === req.end_date
                 ? fmtShort(req.start_date)
                 : `${fmtShort(req.start_date)} – ${fmtShort(req.end_date)}`
+              const isWithdrawn = req.status === "withdrawn"
 
               return (
                 <div
                   key={req.id}
-                  className="group px-5 py-3.5 hover:bg-muted/30 transition-colors"
+                  className={`group px-5 py-3.5 hover:bg-muted/30 transition-colors ${isWithdrawn ? "opacity-50" : ""}`}
                 >
                   {/* Mobile layout */}
                   <div className="flex items-start justify-between gap-3 md:hidden">
@@ -180,17 +183,20 @@ export function LeaveRecordsClient({ requests }: Props) {
                         <Badge className={`text-[10px] capitalize border rounded-md px-2 py-0.5 font-medium ${TYPE_COLORS[req.leave_type] ?? "bg-muted text-muted-foreground border-border"}`}>
                           {req.leave_type}
                         </Badge>
+                        {isWithdrawn && <Badge className="text-[10px] border rounded-md px-2 py-0.5 font-medium bg-muted text-muted-foreground border-border">Withdrawn</Badge>}
                       </div>
                       <p className="text-xs text-muted-foreground">{dateRange} · {req.days_count} {Number(req.days_count) === 1 ? "day" : "days"}</p>
-                      <p className="text-xs text-muted-foreground">Approved by <span className="font-medium text-foreground">{approverName}</span>{req.reviewed_at && ` · ${fmt(req.reviewed_at)}`}</p>
+                      <p className="text-xs text-muted-foreground">{isWithdrawn ? "Withdrawn" : "Approved by"} <span className="font-medium text-foreground">{isWithdrawn ? "" : approverName}</span>{req.reviewed_at && !isWithdrawn && ` · ${fmt(req.reviewed_at)}`}</p>
                     </div>
                     <div className="flex gap-1.5">
                       <Button variant="outline" size="sm" className="gap-1.5 rounded-xl shrink-0" onClick={() => handleDownload(req.id)}>
                         <FileDown className="h-3.5 w-3.5" />
                       </Button>
-                      <Button variant="outline" size="sm" className="gap-1.5 rounded-xl shrink-0" onClick={() => handleResend(req.id)} disabled={resending === req.id}>
-                        {resending === req.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Mail className="h-3.5 w-3.5" />}
-                      </Button>
+                      {!isWithdrawn && (
+                        <Button variant="outline" size="sm" className="gap-1.5 rounded-xl shrink-0" onClick={() => handleResend(req.id)} disabled={resending === req.id}>
+                          {resending === req.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Mail className="h-3.5 w-3.5" />}
+                        </Button>
+                      )}
                     </div>
                   </div>
 
@@ -208,10 +214,11 @@ export function LeaveRecordsClient({ requests }: Props) {
                     </div>
 
                     {/* Type */}
-                    <div>
+                    <div className="flex items-center gap-1.5 flex-wrap">
                       <Badge className={`text-[10px] capitalize border rounded-md px-2 py-0.5 font-medium ${TYPE_COLORS[req.leave_type] ?? "bg-muted text-muted-foreground border-border"}`}>
                         {req.leave_type}
                       </Badge>
+                      {isWithdrawn && <Badge className="text-[10px] border rounded-md px-2 py-0.5 font-medium bg-muted text-muted-foreground border-border">Withdrawn</Badge>}
                     </div>
 
                     {/* Period */}
@@ -220,10 +227,15 @@ export function LeaveRecordsClient({ requests }: Props) {
                     {/* Days */}
                     <p className="text-sm font-semibold text-foreground">{req.days_count} <span className="text-xs font-normal text-muted-foreground">{Number(req.days_count) === 1 ? "day" : "days"}</span></p>
 
-                    {/* Approved by */}
+                    {/* Approved by / Withdrawn */}
                     <div className="min-w-0">
-                      <p className="text-xs font-medium text-foreground truncate">{approverName}</p>
-                      {req.reviewed_at && <p className="text-[11px] text-muted-foreground">{fmt(req.reviewed_at)}</p>}
+                      {isWithdrawn
+                        ? <p className="text-xs text-muted-foreground italic">Withdrawn by employee</p>
+                        : <>
+                            <p className="text-xs font-medium text-foreground truncate">{approverName}</p>
+                            {req.reviewed_at && <p className="text-[11px] text-muted-foreground">{fmt(req.reviewed_at)}</p>}
+                          </>
+                      }
                     </div>
 
                     {/* Actions */}
@@ -232,10 +244,12 @@ export function LeaveRecordsClient({ requests }: Props) {
                         <FileDown className="h-3.5 w-3.5" />
                         Download
                       </Button>
-                      <Button variant="outline" size="sm" className="gap-1.5 rounded-xl text-xs" onClick={() => handleResend(req.id)} disabled={resending === req.id}>
-                        {resending === req.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Mail className="h-3.5 w-3.5" />}
-                        Resend
-                      </Button>
+                      {!isWithdrawn && (
+                        <Button variant="outline" size="sm" className="gap-1.5 rounded-xl text-xs" onClick={() => handleResend(req.id)} disabled={resending === req.id}>
+                          {resending === req.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Mail className="h-3.5 w-3.5" />}
+                          Resend
+                        </Button>
+                      )}
                     </div>
                   </div>
                 </div>

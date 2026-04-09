@@ -1,4 +1,4 @@
-'use server'
+﻿'use server'
 
 import { createClient } from '@/lib/supabase/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
@@ -203,6 +203,24 @@ export async function directCorrection(params: {
 
     if (updateErr) return { success: false, error: updateErr.message }
 
+    // Recalculate total_hours if clock_in or clock_out changed
+    if (params.field === 'clock_in' || params.field === 'clock_out') {
+        const { data: updatedRow } = await supabaseAdmin
+            .from('attendance')
+            .select('clock_in, clock_out')
+            .eq('id', record.id)
+            .single()
+        if (updatedRow?.clock_in && updatedRow?.clock_out) {
+            const inMs = new Date(updatedRow.clock_in).getTime()
+            const outMs = new Date(updatedRow.clock_out).getTime()
+            const newHours = Math.round((outMs - inMs) / 36000) / 100
+            await supabaseAdmin
+                .from('attendance')
+                .update({ total_hours: newHours })
+                .eq('id', record.id)
+        }
+    }
+
     await writeAuditLog({
         actorId: user.id,
         actorEmail: user.email ?? '',
@@ -279,6 +297,24 @@ export async function reviewCorrection(params: {
             .eq('id', correction.attendance_id)
 
         if (attendanceError) return { success: false, error: attendanceError.message }
+
+        // Recalculate total_hours if clock_in or clock_out changed
+        if (correction.field === 'clock_in' || correction.field === 'clock_out') {
+            const { data: updatedRow } = await supabaseAdmin
+                .from('attendance')
+                .select('clock_in, clock_out')
+                .eq('id', correction.attendance_id)
+                .single()
+            if (updatedRow?.clock_in && updatedRow?.clock_out) {
+                const inMs = new Date(updatedRow.clock_in).getTime()
+                const outMs = new Date(updatedRow.clock_out).getTime()
+                const newHours = Math.round((outMs - inMs) / 36000) / 100
+                await supabaseAdmin
+                    .from('attendance')
+                    .update({ total_hours: newHours })
+                    .eq('id', correction.attendance_id)
+            }
+        }
 
         // Mark applied via admin (bypass RLS)
         const { error } = await supabaseAdmin

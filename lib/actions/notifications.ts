@@ -5,7 +5,7 @@ import { supabaseAdmin } from "@/lib/supabase/admin"
 
 export type NotificationItem = {
   id: string
-  kind: "leave_approved" | "leave_rejected" | "leave_pending" | "team_leave_pending" | "visitor_checkin" | "expense_approved" | "expense_rejected" | "expense_pending" | "expense_pending_approval"
+  kind: "leave_approved" | "leave_rejected" | "leave_pending" | "team_leave_pending" | "visitor_checkin" | "expense_approved" | "expense_rejected" | "expense_pending" | "expense_pending_approval" | "pr_approved" | "pr_rejected" | "pr_pending" | "pr_submitted"
   label: string
   sub?: string
   timestamp: string
@@ -96,6 +96,31 @@ export async function getNotifications(): Promise<{ notifications: NotificationI
     pendingExpenses = data ?? []
   }
 
+  // Own purchase requests (submitter view)
+  const { data: ownPRs } = await (supabaseAdmin as any)
+    .from("purchase_requests")
+    .select("id, item_name, estimated_cost, currency, status, submitted_at")
+    .eq("user_id", user.id)
+    .gte("submitted_at", thirtyDaysAgoStr)
+    .order("submitted_at", { ascending: false })
+    .limit(5)
+
+  // Purchase requests pending MY approval (anyone can be a direct approver)
+  const { data: pendingPRs } = await (supabaseAdmin as any)
+    .from("purchase_requests")
+    .select("id, item_name, estimated_cost, currency, submitted_at, user_id")
+    .eq("status", "submitted")
+    .eq("direct_approver_id", user.id)
+    .order("submitted_at", { ascending: false })
+    .limit(5)
+  // Fetch submitter names for pending PRs separately (schema cache FK issue)
+  const prUserIds = [...new Set((pendingPRs ?? []).map((p: any) => p.user_id).filter(Boolean))]
+  let prProfiles: any[] = []
+  if (prUserIds.length) {
+    const { data: pp } = await supabaseAdmin.from("user_profiles").select("id,full_name,display_name").in("id", prUserIds)
+    prProfiles = pp ?? []
+  }
+
   // Visitor check-ins today (admin/reception)
   let recentCheckins: any[] = []
   if (isAdmin || isReception) {
@@ -122,6 +147,8 @@ export async function getNotifications(): Promise<{ notifications: NotificationI
       notifications.push({ id: lr.id, kind: "leave_approved", label: `${type} leave approved`, sub: `${days} · ${range}`, timestamp: lr.updated_at, link: "/leave" })
     } else if (lr.status === "rejected") {
       notifications.push({ id: lr.id, kind: "leave_rejected", label: `${type} leave declined`, sub: `${days} · ${range}`, timestamp: lr.updated_at, link: "/leave" })
+    } else if (lr.status === "withdrawn") {
+      notifications.push({ id: lr.id, kind: "leave_rejected", label: `${type} leave withdrawn`, sub: `${days} · ${range}`, timestamp: lr.updated_at, link: "/leave" })
     } else {
       notifications.push({ id: lr.id, kind: "leave_pending", label: `${type} leave awaiting approval`, sub: `${days} · ${range}`, timestamp: lr.created_at, link: "/leave" })
     }
@@ -171,9 +198,40 @@ export async function getNotifications(): Promise<{ notifications: NotificationI
     })
   }
 
+  // Own purchase requests
+  for (const pr of ownPRs ?? []) {
+    const amt = pr.currency && pr.currency !== "GBP"
+      ? `${pr.currency} ${Number(pr.estimated_cost).toFixed(2)}`
+      : `£${Number(pr.estimated_cost).toFixed(2)}`
+    if (pr.status === "approved") {
+      notifications.push({ id: `pr-${pr.id}`, kind: "pr_approved", label: `${pr.item_name} approved`, sub: amt, timestamp: pr.submitted_at, link: "/expenses" })
+    } else if (pr.status === "rejected") {
+      notifications.push({ id: `pr-${pr.id}`, kind: "pr_rejected", label: `${pr.item_name} rejected`, sub: amt, timestamp: pr.submitted_at, link: "/expenses" })
+    } else if (pr.status === "submitted") {
+      notifications.push({ id: `pr-${pr.id}`, kind: "pr_pending", label: `${pr.item_name} awaiting approval`, sub: amt, timestamp: pr.submitted_at, link: "/expenses" })
+    }
+  }
+
+  // Purchase requests pending my approval
+  for (const pr of pendingPRs ?? []) {
+    const profile = prProfiles.find((p: any) => p.id === pr.user_id)
+    const name = profile?.display_name || profile?.full_name || "Someone"
+    const amt = pr.currency && pr.currency !== "GBP"
+      ? `${pr.currency} ${Number(pr.estimated_cost).toFixed(2)}`
+      : `£${Number(pr.estimated_cost).toFixed(2)}`
+    notifications.push({
+      id: `pra-${pr.id}`,
+      kind: "pr_submitted",
+      label: `${name} submitted a purchase request`,
+      sub: `${pr.item_name} · ${amt}`,
+      timestamp: pr.submitted_at,
+      link: "/expenses",
+    })
+  }
+
   // Visitor check-ins
   for (const v of recentCheckins) {
-    const time = new Date(v.checked_in_at).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })
+    const time = new Date(v.checked_in_at).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", timeZone: "Europe/London" })
     notifications.push({
       id: `vi-${v.id}`,
       kind: "visitor_checkin",
@@ -194,7 +252,10 @@ export async function getNotifications(): Promise<{ notifications: NotificationI
     n.kind === "leave_rejected" ||
     n.kind === "expense_pending_approval" ||
     n.kind === "expense_approved" ||
-    n.kind === "expense_rejected"
+    n.kind === "expense_rejected" ||
+    n.kind === "pr_submitted" ||
+    n.kind === "pr_approved" ||
+    n.kind === "pr_rejected"
   ).length
 
   return { notifications: top, badgeCount }

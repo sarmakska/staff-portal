@@ -113,16 +113,41 @@ export async function getExpenseCategories() {
   return data ?? []
 }
 
-export async function createExpenseCategory(name: string, icon: string, color: string) {
+export async function createExpenseCategory(name: string, icon: string, color: string, gl_code?: string) {
   const user = await getCurrentUser()
 
   const { data, error } = await supabaseAdmin
     .from('expense_categories')
-    .insert({ name, icon, color, created_by: user?.id ?? null })
+    .insert({ name, icon, color, gl_code: gl_code || null, created_by: user?.id ?? null })
     .select()
     .single()
 
   return error ? { success: false, error: error.message } : { success: true, data }
+}
+
+export async function updateExpenseCategory(id: string, payload: { name?: string; color?: string; icon?: string; gl_code?: string }) {
+  const user = await getCurrentUser()
+  if (!user) return { success: false, error: 'Unauthorized' }
+  const { error } = await supabaseAdmin
+    .from('expense_categories')
+    .update({ ...payload, gl_code: payload.gl_code ?? null })
+    .eq('id', id)
+  return error ? { success: false, error: error.message } : { success: true }
+}
+
+export async function deleteExpenseCategory(id: string) {
+  const user = await getCurrentUser()
+  if (!user) return { success: false, error: 'Unauthorized' }
+  const { error } = await supabaseAdmin.from('expense_categories').delete().eq('id', id)
+  return error ? { success: false, error: error.message } : { success: true }
+}
+
+export async function getDepartmentsForExpenses() {
+  const { data } = await supabaseAdmin
+    .from('departments')
+    .select('id, name')
+    .order('name')
+  return (data ?? []) as { id: string; name: string }[]
 }
 
 // ── Company Cards ─────────────────────────────────────────────
@@ -223,7 +248,7 @@ export async function getMyExpenses() {
 
   const { data, error } = await supabaseAdmin
     .from('expenses')
-    .select('*, expense_categories(*), company_cards(*), expense_approvals(*, user_profiles(full_name,email))')
+    .select('*, expense_categories(*), company_cards(*), departments(id,name), expense_approvals(*, user_profiles(full_name,email))')
     .eq('user_id', user.id)
     .order('created_at', { ascending: false })
 
@@ -242,7 +267,7 @@ export async function getMyExpenses() {
 export async function getAllExpenses(month?: string) {
   let query = supabaseAdmin
     .from('expenses')
-    .select('*, expense_categories(*), company_cards(*), user_profiles!expenses_user_id_fkey(full_name,email,display_name), expense_approvals(*, user_profiles(full_name,email))')
+    .select('*, expense_categories(*), company_cards(*), departments(id,name), user_profiles!expenses_user_id_fkey(full_name,email,display_name), expense_approvals(*, user_profiles(full_name,email))')
     .order('date', { ascending: false })
 
   if (month) {
@@ -262,19 +287,27 @@ export async function getPendingApprovals() {
 
   const { data: expenses } = await supabaseAdmin
     .from('expenses')
-    .select('*, expense_categories(*), company_cards(*), user_profiles!expenses_user_id_fkey(full_name,email,display_name)')
+    .select('*, expense_categories(*), company_cards(*), departments(id,name), user_profiles!expenses_user_id_fkey(full_name,email,display_name)')
     .eq('status', 'submitted')
     .eq('direct_approver_id', user.id)
     .order('submitted_at', { ascending: true })
 
-  const { data: prs } = await supabaseAdmin
+  const { data: prsRaw } = await supabaseAdmin
     .from('purchase_requests')
-    .select('*, user_profiles!purchase_requests_user_id_fkey(full_name,email,display_name), pr_attachments(*)')
+    .select('*, pr_attachments(*)')
     .eq('status', 'submitted')
     .eq('direct_approver_id', user.id)
     .order('submitted_at', { ascending: true })
 
-  return { expenses: (expenses ?? []) as any[], prs: (prs ?? []) as any[] }
+  const prUserIds = [...new Set((prsRaw ?? []).map((p: any) => p.user_id).filter(Boolean))]
+  let prProfiles: any[] = []
+  if (prUserIds.length) {
+    const { data: pp } = await supabaseAdmin.from('user_profiles').select('id,full_name,email,display_name').in('id', prUserIds)
+    prProfiles = pp ?? []
+  }
+  const prs = (prsRaw ?? []).map((p: any) => ({ ...p, user_profiles: prProfiles.find((u: any) => u.id === p.user_id) ?? null }))
+
+  return { expenses: (expenses ?? []) as any[], prs: prs as any[] }
 }
 
 export async function submitExpense(formData: FormData) {
@@ -302,6 +335,11 @@ export async function submitExpense(formData: FormData) {
   const date = new Date(dateStr)
   if (isNaN(date.getTime())) {
     return { success: false, error: EXPENSE_ERRORS.INVALID_DATE }
+  }
+  // Block future-dated expenses (allow up to 1 day ahead for timezone tolerance)
+  const tomorrow = new Date(); tomorrow.setDate(tomorrow.getDate() + 1)
+  if (date > tomorrow) {
+    return { success: false, error: 'Expense date cannot be in the future.' }
   }
 
   // Validate description
@@ -334,6 +372,34 @@ export async function submitExpense(formData: FormData) {
   const needsApproval = !autoApprove && (paymentMethod === 'personal_card' || paymentMethod === 'personal_cash')
   if (needsApproval && !directApproverId) {
     return { success: false, error: EXPENSE_ERRORS.MISSING_APPROVER }
+  }
+  // Block self-approval
+  if (needsApproval && directApproverId === targetUserId) {
+    return { success: false, error: 'You cannot set yourself as the approver.' }
+  }
+
+  // Duplicate detection: same user, same amount (±5%), same date (±2 days)
+  const dupSkip = String(formData.get('skip_duplicate_check') || '') === 'true'
+  if (!dupSkip) {
+    const dateFrom = new Date(dateStr); dateFrom.setDate(dateFrom.getDate() - 2)
+    const dateTo   = new Date(dateStr); dateTo.setDate(dateTo.getDate() + 2)
+    const { data: dupes } = await supabaseAdmin
+      .from('expenses')
+      .select('id, amount, date, description')
+      .eq('user_id', targetUserId)
+      .gte('date', dateFrom.toISOString().split('T')[0])
+      .lte('date', dateTo.toISOString().split('T')[0])
+      .not('status', 'eq', 'rejected')
+    if (dupes && dupes.length > 0) {
+      const nearDupe = dupes.find((d: any) => Math.abs(d.amount - amount) / Math.max(amount, 1) < 0.05)
+      if (nearDupe) {
+        return {
+          success: false,
+          error: 'DUPLICATE_WARNING',
+          duplicate: { id: nearDupe.id, amount: nearDupe.amount, date: nearDupe.date, description: nearDupe.description }
+        }
+      }
+    }
   }
 
   // VAT calculation
@@ -376,6 +442,8 @@ export async function submitExpense(formData: FormData) {
       net_amount: netAmountVal,
       vat_number: String(formData.get('vat_number') || '') || null,
       receipt_number: String(formData.get('receipt_number') || '') || null,
+      // Department
+      department_id: String(formData.get('department_id') || '') || null,
     } as any)
     .select()
     .single()
@@ -387,6 +455,14 @@ export async function submitExpense(formData: FormData) {
     console.error('[EXPENSE] Database error:', error.message, error.code, error.details)
     return { success: false, error: error.message }
   }
+
+  // Audit log: created
+  await (supabaseAdmin as any).from('expense_audit_log').insert({
+    expense_id: expense.id,
+    user_id: user.id,
+    action: 'created',
+    changes: null,
+  })
 
   // Get submitter profile for email
   const { data: submitterProfile } = await supabaseAdmin
@@ -451,6 +527,13 @@ export async function updateExpense(expenseId: string, formData: FormData) {
   const isAdminEdit = (editRoles ?? []).some((r: any) => r.role === 'admin')
   const editUserId = isAdminEdit ? (String(formData.get('edit_user_id') || '') || null) : null
 
+  // Fetch existing expense for audit diff
+  const { data: existing } = await supabaseAdmin
+    .from('expenses')
+    .select('amount, currency, description, merchant, category_id, date, payment_method, department_id, receipt_number, vat_amount, vat_rate')
+    .eq('id', expenseId)
+    .single()
+
   const updatePayload: any = {
       amount,
       currency,
@@ -469,6 +552,7 @@ export async function updateExpense(expenseId: string, formData: FormData) {
       net_amount: netAmountVal,
       vat_number: String(formData.get('vat_number') || '') || null,
       receipt_number: String(formData.get('receipt_number') || '') || null,
+      department_id: String(formData.get('department_id') || '') || null,
   }
   if (editUserId) updatePayload.user_id = editUserId
 
@@ -478,6 +562,24 @@ export async function updateExpense(expenseId: string, formData: FormData) {
     .eq('id', expenseId)
 
   if (error) return { success: false, error: error.message }
+
+  // Build audit diff
+  const changes: Record<string, { from: any; to: any }> = {}
+  const auditFields = ['amount', 'currency', 'description', 'merchant', 'category_id', 'date', 'payment_method', 'department_id', 'receipt_number', 'vat_amount', 'vat_rate'] as const
+  for (const field of auditFields) {
+    const oldVal = (existing as any)?.[field] ?? null
+    const newVal = updatePayload[field] ?? null
+    if (String(oldVal) !== String(newVal)) changes[field] = { from: oldVal, to: newVal }
+  }
+  if (Object.keys(changes).length > 0) {
+    await (supabaseAdmin as any).from('expense_audit_log').insert({
+      expense_id: expenseId,
+      user_id: user.id,
+      action: 'updated',
+      changes,
+    })
+  }
+
   return { success: true }
 }
 
@@ -517,6 +619,7 @@ export async function updateExpenseStatus(
       .from('expenses')
       .update({ status: 'rejected', notes: note || null })
       .eq('id', expenseId)
+    await (supabaseAdmin as any).from('expense_audit_log').insert({ expense_id: expenseId, user_id: user.id, action: 'rejected', changes: note ? { note } : null })
 
     const employeeProfile = expense.user_profiles as { full_name: string; email: string } | null
     if (employeeProfile) {
@@ -535,6 +638,7 @@ export async function updateExpenseStatus(
       .from('expenses')
       .update({ status: 'approved', current_step: nextStep })
       .eq('id', expenseId)
+    await (supabaseAdmin as any).from('expense_audit_log').insert({ expense_id: expenseId, user_id: user.id, action: 'approved', changes: note ? { note } : null })
 
     const employeeProfile = expense.user_profiles as { full_name: string; email: string } | null
     const isPersonalClaim = expense.payment_method === 'personal_card' || expense.payment_method === 'personal_cash'
@@ -551,13 +655,21 @@ export async function updateExpenseStatus(
 
     // Only notify accounts for personal claims (reimbursement needed)
     if (isPersonalClaim) {
-      const { data: accountsUsers } = await supabaseAdmin
+      const { data: accountsRoles } = await supabaseAdmin
         .from('user_roles')
-        .select('user_id, user_profiles!inner(full_name, email)')
+        .select('user_id')
         .eq('role', 'accounts')
-      if (accountsUsers && accountsUsers.length > 0) {
-        for (const au of accountsUsers) {
-          const ap = (au as any).user_profiles as { full_name: string; email: string }
+      const accountsUserIds = (accountsRoles ?? []).map((r: any) => r.user_id).filter(Boolean)
+      let accountsUsers: any[] = []
+      if (accountsUserIds.length) {
+        const { data: ap } = await supabaseAdmin
+          .from('user_profiles')
+          .select('id, full_name, email')
+          .in('id', accountsUserIds)
+        accountsUsers = ap ?? []
+      }
+      if (accountsUsers.length > 0) {
+        for (const ap of accountsUsers) {
           if (ap?.email) {
             await sendExpenseApprovedEmail({
               employeeEmail: ap.email,
@@ -601,15 +713,91 @@ export async function updateExpenseStatus(
   return { success: true }
 }
 
-export async function markExpensePaid(expenseId: string) {
+export async function markExpensePaid(
+  expenseId: string,
+  reimbursement?: { via: string; ref: string; date: string }
+) {
   const user = await getCurrentUser()
   if (!user) return { success: false, error: 'Unauthorized' }
-  const { error } = await supabaseAdmin
+  const updatePayload: any = { status: 'paid' }
+  if (reimbursement?.via) {
+    updatePayload.reimbursed_via = reimbursement.via
+    updatePayload.reimbursement_ref = reimbursement.ref || null
+    updatePayload.reimbursed_at = reimbursement.date ? new Date(reimbursement.date).toISOString() : new Date().toISOString()
+  }
+  const { error } = await (supabaseAdmin as any)
     .from('expenses')
-    .update({ status: 'paid' })
+    .update(updatePayload)
     .eq('id', expenseId)
     .eq('status', 'approved')
-  return error ? { success: false, error: error.message } : { success: true }
+  if (error) return { success: false, error: error.message }
+  await (supabaseAdmin as any).from('expense_audit_log').insert({
+    expense_id: expenseId,
+    user_id: user.id,
+    action: 'paid',
+    changes: reimbursement ? { reimbursed_via: reimbursement.via, reimbursement_ref: reimbursement.ref, reimbursed_at: reimbursement.date } : null,
+  })
+  return { success: true }
+}
+
+export async function bulkMarkExpensesPaid(
+  expenseIds: string[],
+  reimbursement: { via: string; ref: string; date: string }
+) {
+  const user = await getCurrentUser()
+  if (!user) return { success: false, error: 'Unauthorized' }
+  if (!expenseIds.length) return { success: false, error: 'No expenses selected' }
+  const updatePayload: any = {
+    status: 'paid',
+    reimbursed_via: reimbursement.via || null,
+    reimbursement_ref: reimbursement.ref || null,
+    reimbursed_at: reimbursement.date ? new Date(reimbursement.date).toISOString() : new Date().toISOString(),
+  }
+  const { error } = await (supabaseAdmin as any)
+    .from('expenses')
+    .update(updatePayload)
+    .in('id', expenseIds)
+    .eq('status', 'approved')
+  if (error) return { success: false, error: error.message }
+  // Audit log for each
+  const logs = expenseIds.map(id => ({
+    expense_id: id,
+    user_id: user.id,
+    action: 'paid',
+    changes: { reimbursed_via: reimbursement.via, reimbursement_ref: reimbursement.ref, reimbursed_at: reimbursement.date },
+  }))
+  await (supabaseAdmin as any).from('expense_audit_log').insert(logs)
+  return { success: true }
+}
+
+export async function addExpenseComment(expenseId: string, message: string) {
+  const user = await getCurrentUser()
+  if (!user) return { success: false, error: 'Unauthorized' }
+  if (!message.trim()) return { success: false, error: 'Message cannot be empty' }
+  const { data, error } = await (supabaseAdmin as any)
+    .from('expense_comments')
+    .insert({ expense_id: expenseId, user_id: user.id, message: message.trim() })
+    .select('*, user_profiles(full_name,display_name)')
+    .single()
+  return error ? { success: false, error: error.message } : { success: true, data }
+}
+
+export async function getExpenseComments(expenseId: string) {
+  const { data } = await (supabaseAdmin as any)
+    .from('expense_comments')
+    .select('*, user_profiles(full_name,display_name)')
+    .eq('expense_id', expenseId)
+    .order('created_at', { ascending: true })
+  return (data ?? []) as any[]
+}
+
+export async function getExpenseAuditLog(expenseId: string) {
+  const { data } = await (supabaseAdmin as any)
+    .from('expense_audit_log')
+    .select('*, user_profiles(full_name,display_name)')
+    .eq('expense_id', expenseId)
+    .order('created_at', { ascending: false })
+  return (data ?? []) as any[]
 }
 
 // ── Purchase Requests ─────────────────────────────────────────
@@ -619,18 +807,24 @@ export async function getMyPurchaseRequests() {
   if (!user) return []
   const { data } = await supabaseAdmin
     .from('purchase_requests')
-    .select('*, pr_approvals(*, user_profiles(full_name,email)), pr_attachments(*)')
+    .select('*, pr_approvals(*), pr_attachments(*)')
     .eq('user_id', user.id)
     .order('created_at', { ascending: false })
   return (data ?? []) as any[]
 }
 
 export async function getAllPurchaseRequests() {
-  const { data } = await supabaseAdmin
+  const { data: raw } = await supabaseAdmin
     .from('purchase_requests')
-    .select('*, user_profiles!purchase_requests_user_id_fkey(full_name,email,display_name), pr_approvals(*, user_profiles(full_name,email)), pr_attachments(*)')
+    .select('*, pr_approvals(*), pr_attachments(*)')
     .order('submitted_at', { ascending: false })
-  return (data ?? []) as any[]
+  const userIds = [...new Set((raw ?? []).map((p: any) => p.user_id).filter(Boolean))]
+  let profiles: any[] = []
+  if (userIds.length) {
+    const { data: pp } = await supabaseAdmin.from('user_profiles').select('id,full_name,email,display_name').in('id', userIds)
+    profiles = pp ?? []
+  }
+  return (raw ?? []).map((p: any) => ({ ...p, user_profiles: profiles.find((u: any) => u.id === p.user_id) ?? null })) as any[]
 }
 
 export async function submitPurchaseRequest(formData: FormData) {
@@ -718,47 +912,92 @@ export async function updatePurchaseRequestStatus(
   const user = await getCurrentUser()
   if (!user) return { success: false, error: 'Unauthorized' }
 
-  const { data: pr } = await supabaseAdmin
+  // Fetch PR without any FK joins (PostgREST schema cache issue on new tables)
+  const { data: pr, error: prErr } = await supabaseAdmin
     .from('purchase_requests')
-    .select('*, user_profiles!purchase_requests_user_id_fkey(full_name,email), expense_approval_chains(*)')
+    .select('id, user_id, item_name, description, estimated_cost, currency, converted_gbp, exchange_rate, supplier, current_step, status, approval_chain_id')
     .eq('id', prId)
     .single()
 
-  if (!pr) return { success: false, error: 'Not found' }
+  if (prErr || !pr) return { success: false, error: 'Purchase request not found' }
+
+  // Fetch employee profile separately
+  const { data: employeeProfile } = await supabaseAdmin
+    .from('user_profiles')
+    .select('full_name, email')
+    .eq('id', pr.user_id)
+    .single()
 
   if (decision === 'ordered') {
     await supabaseAdmin.from('purchase_requests').update({ status: 'ordered', notes: note || null }).eq('id', prId)
     return { success: true }
   }
 
-  await supabaseAdmin.from('pr_approvals').insert({
+  // Log the approval/rejection
+  const { error: insertErr } = await (supabaseAdmin as any).from('pr_approvals').insert({
     pr_id: prId,
-    step: pr.current_step,
+    step: pr.current_step ?? 0,
     approver_id: user.id,
     decision,
     note: note || null,
     decided_at: new Date().toISOString(),
   })
+  if (insertErr) console.error('[PR] pr_approvals insert error:', insertErr.message)
 
-  const chain = pr.expense_approval_chains as ExpenseApprovalChain | null
-  const steps = chain?.steps ?? []
+  // Fetch approval chain separately if one is set
+  let steps: any[] = []
+  if (pr.approval_chain_id) {
+    const { data: chain } = await supabaseAdmin
+      .from('expense_approval_chains')
+      .select('steps')
+      .eq('id', pr.approval_chain_id)
+      .single()
+    steps = (chain as any)?.steps ?? []
+  }
+
   const currentStep = pr.current_step ?? 0
   const nextStep = currentStep + 1
-
   const newStatus = decision === 'rejected'
     ? 'rejected'
     : (steps.length === 0 || nextStep >= steps.length) ? 'approved' : 'submitted'
 
-  await supabaseAdmin
+  const { error: updateErr } = await supabaseAdmin
     .from('purchase_requests')
     .update({ status: newStatus, current_step: nextStep, notes: note || null })
     .eq('id', prId)
+  if (updateErr) return { success: false, error: updateErr.message }
 
-  const employeeProfile = pr.user_profiles as { full_name: string; email: string } | null
-  if (employeeProfile) {
+  // Auto-create an expense record when fully approved
+  if (newStatus === 'approved') {
+    const today = new Date().toISOString().split('T')[0]
+    const desc = (pr as any).item_name + ((pr as any).description ? ` — ${(pr as any).description}` : '')
+    const { data: newExpense } = await supabaseAdmin.from('expenses').insert({
+      user_id: (pr as any).user_id,
+      amount: (pr as any).estimated_cost,
+      currency: (pr as any).currency ?? 'GBP',
+      converted_gbp: (pr as any).converted_gbp ?? (pr as any).estimated_cost,
+      exchange_rate: (pr as any).exchange_rate ?? 1,
+      description: desc,
+      merchant: (pr as any).supplier ?? null,
+      payment_method: 'company_card',
+      expense_type: 'record',
+      requires_approval: false,
+      status: 'approved',
+      date: today,
+      submitted_at: new Date().toISOString(),
+    } as any).select('id').single()
+    if (newExpense?.id) {
+      await (supabaseAdmin as any)
+        .from('purchase_requests')
+        .update({ expense_id: newExpense.id })
+        .eq('id', prId)
+    }
+  }
+
+  if (employeeProfile?.email) {
     await sendPurchaseRequestDecisionEmail({
       employeeEmail: employeeProfile.email,
-      employeeName: employeeProfile.full_name,
+      employeeName: employeeProfile.full_name ?? 'Employee',
       itemName: pr.item_name,
       decision,
       note: note ?? '',
@@ -766,6 +1005,40 @@ export async function updatePurchaseRequestStatus(
     })
   }
 
+  return { success: true }
+}
+
+export async function cancelPurchaseRequest(prId: string) {
+  const user = await getCurrentUser()
+  if (!user) return { success: false, error: 'Unauthorized' }
+  const { data: pr } = await supabaseAdmin
+    .from('purchase_requests')
+    .select('user_id, status')
+    .eq('id', prId)
+    .single()
+  if (!pr) return { success: false, error: 'Not found' }
+  if (pr.user_id !== user.id && !user.isAdmin && !user.isDirector) {
+    return { success: false, error: 'Only the submitter or an admin can cancel this request.' }
+  }
+  await supabaseAdmin.from('purchase_requests').update({ status: 'cancelled' }).eq('id', prId)
+  return { success: true }
+}
+
+export async function deletePurchaseRequest(prId: string) {
+  const user = await getCurrentUser()
+  if (!user) return { success: false, error: 'Unauthorized' }
+  const { data: pr } = await supabaseAdmin
+    .from('purchase_requests')
+    .select('user_id, status')
+    .eq('id', prId)
+    .single()
+  if (!pr) return { success: false, error: 'Not found' }
+  if (!['rejected', 'cancelled'].includes(pr.status))
+    return { success: false, error: 'Only rejected or cancelled requests can be deleted' }
+  if (pr.user_id !== user.id && !user.isAdmin && !user.isDirector)
+    return { success: false, error: 'Only the submitter or an admin can delete this request.' }
+  const { error } = await (supabaseAdmin as any).from('purchase_requests').delete().eq('id', prId)
+  if (error) return { success: false, error: error.message }
   return { success: true }
 }
 
@@ -855,19 +1128,30 @@ export async function getExpenseAnalyticsPeriod(
 // ── Bank statements ───────────────────────────────────────────
 
 export async function getBankStatements(month: string) {
-  const { data } = await (supabaseAdmin as any)
+  const { data, error } = await (supabaseAdmin as any)
     .from('bank_statements')
-    .select('*, bank_statement_transactions(*)')
+    .select('*, bank_statement_transactions(*), user_profiles!bank_statements_reconciled_by_fkey(full_name,display_name)')
     .eq('month', month)
     .order('created_at', { ascending: false })
+  if (error) {
+    // Fallback if reconciled_by FK columns don't exist yet (migration not yet run)
+    const { data: fallback } = await (supabaseAdmin as any)
+      .from('bank_statements')
+      .select('*, bank_statement_transactions(*)')
+      .eq('month', month)
+      .order('created_at', { ascending: false })
+    return (fallback ?? []) as any[]
+  }
   return (data ?? []) as any[]
 }
 
 export async function deleteBankStatement(id: string) {
   const user = await getCurrentUser()
   if (!user) return { success: false, error: 'Unauthorized' }
-  await (supabaseAdmin as any).from('bank_statement_transactions').delete().eq('statement_id', id)
-  await (supabaseAdmin as any).from('bank_statements').delete().eq('id', id)
+  const { error: txErr } = await (supabaseAdmin as any).from('bank_statement_transactions').delete().eq('statement_id', id)
+  if (txErr) return { success: false, error: txErr.message }
+  const { error: stmtErr } = await (supabaseAdmin as any).from('bank_statements').delete().eq('id', id)
+  if (stmtErr) return { success: false, error: stmtErr.message }
   return { success: true }
 }
 
@@ -878,10 +1162,11 @@ export async function updateTransactionMatch(
 ) {
   const user = await getCurrentUser()
   if (!user) return { success: false, error: 'Unauthorized' }
-  await (supabaseAdmin as any)
+  const { error: matchErr } = await (supabaseAdmin as any)
     .from('bank_statement_transactions')
     .update({ matched_expense_id: expenseId, match_status: status })
     .eq('id', transactionId)
+  if (matchErr) return { success: false, error: matchErr.message }
   return { success: true }
 }
 
@@ -912,6 +1197,51 @@ export async function recordBankAdjustment(
   } as any).eq('id', expenseId)
 
   return error ? { success: false, error: error.message } : { success: true, adjustment }
+}
+
+export async function markBankStatementReconciled(statementId: string) {
+  const user = await getCurrentUser()
+  if (!user) return { success: false, error: 'Unauthorized' }
+  const supabase = await createClient()
+  const { data: rolesData } = await supabase.from('user_roles').select('role').eq('user_id', user.id)
+  const userRoles = (rolesData ?? []).map((r: any) => r.role)
+  if (!userRoles.includes('admin') && !userRoles.includes('director') && !userRoles.includes('accounts'))
+    return { success: false, error: 'Insufficient permissions' }
+  const { error } = await (supabaseAdmin as any)
+    .from('bank_statements')
+    .update({ reconciled_at: new Date().toISOString(), reconciled_by: user.id })
+    .eq('id', statementId)
+  return error ? { success: false, error: error.message } : { success: true }
+}
+
+export async function getExpenseAnalyticsDirector() {
+  const now = new Date()
+  const fyStart = now.getMonth() >= 3
+    ? `${now.getFullYear()}-04-01`
+    : `${now.getFullYear() - 1}-04-01`
+  const sixMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 5, 1).toISOString().split('T')[0]
+
+  const [{ data: ytdData }, { data: allStatusData }, { data: vatTrendData }] = await Promise.all([
+    supabaseAdmin
+      .from('expenses')
+      .select('id, amount, converted_gbp, payment_method, status, date, expense_categories(name,color), user_profiles!expenses_user_id_fkey(full_name,display_name)')
+      .gte('date', fyStart)
+      .in('status', ['approved', 'paid']),
+    supabaseAdmin
+      .from('expenses')
+      .select('id, amount, converted_gbp, payment_method, status, date, merchant, user_profiles!expenses_user_id_fkey(full_name,display_name)')
+      .gte('date', sixMonthsAgo),
+    supabaseAdmin
+      .from('expenses')
+      .select('date, vat_amount, payment_method, status')
+      .gte('date', sixMonthsAgo)
+      .in('status', ['approved', 'paid']),
+  ])
+  return {
+    ytd: (ytdData ?? []) as any[],
+    allStatus: (allStatusData ?? []) as any[],
+    vatTrend: (vatTrendData ?? []) as any[],
+  }
 }
 
 // ── File upload to Supabase Storage ──────────────────────────

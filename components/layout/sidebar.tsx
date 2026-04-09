@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
@@ -9,7 +9,7 @@ import {
   UserPlus, BookOpen, MessageSquare, AlertTriangle, Settings, Shield,
   Monitor, Tablet, ClipboardList, ChevronLeft, ChevronRight, ShieldAlert, Contact,
   FileText, Bell, BarChart2, Server, LogOut, HelpCircle, TableProperties,
-  Receipt, Megaphone,
+  Receipt, Megaphone, Building2, BarChart3, Pin, Ticket, Heart,
 } from "lucide-react"
 import { useState } from "react"
 
@@ -34,15 +34,19 @@ const navGroups: NavGroup[] = [
       { href: "/diary",       label: "Diary",        icon: BookOpen,       roles: ["employee", "admin", "director", "accounts", "reception"] },
       { href: "/expenses",       label: "Expenses",      icon: Receipt,    roles: ["employee", "admin", "director", "accounts", "reception"] },
       { href: "/announcements",  label: "Announcements", icon: Megaphone,  roles: ["employee", "admin", "director", "accounts", "reception"] },
+      { href: "/it",             label: "IT Support",    icon: Ticket,     roles: ["employee", "admin", "director", "accounts", "reception"] },
+      { href: "/wellness",       label: "Wellness Hub",  icon: Heart,      roles: ["employee", "admin", "director", "accounts", "reception"] },
     ],
   },
   {
     label: "TEAM",
     items: [
-      { href: "/calendar",         label: "Calendar",  icon: CalendarDays,  roles: ["employee", "admin", "director", "accounts", "reception"] },
-      { href: "/directory",        label: "Directory", icon: Users,         roles: ["employee", "admin", "director", "accounts", "reception"] },
-      { href: "/directory?tab=external", label: "Contacts", icon: Contact,  roles: ["employee", "admin", "director", "accounts", "reception"] },
-      { href: "/manager/approvals", label: "Approvals", icon: ClipboardList, roles: ["employee", "admin", "director", "accounts", "reception"] },
+      { href: "/calendar",         label: "Calendar",     icon: CalendarDays,  roles: ["employee", "admin", "director", "accounts", "reception"] },
+      { href: "/office",           label: "Office Today", icon: Building2,     roles: ["employee", "admin", "director", "accounts", "reception"] },
+      { href: "/polls",            label: "Polls",        icon: BarChart3,     roles: ["employee", "admin", "director", "accounts", "reception"] },
+      { href: "/notice-board",     label: "Notice Board", icon: Pin,           roles: ["employee", "admin", "director", "accounts", "reception"] },
+      { href: "/directory",        label: "Directory",    icon: Users,         roles: ["employee", "admin", "director", "accounts", "reception"] },
+      { href: "/manager/approvals", label: "Approvals",   icon: ClipboardList, roles: ["employee", "admin", "director", "accounts", "reception"] },
     ],
   },
   {
@@ -69,7 +73,9 @@ const navGroups: NavGroup[] = [
       { href: "/admin/staff-summary",       label: "Staff Summary",        icon: TableProperties, roles: ["accounts", "director"] },
       { href: "/admin/attendance",          label: "Attendance",           icon: ClipboardList,   roles: ["reception"] },
       { href: "/admin/users",               label: "Roles & Users",        icon: Shield,          roles: [] },
-      { href: "/admin/notifications",       label: "Notifications",        icon: Bell,            roles: ["admin"] },
+      { href: "/admin/it",                   label: "IT Portal",            icon: Ticket,          roles: ["admin"] },
+      { href: "/admin/wellness",             label: "Wellness Trends",      icon: Heart,           roles: ["admin", "director"] },
+      { href: "/admin/notifications",        label: "Notifications",        icon: Bell,            roles: ["admin"] },
       { href: "/analytics",                 label: "Analytics",            icon: BarChart2,       roles: ["director"] },
       { href: "/admin/forgotten-clockouts", label: "Forgotten Clock-outs", icon: LogOut,          roles: ["director", "reception"] },
       { href: "/admin/org",                 label: "Org Chart",            icon: Users,           roles: [] },
@@ -81,6 +87,7 @@ const navGroups: NavGroup[] = [
     items: [
       { href: "/settings",      label: "Settings",      icon: Settings,    roles: ["employee", "admin", "director", "accounts", "reception"] },
       { href: "/notifications", label: "Email Guide",   icon: Bell,        roles: ["employee", "admin", "director", "accounts", "reception"] },
+      { href: "/newsletters",    label: "Newsletters",   icon: BookOpen,    roles: ["employee", "admin", "director", "accounts", "reception"] },
       { href: "/help",          label: "How It Works",  icon: HelpCircle,  roles: ["employee", "admin", "director", "accounts", "reception"] },
     ],
   },

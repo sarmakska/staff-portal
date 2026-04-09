@@ -43,7 +43,7 @@ export function formatDateTime(date: string | Date): string {
 
 // Fetch England & Wales bank holidays from the UK Gov API.
 // Returns a Set of date strings like "2026-04-03".
-async function fetchBankHolidays(): Promise<Set<string>> {
+export async function fetchBankHolidays(): Promise<Set<string>> {
     try {
         const res = await fetch('https://www.gov.uk/bank-holidays.json', { next: { revalidate: 86400 } })
         if (!res.ok) return new Set()

@@ -34,6 +34,7 @@ interface Profile {
     phone: string | null
     department_id: string | null
     is_active: boolean
+    exclude_from_reminders: boolean
     user_roles: { role: string }[]
 }
 interface Department { id: string; name: string; description?: string | null }
@@ -67,8 +68,9 @@ function EditUserModal({
         job_title: profile.job_title ?? "",
         phone: profile.phone ?? "",
         department_id: profile.department_id ?? "",
+        exclude_from_reminders: profile.exclude_from_reminders ?? false,
     })
-    const set = (f: string, v: string) => setForm(prev => ({ ...prev, [f]: v }))
+    const set = (f: string, v: any) => setForm(prev => ({ ...prev, [f]: v }))
 
     // Schedule state — default Mon–Fri, 7.5h each
     const defaultDays = ["mon", "tue", "wed", "thu", "fri"]
@@ -101,6 +103,7 @@ function EditUserModal({
                 job_title: form.job_title.trim() || null as any,
                 phone: form.phone.trim() || null as any,
                 department_id: form.department_id || null,
+                exclude_from_reminders: form.exclude_from_reminders,
             })
             if (result.success) { toast.success("Profile updated"); onClose() }
             else toast.error(result.error ?? "Failed to update")
@@ -124,7 +127,7 @@ function EditUserModal({
     }
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm px-4">
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-background/80 backdrop-blur-sm px-4">
             <div className="w-full max-w-md rounded-3xl border border-border bg-card shadow-2xl animate-in zoom-in-95 duration-200">
                 <div className="flex items-center justify-between px-6 py-5 border-b border-border">
                     <div>
@@ -187,6 +190,20 @@ function EditUserModal({
                                         <option key={d.id} value={d.id}>{d.name}</option>
                                     ))}
                                 </select>
+                            </div>
+                            {/* Exclude from reminders toggle */}
+                            <div className="flex items-center justify-between rounded-xl border border-border bg-muted/20 px-4 py-3">
+                                <div>
+                                    <p className="text-xs font-semibold text-foreground">Exclude from reminder emails</p>
+                                    <p className="text-[10px] text-muted-foreground">Skip clock-in &amp; clock-out reminder emails (e.g. long-term leave)</p>
+                                </div>
+                                <button
+                                    type="button"
+                                    onClick={() => set("exclude_from_reminders", !form.exclude_from_reminders)}
+                                    className={`relative inline-flex h-5 w-9 rounded-full transition-colors ${form.exclude_from_reminders ? "bg-amber-500" : "bg-muted-foreground/40"}`}
+                                >
+                                    <span className={`absolute top-0.5 h-4 w-4 rounded-full bg-white shadow transition-transform ${form.exclude_from_reminders ? "translate-x-4" : "translate-x-0.5"}`} />
+                                </button>
                             </div>
                         </div>
                         <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-border">
@@ -286,6 +303,9 @@ function UserCard({ p, departments, schedule, currentUserId }: { p: Profile; dep
                                     <p className="text-sm font-semibold text-foreground">{name}</p>
                                     {!p.is_active && (
                                         <Badge variant="destructive" className="text-[10px] rounded-full">Inactive</Badge>
+                                    )}
+                                    {p.exclude_from_reminders && p.is_active && (
+                                        <Badge variant="outline" className="text-[10px] rounded-full text-amber-600 border-amber-300">No reminders</Badge>
                                     )}
                                 </div>
                                 <p className="text-xs text-muted-foreground truncate">{p.email}</p>

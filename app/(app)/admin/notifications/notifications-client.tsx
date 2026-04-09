@@ -1,17 +1,27 @@
-"use client"
+﻿"use client"
 
 import { useState, useTransition } from "react"
 import {
   Bell, BellOff, CheckCircle, XCircle, Loader2, Mail, Send, Zap,
-  CalendarDays, Clock, Users, ClipboardEdit, Receipt, Megaphone,
+  CalendarDays, Clock, Users, ClipboardEdit, Receipt, Megaphone, BarChart3, Dumbbell,
 } from "lucide-react"
 import { updateNotificationSetting } from "@/lib/actions/app-settings"
+import { adminSetStretchReminder } from "@/lib/actions/wellness"
 import { EMAIL_NOTIFICATION_META, EMAIL_NOTIFICATION_KEYS, NOTIFICATION_FROM_EMAIL } from "@/lib/notification-settings"
 import type { EmailNotificationKey } from "@/lib/notification-settings"
+
+interface StaffWellnessPref {
+  id: string
+  full_name: string
+  display_name: string | null
+  email: string
+  stretch_reminder: boolean
+}
 
 interface NotificationsClientProps {
   settings: Record<string, boolean>
   envEmails: { wfhNotify: string; accountsNotify: string; receptionNotify: string }
+  staffWellnessPrefs: StaffWellnessPref[]
 }
 
 const GROUP_META: Record<string, { icon: React.ElementType; color: string; bg: string; border: string }> = {
@@ -21,6 +31,7 @@ const GROUP_META: Record<string, { icon: React.ElementType; color: string; bg: s
   Corrections: { icon: ClipboardEdit,  color: "text-violet-600 dark:text-violet-400", bg: "bg-violet-50 dark:bg-violet-950/40", border: "border-violet-200 dark:border-violet-800" },
   Expenses:      { icon: Receipt,    color: "text-emerald-600 dark:text-emerald-400", bg: "bg-emerald-50 dark:bg-emerald-950/40",  border: "border-emerald-200 dark:border-emerald-800" },
   Announcements: { icon: Megaphone,  color: "text-blue-600 dark:text-blue-400",     bg: "bg-blue-50 dark:bg-blue-950/40",        border: "border-blue-200 dark:border-blue-800" },
+  Polls:         { icon: BarChart3,  color: "text-violet-600 dark:text-violet-400", bg: "bg-violet-50 dark:bg-violet-950/40",    border: "border-violet-200 dark:border-violet-800" },
 }
 
 // Render recipient — email addresses get a monospace chip, plain text stays normal
@@ -45,11 +56,29 @@ function RecipientDisplay({ value }: { value: string }) {
   )
 }
 
-export default function NotificationsClient({ settings: initial, envEmails }: NotificationsClientProps) {
+export default function NotificationsClient({ settings: initial, envEmails, staffWellnessPrefs: initialStaffPrefs }: NotificationsClientProps) {
   const [settings, setSettings] = useState<Record<string, boolean>>(initial)
+  const [staffPrefs, setStaffPrefs] = useState<StaffWellnessPref[]>(initialStaffPrefs)
   const [, startTransition] = useTransition()
   const [saving, setSaving] = useState<string | null>(null)
   const [flash, setFlash] = useState<{ key: string; ok: boolean } | null>(null)
+  const [stretchSaving, setStretchSaving] = useState<string | null>(null)
+  const [stretchFlash, setStretchFlash] = useState<{ id: string; ok: boolean } | null>(null)
+
+  async function toggleStretch(userId: string, current: boolean) {
+    const newVal = !current
+    setStretchSaving(userId)
+    setStaffPrefs(prev => prev.map(s => s.id === userId ? { ...s, stretch_reminder: newVal } : s))
+    const result = await adminSetStretchReminder(userId, newVal)
+    setStretchSaving(null)
+    if (!result.success) {
+      setStaffPrefs(prev => prev.map(s => s.id === userId ? { ...s, stretch_reminder: current } : s))
+      setStretchFlash({ id: userId, ok: false })
+    } else {
+      setStretchFlash({ id: userId, ok: true })
+    }
+    setTimeout(() => setStretchFlash(null), 2000)
+  }
 
   async function toggle(key: string) {
     const newVal = !settings[key]
@@ -74,6 +103,7 @@ export default function NotificationsClient({ settings: initial, envEmails }: No
     }
     if (key === "email_forgotten_clockout") return `Employee + ${envEmails.receptionNotify}`
     if (key === "email_leave_approved") return `Employee + ${envEmails.accountsNotify}`
+    if (key === "email_leave_withdrawn") return `Approver (if assigned) + ${envEmails.accountsNotify}`
     if (key === "email_correction_submitted") return envEmails.receptionNotify
     return EMAIL_NOTIFICATION_META[key].recipient
   }
@@ -114,6 +144,64 @@ export default function NotificationsClient({ settings: initial, envEmails }: No
             <p className="text-xs text-muted-foreground">Sending from</p>
             <p className="text-xs font-mono font-medium text-foreground mt-0.5 truncate">{NOTIFICATION_FROM_EMAIL}</p>
           </div>
+        </div>
+      </div>
+
+      {/* Per-person stretch reminders */}
+      <div className="rounded-2xl border border-border bg-card shadow-sm overflow-hidden">
+        <div className="px-5 py-3 border-b border-border/50 flex items-center justify-between bg-green-50 dark:bg-green-950/40">
+          <div className="flex items-center gap-2">
+            <Dumbbell className="h-4 w-4 text-green-600 dark:text-green-400" />
+            <p className="text-sm font-semibold text-green-600 dark:text-green-400">Stretch Reminders — Per Person</p>
+          </div>
+          <span className="text-xs text-muted-foreground">
+            {staffPrefs.filter(s => s.stretch_reminder).length}/{staffPrefs.length} on
+          </span>
+        </div>
+        <p className="px-5 pt-3 pb-1 text-xs text-muted-foreground">
+          Sent Mon–Fri at 11am and 3pm. Toggle off to stop a specific person receiving these emails.
+        </p>
+        <div className="divide-y divide-border/40">
+          {staffPrefs.map(staff => {
+            const isSaving = stretchSaving === staff.id
+            const flashState = stretchFlash?.id === staff.id ? stretchFlash : null
+            const name = staff.display_name || staff.full_name
+            return (
+              <div key={staff.id} className={`px-5 py-3 flex items-center justify-between gap-4 transition-colors ${!staff.stretch_reminder ? "bg-muted/10" : ""}`}>
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <p className={`text-sm font-medium leading-tight ${!staff.stretch_reminder ? "text-muted-foreground" : "text-foreground"}`}>
+                      {name}
+                    </p>
+                    {!staff.stretch_reminder && (
+                      <span className="text-[10px] font-semibold uppercase tracking-wide bg-muted text-muted-foreground rounded px-1.5 py-0.5">opted out</span>
+                    )}
+                    {flashState && (
+                      <span className={`text-[10px] font-bold uppercase tracking-wide flex items-center gap-0.5 ${flashState.ok ? "text-emerald-500" : "text-rose-500"}`}>
+                        {flashState.ok ? <><CheckCircle className="h-3 w-3" />Saved</> : <><XCircle className="h-3 w-3" />Failed</>}
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-0.5 font-mono">{staff.email}</p>
+                </div>
+                <button
+                  onClick={() => toggleStretch(staff.id, staff.stretch_reminder)}
+                  disabled={isSaving}
+                  className={`relative shrink-0 h-6 w-11 rounded-full transition-all duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
+                    staff.stretch_reminder ? "bg-primary" : "bg-muted-foreground/30"
+                  } ${isSaving ? "opacity-70 cursor-wait" : "cursor-pointer"}`}
+                  aria-checked={staff.stretch_reminder}
+                  role="switch"
+                >
+                  <span className={`absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform duration-300 flex items-center justify-center ${
+                    staff.stretch_reminder ? "translate-x-5" : "translate-x-0"
+                  }`}>
+                    {isSaving && <Loader2 className="h-3 w-3 text-muted-foreground animate-spin" />}
+                  </span>
+                </button>
+              </div>
+            )
+          })}
         </div>
       </div>
 

@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useState, useTransition } from 'react'
 import {
@@ -59,7 +59,7 @@ function EmailPreview({ category, subject, body, sentByName, hasEvent, eventTitl
     <div className="rounded-2xl border border-border overflow-hidden text-sm shadow-sm">
       <div className="bg-muted/50 border-b border-border px-4 py-2 flex items-center gap-2">
         <div className="flex gap-1.5"><div className="h-2.5 w-2.5 rounded-full bg-rose-400"/><div className="h-2.5 w-2.5 rounded-full bg-amber-400"/><div className="h-2.5 w-2.5 rounded-full bg-emerald-400"/></div>
-        <span className="ml-2 text-xs text-muted-foreground font-mono">Email Preview — admin@yourcompany.com</span>
+        <span className="ml-2 text-xs text-muted-foreground font-mono">Email Preview — memofashions@yourcompany.com</span>
       </div>
       <div className="bg-gradient-to-br from-gray-900 to-gray-800 px-6 py-5 flex items-start justify-between gap-4">
         <div>
@@ -102,7 +102,7 @@ function EmailPreview({ category, subject, body, sentByName, hasEvent, eventTitl
       </div>
       <div className="bg-gray-50 border-t border-gray-200 px-6 py-3 flex justify-between">
         <p className="text-[11px] text-gray-400">Sent via <strong className="text-gray-500">StaffPortal</strong> by {sentByName || 'You'}</p>
-        <p className="text-[11px] text-gray-400">your-staffportal-url.com</p>
+        <p className="text-[11px] text-gray-400">your-domain.com</p>
       </div>
     </div>
   )
@@ -179,7 +179,7 @@ export default function AnnouncementsClient({ history }: Props) {
         <div>
           <h1 className="text-2xl font-black text-foreground">Staff Announcement</h1>
           <p className="text-sm text-muted-foreground mt-0.5">
-            Send an email to <strong>admin@yourcompany.com</strong> — the whole team sees it instantly.
+            Send an email to <strong>memofashions@yourcompany.com</strong> — the whole team sees it instantly.
           </p>
         </div>
       </div>
@@ -190,9 +190,9 @@ export default function AnnouncementsClient({ history }: Props) {
         {/* From/to bar */}
         <div className="px-5 py-3 border-b border-border/50 bg-muted/20 flex items-center gap-2 flex-wrap">
           <Send className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-          <span className="font-mono text-xs bg-muted border border-border rounded px-2 py-0.5">notifications@sarmalinux.com</span>
+          <span className="font-mono text-xs bg-muted border border-border rounded px-2 py-0.5">noreply@sarmalinux.com</span>
           <ArrowRight className="h-3 w-3 text-muted-foreground/50" />
-          <span className="font-mono text-xs bg-muted border border-border rounded px-2 py-0.5">admin@yourcompany.com</span>
+          <span className="font-mono text-xs bg-muted border border-border rounded px-2 py-0.5">memofashions@yourcompany.com</span>
         </div>
 
         <div className="p-5 space-y-4">

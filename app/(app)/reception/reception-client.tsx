@@ -6,11 +6,12 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { StatusBadge } from "@/components/shared/status-badge"
 import { EmptyState } from "@/components/shared/empty-state"
-import { Contact, Clock, Users, Building, AlertCircle, Plus, Timer, UserCheck, UserX, Home, Plane } from "lucide-react"
+import { Contact, Clock, Users, Building, AlertCircle, Plus, Timer, UserCheck, UserX, Home, Plane, Stethoscope } from "lucide-react"
 import { toast } from "sonner"
 import { checkinVisitor, checkoutVisitor, registerWalkInVisitor } from "@/lib/actions/visitors"
 import { cancelVisitorBooking } from "@/lib/actions/reception"
 import { logRunningLate } from "@/lib/actions/attendance"
+import { logSickLeaveOnBehalf } from "@/lib/actions/leave"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
@@ -43,7 +44,7 @@ interface StaffLogEntry {
     name: string
     job_title: string | null
     department: string | null
-    status: 'in_office' | 'clocked_out' | 'wfh' | 'on_leave' | 'not_in'
+    status: 'in_office' | 'clocked_out' | 'wfh' | 'on_leave' | 'running_late' | 'not_in'
     clock_in: string | null
     clock_out: string | null
     leave_type: string | null
@@ -57,19 +58,21 @@ interface Props {
 }
 
 const STAFF_STATUS_STYLES: Record<string, { icon: React.ElementType; pill: string; dot: string }> = {
-    in_office:   { icon: UserCheck, pill: "bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300",   dot: "bg-green-100 text-green-700" },
-    clocked_out: { icon: UserX,    pill: "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300",      dot: "bg-slate-100 text-slate-600" },
-    wfh:         { icon: Home,     pill: "bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300",       dot: "bg-blue-100 text-blue-700" },
-    on_leave:    { icon: Plane,    pill: "bg-orange-100 text-orange-800 dark:bg-orange-900/40 dark:text-orange-300", dot: "bg-orange-100 text-orange-700" },
-    not_in:      { icon: UserX,    pill: "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300",           dot: "bg-red-100 text-red-600" },
+    in_office:    { icon: UserCheck, pill: "bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300",     dot: "bg-green-100 text-green-700" },
+    clocked_out:  { icon: UserX,    pill: "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300",        dot: "bg-slate-100 text-slate-600" },
+    wfh:          { icon: Home,     pill: "bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300",         dot: "bg-blue-100 text-blue-700" },
+    on_leave:     { icon: Plane,    pill: "bg-orange-100 text-orange-800 dark:bg-orange-900/40 dark:text-orange-300", dot: "bg-orange-100 text-orange-700" },
+    running_late: { icon: Clock,    pill: "bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300",     dot: "bg-amber-100 text-amber-700" },
+    not_in:       { icon: UserX,    pill: "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300",             dot: "bg-red-100 text-red-600" },
 }
 
 const STAFF_STATUS_LABEL: Record<string, string> = {
-    in_office: 'In Office',
-    clocked_out: 'Clocked Out',
-    wfh: 'WFH',
-    on_leave: 'On Leave',
-    not_in: 'Not In',
+    in_office:    'In Office',
+    clocked_out:  'Clocked Out',
+    wfh:          'WFH',
+    on_leave:     'On Leave',
+    running_late: 'Running Late',
+    not_in:       'Not In',
 }
 
 export default function ReceptionClient({ visitors, staffList, receptionistName, staffLog }: Props) {
@@ -90,6 +93,14 @@ export default function ReceptionClient({ visitors, staffList, receptionistName,
     const [lateEmployee, setLateEmployee] = useState("")
     const [lateExpected, setLateExpected] = useState("")
     const [lateReason, setLateReason] = useState("")
+    const [lateDay, setLateDay] = useState<'today' | 'tomorrow'>('today')
+
+    // Sick Leave Dialog State
+    const [showSick, setShowSick] = useState(false)
+    const [sickEmployee, setSickEmployee] = useState("")
+    const [sickStart, setSickStart] = useState("")
+    const [sickEnd, setSickEnd] = useState("")
+    const [sickReason, setSickReason] = useState("")
 
     const filtered = filter === "all"
         ? visitors
@@ -142,14 +153,38 @@ export default function ReceptionClient({ visitors, staffList, receptionistName,
             return
         }
         startTransition(async () => {
-            const res = await logRunningLate(lateEmployee, lateReason || undefined, lateExpected || undefined, receptionistName)
+            const res = await logRunningLate(lateEmployee, lateReason || undefined, lateExpected || undefined, receptionistName, lateDay)
             if (res.success) {
-                toast.success("Late arrival logged and notification sent")
+                toast.success(lateDay === 'tomorrow' ? "Pre-logged for tomorrow — management notified" : "Late arrival logged and notification sent")
                 setShowLate(false)
-                setLateEmployee(""); setLateExpected(""); setLateReason("")
+                setLateEmployee(""); setLateExpected(""); setLateReason(""); setLateDay('today')
                 router.refresh()
             } else {
                 toast.error(res.error || "Failed to log late arrival")
+            }
+        })
+    }
+
+    const handleSickLeave = () => {
+        if (!sickEmployee || !sickStart || !sickEnd) {
+            toast.error("Please select an employee and dates")
+            return
+        }
+        startTransition(async () => {
+            const res = await logSickLeaveOnBehalf({
+                userId: sickEmployee,
+                startDate: sickStart,
+                endDate: sickEnd,
+                dayType: 'full',
+                reason: sickReason || 'Sick leave logged by reception',
+            })
+            if (res.success) {
+                toast.success("Sick leave logged and approved")
+                setShowSick(false)
+                setSickEmployee(""); setSickStart(""); setSickEnd(""); setSickReason("")
+                router.refresh()
+            } else {
+                toast.error(res.error || "Failed to log sick leave")
             }
         })
     }
@@ -173,6 +208,63 @@ export default function ReceptionClient({ visitors, staffList, receptionistName,
                 </div>
 
                 <div className="flex items-center gap-2">
+                    {/* Sick Leave Button */}
+                    <Dialog open={showSick} onOpenChange={setShowSick}>
+                        <DialogTrigger asChild>
+                            <Button variant="outline" className="rounded-xl gap-2 font-semibold shadow-sm border-rose-300 text-rose-700 hover:bg-rose-50">
+                                <Stethoscope className="h-4 w-4" /> Log Sick Leave
+                            </Button>
+                        </DialogTrigger>
+                        <DialogContent className="rounded-2xl sm:max-w-md">
+                            <DialogHeader>
+                                <DialogTitle className="flex items-center gap-2">
+                                    <Stethoscope className="h-5 w-5 text-rose-600" /> Log Sick Leave on Behalf
+                                </DialogTitle>
+                            </DialogHeader>
+                            <div className="space-y-4 py-4">
+                                <div className="space-y-2">
+                                    <Label>Employee *</Label>
+                                    <Select value={sickEmployee || "none"} onValueChange={v => setSickEmployee(v === "none" ? "" : v)}>
+                                        <SelectTrigger className="rounded-xl"><SelectValue placeholder="Select employee" /></SelectTrigger>
+                                        <SelectContent>
+                                            {staffList.map(s => <SelectItem key={s.id} value={s.id}>{s.full_name}</SelectItem>)}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                                <div className="grid grid-cols-2 gap-3">
+                                    <div className="space-y-2">
+                                        <Label>Start Date *</Label>
+                                        <Input type="date" value={sickStart} onChange={e => { setSickStart(e.target.value); if (!sickEnd) setSickEnd(e.target.value) }} className="rounded-xl" />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label>End Date *</Label>
+                                        <Input type="date" value={sickEnd} onChange={e => setSickEnd(e.target.value)} min={sickStart} className="rounded-xl" />
+                                    </div>
+                                </div>
+                                <div className="space-y-2">
+                                    <Label>Reason (Optional)</Label>
+                                    <Textarea
+                                        value={sickReason}
+                                        onChange={e => setSickReason(e.target.value)}
+                                        placeholder="e.g. Flu, stomach bug..."
+                                        className="rounded-xl resize-none"
+                                        rows={3}
+                                    />
+                                </div>
+                                <p className="text-xs text-muted-foreground">
+                                    Sick leave will be <strong>auto-approved</strong> and deducted from their balance. Logged by: <strong>{receptionistName}</strong>
+                                </p>
+                                <Button
+                                    onClick={handleSickLeave}
+                                    disabled={isPending || !sickEmployee || !sickStart || !sickEnd}
+                                    className="w-full rounded-xl bg-rose-600 hover:bg-rose-700 text-white"
+                                >
+                                    {isPending ? "Logging..." : "Log Sick Leave"}
+                                </Button>
+                            </div>
+                        </DialogContent>
+                    </Dialog>
+
                     {/* Late Arrival Button */}
                     <Dialog open={showLate} onOpenChange={setShowLate}>
                         <DialogTrigger asChild>
@@ -187,6 +279,23 @@ export default function ReceptionClient({ visitors, staffList, receptionistName,
                                 </DialogTitle>
                             </DialogHeader>
                             <div className="space-y-4 py-4">
+                                {/* Today / Tomorrow toggle */}
+                                <div className="flex rounded-xl border border-border overflow-hidden">
+                                    {(['today', 'tomorrow'] as const).map((day) => (
+                                        <button
+                                            key={day}
+                                            type="button"
+                                            onClick={() => setLateDay(day)}
+                                            className={`flex-1 py-2 text-sm font-semibold transition-colors ${
+                                                lateDay === day
+                                                    ? 'bg-amber-500 text-white'
+                                                    : 'bg-muted/30 text-muted-foreground hover:bg-muted/60'
+                                            }`}
+                                        >
+                                            {day === 'today' ? 'Today' : 'Tomorrow'}
+                                        </button>
+                                    ))}
+                                </div>
                                 <div className="space-y-2">
                                     <Label>Employee *</Label>
                                     <Select value={lateEmployee || "none"} onValueChange={v => setLateEmployee(v === "none" ? "" : v)}>
@@ -368,6 +477,7 @@ export default function ReceptionClient({ visitors, staffList, receptionistName,
                             { key: 'in_office', label: 'In Office' },
                             { key: 'wfh', label: 'WFH' },
                             { key: 'on_leave', label: 'On Leave' },
+                            { key: 'running_late', label: 'Running Late' },
                             { key: 'not_in', label: 'Not In' },
                         ].map(f => (
                             <Button

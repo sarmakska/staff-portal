@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import { useState, useTransition } from "react"
 import Link from "next/link"
@@ -41,8 +41,8 @@ export default function LoginPage() {
 
           {/* Logo */}
           <img
-            src="/logo.png"
-            alt="StaffPortal"
+            src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/MEMO%20LOGO%281%29-LotOho4qrhl0Dxku4Sq22ZlQ7rRIWx.png"
+            alt="Memo"
             className="h-9 w-auto object-contain self-start brightness-0 invert"
           />
 
@@ -59,7 +59,7 @@ export default function LoginPage() {
               managed.
             </h1>
             <p className="text-sm leading-relaxed max-w-sm" style={{ color: '#64748b' }}>
-              Attendance, leave, timesheets and more — all in one place for your team.
+              Attendance, leave, timesheets and more — all in one place for the Your Company team.
             </p>
 
             {/* Stats */}
@@ -97,8 +97,8 @@ export default function LoginPage() {
           {/* Mobile: logo above card */}
           <div className="lg:hidden mb-8 text-center">
             <img
-              src="/logo.png"
-              alt="StaffPortal"
+              src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/MEMO%20LOGO%281%29-LotOho4qrhl0Dxku4Sq22ZlQ7rRIWx.png"
+              alt="Memo"
               className="h-10 mx-auto"
             />
             <p className="text-white/60 text-sm mt-3">Your team, beautifully managed.</p>

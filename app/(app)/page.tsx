@@ -5,7 +5,7 @@ import { supabaseAdmin } from "@/lib/supabase/admin"
 import DashboardClient from "./dashboard-client"
 import type { NotificationItem } from "@/lib/actions/notifications"
 import { getWorkSchedule } from "@/lib/actions/schedule"
-import { calcExpectedHoursThisWeek, scheduledDaysPassedThisWeek } from "@/lib/schedule-helpers"
+import { calcExpectedHoursThisWeek, scheduledDaysPassedThisWeek, contractedHoursThisWeek } from "@/lib/schedule-helpers"
 
 function fmtDate(d: string) {
   return new Date(d + "T12:00:00").toLocaleDateString("en-GB", { day: "numeric", month: "short" })
@@ -73,7 +73,7 @@ export default async function DashboardPage() {
     { data: diaryRemindersRaw },
   ] = await Promise.all([
     supabase.from("attendance").select("clock_in, clock_out, work_date").eq("user_id", user.id).eq("work_date", today).order("clock_in", { ascending: false }).limit(1),
-    supabase.from("attendance").select("total_hours").eq("user_id", user.id).gte("work_date", weekStartStr),
+    supabase.from("attendance").select("total_hours, clock_in, clock_out").eq("user_id", user.id).gte("work_date", weekStartStr),
     supabase.from("leave_balances").select("leave_type, total, used, pending, carried_forward").eq("user_id", user.id).eq("year", currentYear),
     supabaseAdmin.from("leave_balances").select("total, used, pending").eq("user_id", user.id).eq("leave_type", "annual" as any).eq("year", currentYear - 1).single(),
     (supabaseAdmin as any).from("user_profiles").select("max_carry_forward, carry_forward_days").eq("id", user.id).single(),
@@ -147,13 +147,20 @@ export default async function DashboardPage() {
   const todayAtt = todayAttArr?.[0] ?? null
   const clockedIn = !!todayAtt?.clock_in && !todayAtt?.clock_out
   const clockInTime = todayAtt?.clock_in
-    ? new Date(todayAtt.clock_in).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+    ? new Date(todayAtt.clock_in).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", timeZone: "Europe/London" })
     : null
-  const completedWeekHours = (weekAtt ?? []).reduce((s: number, r: { total_hours: number | null }) => s + (r.total_hours ?? 0), 0)
+  const completedWeekHours = (weekAtt ?? []).reduce((s: number, r: { total_hours: number | null; clock_in?: string | null; clock_out?: string | null }) => {
+    const h = r.total_hours != null
+      ? r.total_hours
+      : (r.clock_in && r.clock_out)
+        ? Math.round(Math.max(0, (new Date(r.clock_out).getTime() - new Date(r.clock_in).getTime()) / 36000)) / 100
+        : 0
+    return s + h
+  }, 0)
   const clockInIso = todayAtt?.clock_in ?? null
   const weekHours = completedWeekHours
   const expectedHoursThisWeek = calcExpectedHoursThisWeek(userSchedule)
-  const contractedWeeklyHours = userSchedule.daily_hours * userSchedule.work_days.length
+  const contractedWeeklyHours = contractedHoursThisWeek(userSchedule)
   const { passed: scheduledDaysPassed, total: scheduledDaysTotal } = scheduledDaysPassedThisWeek(userSchedule)
 
   // ── Build notifications ──────────────────────────────────────────
@@ -206,6 +213,19 @@ export default async function DashboardPage() {
 
   notifications.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
 
+  // Check if user has pre-logged running late for tomorrow
+  const tomorrow = new Date()
+  tomorrow.setDate(tomorrow.getDate() + 1)
+  const tomorrowStr = tomorrow.toISOString().split("T")[0]
+  const { data: tomorrowLateRecord } = await supabase
+    .from("attendance")
+    .select("id, late_reason")
+    .eq("user_id", user.id)
+    .eq("work_date", tomorrowStr)
+    .eq("running_late", true as any)
+    .maybeSingle()
+  const preLoggedTomorrow = !!tomorrowLateRecord
+
   return (
     <DashboardClient
       userId={user.id}
@@ -228,6 +248,8 @@ export default async function DashboardPage() {
       displayName={displayName}
       diaryReminders={diaryReminders}
       leaveRequests={ownLeave ?? []}
+      preLoggedTomorrow={preLoggedTomorrow}
+      tomorrowLateReason={(tomorrowLateRecord as any)?.late_reason ?? null}
     />
   )
 }

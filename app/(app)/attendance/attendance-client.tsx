@@ -64,16 +64,42 @@ export default function AttendanceClient({ records, todayRecord, userId, wfhToda
         startTransition(async () => {
             const block = await checkWfhClockInBlock(userId, today)
             if (block) { toast.error(block); return }
+
+            // Try to capture location — non-blocking, clock-in proceeds regardless
+            const loc = await new Promise<{ lat: number; lng: number } | null>(resolve => {
+                if (!navigator.geolocation) { resolve(null); return }
+                navigator.geolocation.getCurrentPosition(
+                    p => resolve({ lat: p.coords.latitude, lng: p.coords.longitude }),
+                    () => resolve(null),
+                    { timeout: 8000, maximumAge: 0 }
+                )
+            })
+
+            let distanceM: number | null = null
+            if (loc) {
+                const OFFICE_LAT = 51.53281376631702
+                const OFFICE_LNG = -0.29630791349377844
+                const dLat = (loc.lat - OFFICE_LAT) * Math.PI / 180
+                const dLng = (loc.lng - OFFICE_LNG) * Math.PI / 180
+                const a = Math.sin(dLat / 2) ** 2 + Math.cos(OFFICE_LAT * Math.PI / 180) * Math.cos(loc.lat * Math.PI / 180) * Math.sin(dLng / 2) ** 2
+                distanceM = Math.round(6371000 * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)))
+            }
+
             const now = new Date().toISOString()
             const { error } = await supabase.from("attendance").upsert({
                 user_id: userId,
                 work_date: today,
                 clock_in: now,
                 status: "present",
-            }, { onConflict: "user_id,work_date" })
+                ...(loc ? { clock_in_lat: loc.lat, clock_in_lng: loc.lng, clock_in_distance_m: distanceM } : {}),
+            } as any, { onConflict: "user_id,work_date" })
             if (error) { toast.error(error.message); return }
             setClockedIn(true)
-            toast.success("Clocked in!")
+            if (distanceM !== null && distanceM > 300) {
+                toast.warning(`Clocked in — you appear to be ${distanceM > 999 ? (distanceM / 1000).toFixed(1) + "km" : distanceM + "m"} from the office`)
+            } else {
+                toast.success("Clocked in!")
+            }
         })
     }
 
@@ -138,6 +164,23 @@ export default function AttendanceClient({ records, todayRecord, userId, wfhToda
 
     const fmt = (iso: string | null) =>
         iso ? new Date(iso).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }) : "--:--"
+
+    // Live time in office today (deducts breaks)
+    const liveMinutes = (() => {
+        if (!todayRecord?.clock_in || todayRecord?.clock_out) return null
+        let ms = currentTime.getTime() - new Date(todayRecord.clock_in).getTime()
+        if (todayRecord.break_start && todayRecord.break_end) {
+            ms -= new Date(todayRecord.break_end).getTime() - new Date(todayRecord.break_start).getTime()
+        } else if (todayRecord.break_start && onBreak) {
+            ms -= currentTime.getTime() - new Date(todayRecord.break_start).getTime()
+        }
+        return Math.max(0, Math.floor(ms / 60000))
+    })()
+    const fmtDuration = (mins: number) => {
+        const h = Math.floor(mins / 60)
+        const m = mins % 60
+        return h === 0 ? `${m}m` : `${h}h ${m}m`
+    }
 
     const wfhTypeLabel = (t: 'full' | 'half_am' | 'half_pm') => {
         if (t === 'half_am') return 'Morning Only'
@@ -296,7 +339,7 @@ export default function AttendanceClient({ records, todayRecord, userId, wfhToda
 
                         {/* WFH Modal */}
                         {showWfhModal && (
-                            <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm">
+                            <div className="fixed inset-0 z-[60] flex items-center justify-center bg-background/80 backdrop-blur-sm">
                                 <div className="w-full max-w-md rounded-3xl border border-border bg-card p-6 shadow-2xl animate-in zoom-in-95 duration-200">
                                     <h3 className="text-xl font-bold mb-2">Log Work From Home</h3>
                                     <p className="text-sm text-muted-foreground mb-4">Choose how much of today you&apos;re working from home.</p>
@@ -328,7 +371,7 @@ export default function AttendanceClient({ records, todayRecord, userId, wfhToda
 
                         {/* Running Late Modal */}
                         {showLateModal && (
-                            <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm">
+                            <div className="fixed inset-0 z-[60] flex items-center justify-center bg-background/80 backdrop-blur-sm">
                                 <div className="w-full max-w-md rounded-3xl border border-border bg-card p-6 shadow-2xl animate-in zoom-in-95 duration-200">
                                     <h3 className="text-xl font-bold mb-2">Log Running Late</h3>
                                     <p className="text-sm text-muted-foreground mb-4">Your manager will be notified. Optionally let them know why.</p>
@@ -348,7 +391,7 @@ export default function AttendanceClient({ records, todayRecord, userId, wfhToda
 
                         {/* Early Leave Modal */}
                         {showEarlyLeaveModal && (
-                            <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm">
+                            <div className="fixed inset-0 z-[60] flex items-center justify-center bg-background/80 backdrop-blur-sm">
                                 <div className="w-full max-w-md rounded-3xl border border-border bg-card p-6 shadow-2xl animate-in zoom-in-95 duration-200">
                                     <h3 className="text-xl font-bold mb-2">Log Early Departure</h3>
                                     <p className="text-sm text-muted-foreground mb-4">Please provide a reason for clocking out before your shift normally ends.</p>
@@ -427,11 +470,11 @@ export default function AttendanceClient({ records, todayRecord, userId, wfhToda
                                     { label: "Clock In", value: fmt(todayRecord?.clock_in ?? null) },
                                     { label: "Break", value: todayRecord?.break_start ? (onBreak ? "Active" : fmt(todayRecord.break_start)) : "—" },
                                     { label: "Clock Out", value: fmt(todayRecord?.clock_out ?? null) },
-                                    { label: "Hours", value: todayRecord?.total_hours ? `${todayRecord.total_hours}h` : "—" },
+                                    { label: "Time In Office", value: todayRecord?.total_hours ? `${todayRecord.total_hours}h` : liveMinutes !== null ? fmtDuration(liveMinutes) : "—" },
                                 ].map(({ label, value }) => (
-                                    <div key={label} className="rounded-xl border border-border bg-muted/30 p-3 text-center">
+                                    <div key={label} className={`rounded-xl border p-3 text-center ${label === "Time In Office" && liveMinutes !== null ? "border-emerald-200 bg-emerald-50 dark:bg-emerald-950/20 dark:border-emerald-900" : "border-border bg-muted/30"}`}>
                                         <p className="text-xs text-muted-foreground">{label}</p>
-                                        <p className="text-lg font-bold text-foreground">{value}</p>
+                                        <p className={`text-lg font-bold ${label === "Time In Office" && liveMinutes !== null ? "text-emerald-600 dark:text-emerald-400" : "text-foreground"}`}>{value}</p>
                                     </div>
                                 ))}
                             </div>

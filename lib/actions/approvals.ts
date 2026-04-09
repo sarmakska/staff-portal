@@ -1,4 +1,4 @@
-'use server'
+﻿'use server'
 
 import { createClient } from '@/lib/supabase/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
@@ -415,7 +415,9 @@ export async function resendLeaveApprovalEmail(leaveId: string): Promise<{ succe
     const leaveYear = new Date(leave.start_date).getFullYear()
     const [{ data: empProfile }, { data: approverProfile }, { data: balance }, { data: lastYearBal }, { data: userCarry }, { data: accountsUserIds }] = await Promise.all([
         supabaseAdmin.from('user_profiles').select('full_name, email').eq('id', leave.user_id).single(),
-        supabaseAdmin.from('user_profiles').select('full_name, email').eq('id', leave.approver_id).single(),
+        leave.approver_id
+            ? supabaseAdmin.from('user_profiles').select('full_name, email').eq('id', leave.approver_id).single()
+            : Promise.resolve({ data: null }),
         supabaseAdmin.from('leave_balances').select('total, used, pending').eq('user_id', leave.user_id).eq('leave_type', leave.leave_type).eq('year', leaveYear).single(),
         supabaseAdmin.from('leave_balances').select('total, used, pending').eq('user_id', leave.user_id).eq('leave_type', 'annual').eq('year', leaveYear - 1).single(),
         (supabaseAdmin as any).from('user_profiles').select('max_carry_forward, carry_forward_days').eq('id', leave.user_id).single(),

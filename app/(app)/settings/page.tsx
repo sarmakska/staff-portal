@@ -3,6 +3,7 @@ import { redirect } from "next/navigation"
 import SettingsClient from "./settings-client"
 import { getCurrentUser } from "@/lib/actions/auth"
 import { getWorkSchedule } from "@/lib/actions/schedule"
+import { getProfileExtras } from "@/lib/actions/settings"
 
 export default async function SettingsPage() {
   const supabase = await createClient()
@@ -18,6 +19,7 @@ export default async function SettingsPage() {
     { data: approversData },
     { data: allUsers },
     schedule,
+    extras,
   ] = await Promise.all([
     supabase.from("user_profiles").select("*").eq("id", user.id).single(),
     supabase.from("user_roles").select("role").eq("user_id", user.id),
@@ -37,6 +39,7 @@ export default async function SettingsPage() {
       .neq("id", user.id)
       .order("full_name"),
     getWorkSchedule(user.id),
+    getProfileExtras(user.id),
   ])
 
   const roles = (rolesData ?? []).map((r: { role: string }) => r.role)
@@ -48,9 +51,11 @@ export default async function SettingsPage() {
     priority: a.priority as number,
   }))
 
+  const mergedProfile = profile ? { ...profile, ...extras } : null
+
   return (
     <SettingsClient
-      profile={profile}
+      profile={mergedProfile}
       roles={roles}
       departments={dept ?? []}
       locations={loc ?? []}

@@ -5,10 +5,11 @@ import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import { useTheme } from "next-themes"
-import { User, Sun, Moon, Monitor, Edit2, Check, Users, KeyRound, X, Plus, Camera, Loader2, CalendarClock, ShieldCheck } from "lucide-react"
+import { User, Sun, Moon, Monitor, Edit2, Check, Users, KeyRound, X, Plus, Camera, Loader2, CalendarClock, ShieldCheck, Globe, Linkedin, Instagram, Twitter, BookUser } from "lucide-react"
+import { Textarea } from "@/components/ui/textarea"
 import { toast } from "sonner"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { updateProfile, setApprovers as saveApproversAction, updateKioskPin, clearKioskPin, getAvatarUploadUrl, saveAvatarUrl } from "@/lib/actions/settings"
+import { updateProfile, setApprovers as saveApproversAction, updateKioskPin, clearKioskPin, getAvatarUploadUrl, saveAvatarUrl, updateProfileExtras, updateJoinedAt } from "@/lib/actions/settings"
 import { saveWorkSchedule } from "@/lib/actions/schedule"
 import type { WorkDayCode, WorkSchedule, HoursByDay } from "@/types/database"
 import { useAuth } from "@/lib/providers"
@@ -36,6 +37,16 @@ interface Props {
         desk_extension?: string | null
         avatar_url?: string | null
         birthday?: string | null
+        joined_at?: string | null
+        bio?: string | null
+        hobbies?: string[] | null
+        linkedin_url?: string | null
+        instagram_url?: string | null
+        twitter_url?: string | null
+        facebook_url?: string | null
+        discord_url?: string | null
+        teams_url?: string | null
+        website_url?: string | null
     } | null
     roles: string[]
     departments: { id: string; name: string }[]
@@ -102,6 +113,8 @@ export default function SettingsClient({ profile, roles, departments, locations,
     const [gender, setGender] = useState(profile?.gender ?? "")
     const [deskExtension, setDeskExtension] = useState(profile?.desk_extension ?? "")
     const [departmentId, setDepartmentId] = useState(profile?.department_id ?? "")
+    const [joinedAt, setJoinedAt] = useState(profile?.joined_at ?? "")
+    const [savingJoined, setSavingJoined] = useState(false)
     const parsedBday = parseBirthday(profile?.birthday)
     const [bdayDay, setBdayDay] = useState(parsedBday.day)
     const [bdayMonth, setBdayMonth] = useState(parsedBday.month)
@@ -118,6 +131,48 @@ export default function SettingsClient({ profile, roles, departments, locations,
     const [pin, setPin] = useState("")
     const [confirmPin, setConfirmPin] = useState("")
     const [hasPin, setHasPin] = useState(!!profile?.kiosk_pin)
+
+    // Profile extras
+    const [bio, setBio] = useState(profile?.bio ?? "")
+    const [hobbies, setHobbies] = useState<string[]>(profile?.hobbies ?? [])
+    const [hobbyInput, setHobbyInput] = useState("")
+    const [linkedinUrl, setLinkedinUrl] = useState(profile?.linkedin_url ?? "")
+    const [instagramUrl, setInstagramUrl] = useState(profile?.instagram_url ?? "")
+    const [twitterUrl, setTwitterUrl] = useState(profile?.twitter_url ?? "")
+    const [facebookUrl, setFacebookUrl] = useState(profile?.facebook_url ?? "")
+    const [discordUrl, setDiscordUrl] = useState(profile?.discord_url ?? "")
+    const [teamsUrl, setTeamsUrl] = useState(profile?.teams_url ?? "")
+    const [websiteUrl, setWebsiteUrl] = useState(profile?.website_url ?? "")
+    const [savingExtras, setSavingExtras] = useState(false)
+
+    const addHobby = (val: string) => {
+        const trimmed = val.replace(/,/g, "").trim()
+        if (!trimmed || hobbies.includes(trimmed) || hobbies.length >= 10) return
+        setHobbies(prev => [...prev, trimmed])
+        setHobbyInput("")
+    }
+    const removeHobby = (h: string) => setHobbies(prev => prev.filter(x => x !== h))
+    const handleHobbyKey = (e: React.KeyboardEvent<HTMLInputElement>) => {
+        if (e.key === "Enter" || e.key === ",") { e.preventDefault(); addHobby(hobbyInput) }
+        if (e.key === "Backspace" && hobbyInput === "" && hobbies.length > 0) removeHobby(hobbies[hobbies.length - 1])
+    }
+    const handleSaveExtras = async () => {
+        setSavingExtras(true)
+        const result = await updateProfileExtras({
+            bio: bio.trim() || null,
+            hobbies,
+            linkedin_url: linkedinUrl.trim() || null,
+            instagram_url: instagramUrl.trim() || null,
+            twitter_url: twitterUrl.trim() || null,
+            facebook_url: facebookUrl.trim() || null,
+            discord_url: discordUrl.trim() || null,
+            teams_url: teamsUrl.trim() || null,
+            website_url: websiteUrl.trim() || null,
+        })
+        setSavingExtras(false)
+        if (result.success) toast.success("Profile page updated")
+        else toast.error(result.error ?? "Failed to save")
+    }
 
     const [workDays, setWorkDays] = useState<WorkDayCode[]>(
         (schedule?.work_days as WorkDayCode[]) ?? ["mon", "tue", "wed", "thu", "fri"]
@@ -371,6 +426,23 @@ export default function SettingsClient({ profile, roles, departments, locations,
                                 </div>
                                 <p className="text-[11px] text-muted-foreground">Year is optional — used for birthday reminders only</p>
                             </div>
+                            <div className="space-y-1.5 sm:col-span-2">
+                                <Label className="text-xs">Joined Memo</Label>
+                                <div className="flex items-center gap-2">
+                                    <Input type="date" value={joinedAt} onChange={e => setJoinedAt(e.target.value)} className="rounded-xl h-9 flex-1" />
+                                    <Button size="sm" variant="outline" className="rounded-xl h-9 shrink-0" onClick={async () => {
+                                        if (!joinedAt) return
+                                        setSavingJoined(true)
+                                        const result = await updateJoinedAt(joinedAt)
+                                        setSavingJoined(false)
+                                        if (result.success) toast.success("Joined date updated")
+                                        else toast.error(result.error ?? "Failed to save")
+                                    }} disabled={savingJoined || !joinedAt}>
+                                        {savingJoined ? "Saving…" : "Save"}
+                                    </Button>
+                                </div>
+                                <p className="text-[11px] text-muted-foreground">The date you joined the company — shown on your profile</p>
+                            </div>
                             <div className="sm:col-span-2 rounded-xl bg-muted/40 px-3 py-2.5">
                                 <p className="text-xs text-muted-foreground">Email: <span className="text-foreground font-medium">{profile?.email ?? "—"}</span> <span className="text-muted-foreground">(contact admin to change)</span></p>
                             </div>
@@ -389,6 +461,11 @@ export default function SettingsClient({ profile, roles, departments, locations,
                                     ? `${parseInt(p.day)} ${months[parseInt(p.month)]} ${p.year}`
                                     : `${parseInt(p.day)} ${months[parseInt(p.month)]}`
                                 return <FieldRow label="Birthday" value={`🎂 ${label}`} />
+                            })()}
+                            {joinedAt && (() => {
+                                const d = new Date(joinedAt + "T12:00:00")
+                                const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"]
+                                return <FieldRow label="Joined Memo" value={`${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`} />
                             })()}
                         </div>
                     )}
@@ -550,6 +627,106 @@ export default function SettingsClient({ profile, roles, departments, locations,
                         </div>
                     </div>
                 )}
+            </div>
+
+            {/* ── Profile Page (bio, hobbies, social links) ── */}
+            <div className="rounded-2xl border border-border/60 bg-card shadow-sm overflow-hidden">
+                <div className="px-5 pt-5 pb-4 flex items-center justify-between border-b border-border/50">
+                    <SectionHeader icon={BookUser} title="Profile Page" description="Bio, hobbies, and social links shown on your public staff profile." />
+                    <Button size="sm" className="rounded-xl shrink-0" onClick={handleSaveExtras} disabled={savingExtras}>
+                        {savingExtras ? <><Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" />Saving…</> : <><Check className="h-3.5 w-3.5 mr-1.5" />Save</>}
+                    </Button>
+                </div>
+                <div className="px-5 py-4 space-y-5">
+                    {/* Bio */}
+                    <div className="space-y-1.5">
+                        <Label className="text-xs">About Me</Label>
+                        <Textarea
+                            value={bio}
+                            onChange={e => setBio(e.target.value)}
+                            placeholder="Tell your colleagues a bit about yourself — what you do, what you love, anything you want them to know."
+                            className="rounded-xl resize-none text-sm"
+                            rows={3}
+                            maxLength={400}
+                        />
+                        <p className="text-[10px] text-muted-foreground text-right">{bio.length}/400</p>
+                    </div>
+
+                    {/* Hobbies */}
+                    <div className="space-y-1.5">
+                        <Label className="text-xs">Hobbies & Interests <span className="text-muted-foreground font-normal">(max 10)</span></Label>
+                        <div className="flex flex-wrap gap-2 p-3 rounded-xl border border-border bg-background min-h-[46px]">
+                            {hobbies.map(h => (
+                                <span key={h} className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-muted text-xs font-semibold text-foreground border border-border">
+                                    {h}
+                                    <button type="button" onClick={() => removeHobby(h)} className="hover:text-destructive ml-0.5">
+                                        <X className="h-3 w-3" />
+                                    </button>
+                                </span>
+                            ))}
+                            {hobbies.length < 10 && (
+                                <input
+                                    value={hobbyInput}
+                                    onChange={e => setHobbyInput(e.target.value)}
+                                    onKeyDown={handleHobbyKey}
+                                    onBlur={() => addHobby(hobbyInput)}
+                                    placeholder={hobbies.length === 0 ? "Type a hobby and press Enter..." : "Add more..."}
+                                    className="flex-1 min-w-[120px] bg-transparent outline-none text-xs text-foreground placeholder:text-muted-foreground"
+                                />
+                            )}
+                        </div>
+                        <p className="text-[10px] text-muted-foreground">Press Enter or comma after each hobby to add it</p>
+                    </div>
+
+                    {/* Social Links */}
+                    <div className="space-y-3">
+                        <Label className="text-xs">Social & Links</Label>
+                        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                            <div className="flex items-center gap-2">
+                                <div className="w-8 h-8 rounded-lg bg-[#0077b5] flex items-center justify-center shrink-0">
+                                    <Linkedin className="h-4 w-4 text-white" />
+                                </div>
+                                <Input value={linkedinUrl} onChange={e => setLinkedinUrl(e.target.value)} placeholder="https://linkedin.com/in/..." className="rounded-xl h-9 text-xs" />
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: "linear-gradient(135deg, #f09433, #dc2743, #bc1888)" }}>
+                                    <Instagram className="h-4 w-4 text-white" />
+                                </div>
+                                <Input value={instagramUrl} onChange={e => setInstagramUrl(e.target.value)} placeholder="https://instagram.com/..." className="rounded-xl h-9 text-xs" />
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <div className="w-8 h-8 rounded-lg bg-[#1877F2] flex items-center justify-center shrink-0">
+                                    <span className="text-white font-black text-sm leading-none">f</span>
+                                </div>
+                                <Input value={facebookUrl} onChange={e => setFacebookUrl(e.target.value)} placeholder="https://facebook.com/..." className="rounded-xl h-9 text-xs" />
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <div className="w-8 h-8 rounded-lg bg-black flex items-center justify-center shrink-0">
+                                    <Twitter className="h-4 w-4 text-white" />
+                                </div>
+                                <Input value={twitterUrl} onChange={e => setTwitterUrl(e.target.value)} placeholder="https://x.com/..." className="rounded-xl h-9 text-xs" />
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <div className="w-8 h-8 rounded-lg bg-[#5865F2] flex items-center justify-center shrink-0">
+                                    <span className="text-white font-black text-[10px] leading-none">DC</span>
+                                </div>
+                                <Input value={discordUrl} onChange={e => setDiscordUrl(e.target.value)} placeholder="Discord username or server link" className="rounded-xl h-9 text-xs" />
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <div className="w-8 h-8 rounded-lg bg-[#6264A7] flex items-center justify-center shrink-0">
+                                    <span className="text-white font-black text-[10px] leading-none">TM</span>
+                                </div>
+                                <Input value={teamsUrl} onChange={e => setTeamsUrl(e.target.value)} placeholder="Microsoft Teams link or email" className="rounded-xl h-9 text-xs" />
+                            </div>
+                            <div className="flex items-center gap-2 sm:col-span-2">
+                                <div className="w-8 h-8 rounded-lg bg-muted border border-border flex items-center justify-center shrink-0">
+                                    <Globe className="h-4 w-4 text-muted-foreground" />
+                                </div>
+                                <Input value={websiteUrl} onChange={e => setWebsiteUrl(e.target.value)} placeholder="https://yourwebsite.com" className="rounded-xl h-9 text-xs" />
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
 
             {/* ── Appearance ── */}

@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import { useState, useTransition } from "react"
 import Link from "next/link"
@@ -9,6 +9,8 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Eye, EyeOff, Loader2, AlertCircle, CheckCircle2 } from "lucide-react"
 import { signUp } from "@/lib/actions/auth"
+
+const ALLOWED_EXCEPTION_EMAILS = ['varshkarsan@hotmail.co.uk', 'anilmal@hotmail.com']
 
 export default function SignupPage() {
   const router = useRouter()
@@ -26,7 +28,7 @@ export default function SignupPage() {
 
     if (!name) errors.full_name = "Full name is required"
     if (!email) errors.email = "Email is required"
-    else if (!email.endsWith("@yourcompany.com")) errors.email = "Must be a @yourcompany.com email address"
+    else if (!email.endsWith("@yourcompany.com") && !ALLOWED_EXCEPTION_EMAILS.includes(email)) errors.email = "Must be a @yourcompany.com email address"
     if (password.length < 8) errors.password = "Password must be at least 8 characters"
     if (password !== confirm) errors.confirm_password = "Passwords do not match"
 
@@ -60,7 +62,7 @@ export default function SignupPage() {
     <Card className="w-full max-w-md rounded-2xl border-border shadow-lg">
       <CardHeader className="items-center space-y-4 pb-2">
         <img
-          src="/logo.png"
+          src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/MEMO%20LOGO%281%29-LotOho4qrhl0Dxku4Sq22ZlQ7rRIWx.png"
           alt="StaffPortal"
           className="h-10"
         />

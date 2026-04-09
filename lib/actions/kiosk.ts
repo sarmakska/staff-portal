@@ -91,13 +91,29 @@ export async function submitKioskAttendance(userId: string, action: 'in' | 'out'
         const wfhBlock = await checkWfhBlock(userId, today)
         if (wfhBlock) return { success: false, error: wfhBlock }
 
-        const { error } = await supabaseAdmin.from('attendance').upsert({
-            user_id: userId,
-            work_date: today,
-            clock_in: nowISO
-        }, { onConflict: 'user_id, work_date' })
+        // Check for an existing record (e.g. accidental clock-out earlier today)
+        const { data: existing } = await supabaseAdmin
+            .from('attendance')
+            .select('id')
+            .eq('user_id', userId)
+            .eq('work_date', today)
+            .maybeSingle()
 
-        if (error) return { success: false, error: error.message }
+        if (existing) {
+            // Re-clock-in: clear the clock_out and hours, keep original clock_in
+            const { error } = await supabaseAdmin
+                .from('attendance')
+                .update({ clock_out: null, total_hours: null })
+                .eq('id', existing.id)
+            if (error) return { success: false, error: error.message }
+        } else {
+            const { error } = await supabaseAdmin.from('attendance').insert({
+                user_id: userId,
+                work_date: today,
+                clock_in: nowISO,
+            })
+            if (error) return { success: false, error: error.message }
+        }
     } else {
         // Clock out logic - calculate hours
         const { data: record, error: fetchErr } = await supabaseAdmin

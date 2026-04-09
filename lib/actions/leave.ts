@@ -1,9 +1,9 @@
-'use server'
+﻿'use server'
 
 import { createClient } from '@/lib/supabase/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { writeAuditLog } from '@/lib/audit'
-import { sendLeaveSubmittedEmail } from '@/lib/email'
+import { sendLeaveSubmittedEmail, sendLeaveWithdrawnEmail } from '@/lib/email'
 import { getEmailFlags } from '@/lib/actions/app-settings'
 import { calcWorkingDays } from '@/lib/helpers'
 
@@ -23,7 +23,7 @@ export async function submitLeaveRequest(params: {
     if (endObj < startObj) {
         return { success: false, error: 'End date cannot be before start date.' }
     }
-    if (startObj < today) {
+    if (startObj < today && params.leaveType !== 'sick') {
         return { success: false, error: 'Cannot book leave in the past.' }
     }
     const supabase = await createClient()
@@ -46,6 +46,69 @@ export async function submitLeaveRequest(params: {
         params.dayType as 'full' | 'half_am' | 'half_pm',
         user.id,
     )
+
+    const currentYear = new Date(params.startDate).getFullYear()
+
+    // ── Sick leave: auto-approve, no approver required ───────────
+    if (params.leaveType === 'sick') {
+        const { data: sickBalance } = await supabaseAdmin
+            .from('leave_balances')
+            .select('total, used, pending')
+            .eq('user_id', user.id)
+            .eq('leave_type', 'sick' as any)
+            .eq('year', currentYear)
+            .single()
+
+        if (sickBalance) {
+            const remaining = Number(sickBalance.total) - Number(sickBalance.used) - Number(sickBalance.pending)
+            if (daysCount > remaining) {
+                return {
+                    success: false,
+                    error: `Insufficient sick leave balance. You have ${remaining.toFixed(1)} day(s) remaining but requested ${daysCount}.`,
+                }
+            }
+        }
+
+        const { data: request, error: insertError } = await supabase
+            .from('leave_requests')
+            .insert({
+                user_id: user.id,
+                leave_type: 'sick' as any,
+                start_date: params.startDate,
+                end_date: params.endDate,
+                day_type: params.dayType as any,
+                days_count: daysCount,
+                reason: params.reason,
+                status: 'approved',
+                approver_id: null,
+            })
+            .select()
+            .single()
+
+        if (insertError) return { success: false, error: insertError.message }
+
+        if (sickBalance) {
+            await supabaseAdmin
+                .from('leave_balances')
+                .update({ used: Number(sickBalance.used) + daysCount })
+                .eq('user_id', user.id)
+                .eq('leave_type', 'sick' as any)
+                .eq('year', currentYear)
+        }
+
+        await writeAuditLog({
+            actorId: user.id,
+            actorEmail: user.email ?? '',
+            action: 'leave_submitted',
+            entityTable: 'leave_requests',
+            entityId: request.id,
+            afterData: { leave_type: 'sick', start_date: params.startDate, end_date: params.endDate, days_count: daysCount, auto_approved: true },
+        })
+
+        return { success: true }
+    }
+
+    // ── All other leave types: require approver ──────────────────
 
     // Get primary approver — if none set, reject immediately
     const { data: approverRow } = await supabase
@@ -72,7 +135,6 @@ export async function submitLeaveRequest(params: {
     }
 
     // Check leave balance — use supabaseAdmin to bypass RLS reliably
-    const currentYear = new Date(params.startDate).getFullYear()
     const lastYear = currentYear - 1
     const [{ data: balance }, { data: lastYearBal }, { data: userCarryProfile }] = await Promise.all([
         supabaseAdmin
@@ -106,7 +168,7 @@ export async function submitLeaveRequest(params: {
         annualCarry = userCarryProfile?.carry_forward_days ?? 0
     }
 
-    // Validate: enough balance remaining? (skip for sick/unpaid which are unrestricted)
+    // Validate: enough balance remaining?
     const paidTypes = ['annual']
     if (paidTypes.includes(params.leaveType) && balance) {
         const effectiveTotal = Number(balance.total) + (params.leaveType === 'annual' ? annualCarry : 0)
@@ -182,6 +244,86 @@ export async function submitLeaveRequest(params: {
     return { success: true }
 }
 
+// ── Log sick leave on behalf (Reception) ─────────────────────────
+export async function logSickLeaveOnBehalf(params: {
+    userId: string
+    startDate: string
+    endDate: string
+    dayType: string
+    reason: string
+}): Promise<{ success: boolean; error?: string }> {
+    'use server'
+
+    const supabase = await createClient()
+    const { data: { user: actor } } = await supabase.auth.getUser()
+    if (!actor) return { success: false, error: 'Not authenticated' }
+
+    const daysCount = await calcWorkingDays(
+        params.startDate,
+        params.endDate,
+        params.dayType as 'full' | 'half_am' | 'half_pm',
+        params.userId,
+    )
+
+    const currentYear = new Date(params.startDate).getFullYear()
+
+    const { data: sickBalance } = await supabaseAdmin
+        .from('leave_balances')
+        .select('total, used, pending')
+        .eq('user_id', params.userId)
+        .eq('leave_type', 'sick' as any)
+        .eq('year', currentYear)
+        .single()
+
+    if (sickBalance) {
+        const remaining = Number(sickBalance.total) - Number(sickBalance.used) - Number(sickBalance.pending)
+        if (daysCount > remaining) {
+            return {
+                success: false,
+                error: `Insufficient sick leave balance. ${remaining.toFixed(1)} day(s) remaining, requested ${daysCount}.`,
+            }
+        }
+    }
+
+    const { data: request, error: insertError } = await (supabaseAdmin as any)
+        .from('leave_requests')
+        .insert({
+            user_id: params.userId,
+            leave_type: 'sick',
+            start_date: params.startDate,
+            end_date: params.endDate,
+            day_type: params.dayType,
+            days_count: daysCount,
+            reason: params.reason,
+            status: 'approved',
+            approver_id: null,
+        })
+        .select()
+        .single()
+
+    if (insertError) return { success: false, error: insertError.message }
+
+    if (sickBalance) {
+        await supabaseAdmin
+            .from('leave_balances')
+            .update({ used: Number(sickBalance.used) + daysCount })
+            .eq('user_id', params.userId)
+            .eq('leave_type', 'sick' as any)
+            .eq('year', currentYear)
+    }
+
+    await writeAuditLog({
+        actorId: actor.id,
+        actorEmail: actor.email ?? '',
+        action: 'leave_submitted',
+        entityTable: 'leave_requests',
+        entityId: request.id,
+        afterData: { leave_type: 'sick', start_date: params.startDate, end_date: params.endDate, days_count: daysCount, logged_on_behalf: true },
+    })
+
+    return { success: true }
+}
+
 export async function withdrawLeave(requestId: string): Promise<{ success: boolean; error?: string }> {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
@@ -203,14 +345,14 @@ export async function withdrawLeave(requestId: string): Promise<{ success: boole
         return { success: false, error: 'Only pending or approved requests can be withdrawn.' }
     }
 
-    // Delete the request
-    const { error: delError } = await supabase
+    // Mark as withdrawn (keep in DB for history)
+    const { error: updateError } = await supabaseAdmin
         .from('leave_requests')
-        .delete()
+        .update({ status: 'withdrawn' })
         .eq('id', requestId)
 
-    if (delError) {
-        return { success: false, error: delError.message }
+    if (updateError) {
+        return { success: false, error: updateError.message }
     }
 
     // Reverse balance — use supabaseAdmin to bypass RLS
@@ -233,6 +375,36 @@ export async function withdrawLeave(requestId: string): Promise<{ success: boole
             .eq('user_id', user.id)
             .eq('leave_type', request.leave_type)
             .eq('year', currentYear)
+    }
+
+    // Fetch approver details for notification
+    let approverName: string | undefined
+    let approverEmail: string | undefined
+    if (request.approver_id) {
+        const { data: approver } = await supabaseAdmin
+            .from('user_profiles')
+            .select('full_name, email')
+            .eq('id', request.approver_id)
+            .single()
+        approverName = approver?.full_name ?? undefined
+        approverEmail = approver?.email ?? undefined
+    }
+
+    // Send withdrawal notification to approver + accounts (respects admin email flag)
+    const flags = await getEmailFlags()
+    if (flags.email_leave_withdrawn) {
+        const employeeProfile = (request as any).user as { full_name?: string; email?: string } | null
+        sendLeaveWithdrawnEmail({
+            employeeName: employeeProfile?.full_name ?? 'A team member',
+            employeeEmail: employeeProfile?.email ?? '',
+            leaveType: request.leave_type,
+            startDate: request.start_date,
+            endDate: request.end_date,
+            daysCount: Number(request.days_count),
+            approverName,
+            approverEmail,
+            accountsEmail: process.env.ACCOUNTS_NOTIFY_EMAIL ?? 'accounts@yourcompany.com',
+        }).catch(() => {})
     }
 
     await writeAuditLog({

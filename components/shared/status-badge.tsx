@@ -16,6 +16,7 @@ const statusStyles: Record<string, string> = {
   approved: "bg-success/10 text-success border-success/20",
   rejected: "bg-destructive/10 text-destructive border-destructive/20",
   cancelled: "bg-muted text-muted-foreground border-border",
+  withdrawn: "bg-muted text-muted-foreground border-border",
   submitted: "bg-info/10 text-info border-info/20",
   applied: "bg-success/10 text-success border-success/20",
   "under-review": "bg-brand-gold/10 text-brand-gold border-brand-gold/20",

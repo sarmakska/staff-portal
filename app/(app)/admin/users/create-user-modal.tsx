@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import { useState, useTransition } from "react"
 import { Button } from "@/components/ui/button"
@@ -94,7 +94,7 @@ export function CreateUserModal({ departments }: Props) {
             </Button>
 
             {open && (
-                <div className="fixed inset-0 z-50 flex items-start justify-center bg-background/80 backdrop-blur-sm overflow-y-auto py-6 px-4">
+                <div className="fixed inset-0 z-[60] flex items-start justify-center bg-background/80 backdrop-blur-sm overflow-y-auto py-6 px-4">
                     <div className="w-full max-w-xl rounded-3xl border border-border bg-card shadow-2xl animate-in zoom-in-95 duration-200">
                         {/* Header */}
                         <div className="flex items-center justify-between px-6 py-5 border-b border-border">

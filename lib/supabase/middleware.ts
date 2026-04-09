@@ -33,7 +33,9 @@ export async function updateSession(request: NextRequest) {
     // Protected routes — redirect to login if unauthenticated
     const protectedPaths = ['/dashboard', '/attendance', '/leave', '/calendar', '/visitors',
         '/reception', '/directory', '/diary', '/feedback', '/complaints', '/admin',
-        '/settings', '/timesheets', '/corrections', '/manager']
+        '/settings', '/timesheets', '/corrections', '/manager',
+        '/office', '/polls', '/notice-board', '/announcements', '/expenses',
+        '/analytics', '/notifications', '/help']
 
     const isProtected = request.nextUrl.pathname === '/' ||
         protectedPaths.some(p => request.nextUrl.pathname.startsWith(p))
