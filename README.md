@@ -304,3 +304,14 @@ Ideas for contributions:
 ## Support
 
 Bug reports and feature requests: [GitHub Issues](https://github.com/sarmakska/staff-portal/issues)
+
+---
+
+## About the author
+
+Built by **[Sarma](https://sarmalinux.com/about)** — a UK-based software engineer building open-source AI infrastructure and platform engineering tools. StaffPortal is part of a broader portfolio of twelve production-shaped open-source repositories.
+
+- **Project page** &middot; [sarmalinux.com/products/staff-portal](https://sarmalinux.com/products/staff-portal)
+- **Whitepaper** &middot; [sarmalinux.com/products/staff-portal/whitepaper](https://sarmalinux.com/products/staff-portal/whitepaper)
+- **All open-source projects** &middot; [sarmalinux.com/open-source](https://sarmalinux.com/open-source)
+- **Engineering blog** &middot; [sarmalinux.com/blog](https://sarmalinux.com/blog)
