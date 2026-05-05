@@ -190,7 +190,7 @@ export default function AnnouncementsClient({ history }: Props) {
         {/* From/to bar */}
         <div className="px-5 py-3 border-b border-border/50 bg-muted/20 flex items-center gap-2 flex-wrap">
           <Send className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-          <span className="font-mono text-xs bg-muted border border-border rounded px-2 py-0.5">noreply@sarmalinux.com</span>
+          <span className="font-mono text-xs bg-muted border border-border rounded px-2 py-0.5">nosarma@sarmalinux.com</span>
           <ArrowRight className="h-3 w-3 text-muted-foreground/50" />
           <span className="font-mono text-xs bg-muted border border-border rounded px-2 py-0.5">staff@yourcompany.com</span>
         </div>

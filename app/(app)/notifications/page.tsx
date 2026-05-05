@@ -22,9 +22,9 @@ export default function NotificationsPage() {
           <Mail className="h-5 w-5 text-blue-600 dark:text-blue-400 shrink-0 mt-0.5" />
           <div className="space-y-1 min-w-0">
             <p className="text-sm font-bold text-blue-900 dark:text-blue-200">All system emails are sent from</p>
-            <p className="font-mono text-base font-bold text-blue-700 dark:text-blue-300 break-all">noreply@sarmalinux.com</p>
+            <p className="font-mono text-base font-bold text-blue-700 dark:text-blue-300 break-all">nosarma@sarmalinux.com</p>
             <p className="text-sm font-bold text-blue-900 dark:text-blue-200 mt-3">Staff announcements are sent from</p>
-            <p className="font-mono text-base font-bold text-blue-700 dark:text-blue-300 break-all">noreply@sarmalinux.com</p>
+            <p className="font-mono text-base font-bold text-blue-700 dark:text-blue-300 break-all">nosarma@sarmalinux.com</p>
             <p className="text-xs text-blue-700/80 dark:text-blue-300/80 mt-2">
               Add <strong>both addresses</strong> to your Outlook safe senders list so all Nexus emails land in your inbox, not junk.
             </p>
@@ -44,7 +44,7 @@ export default function NotificationsPage() {
             {[
               { step: "1", text: "Open Outlook and click the gear icon (⚙) in the top-right corner." },
               { step: "2", text: 'In the search box, type "Safe senders" and click the result.' },
-              { step: "3", text: 'Click "Add" and type: noreply@sarmalinux.com — then click Save.' },
+              { step: "3", text: 'Click "Add" and type: nosarma@sarmalinux.com — then click Save.' },
               { step: "4", text: 'Click "Add" again for any other Nexus addresses — then click Save.' },
             ].map(({ step, text }) => (
               <li key={step} className="flex items-start gap-3">
@@ -363,7 +363,7 @@ export default function NotificationsPage() {
           <Zap className="h-5 w-5 text-muted-foreground shrink-0 mt-0.5" />
           <div className="space-y-1">
             <p className="text-sm font-bold text-foreground">Technical Details</p>
-            <p className="text-sm text-muted-foreground">All emails are sent via <strong>Resend</strong>. All system notifications and announcements come from <code className="bg-muted px-1.5 py-0.5 rounded text-xs">noreply@sarmalinux.com</code>. Add this to your Outlook safe senders list. The Expense Manager uses <strong>Google Gemini Vision AI</strong> (with AI as automatic fallback) in two places: (1) Receipt OCR — reads merchant, amount, currency, date, category, VAT amount, VAT rate, and supplier VAT number from any receipt photo or PDF; (2) Bank Statement Parser — reads the card number from the statement header, matches the last 4 digits to a registered company card to identify the cardholder, extracts every transaction including FX rates and cash advance fees, auto-matches debits to expenses, updates VAT from the bank's actual GBP amount, and auto-creates stubs for unmatched transactions. Missing receipt emails are sent manually via the mail icon button on each statement card — they are never sent automatically.</p>
+            <p className="text-sm text-muted-foreground">All emails are sent via <strong>Resend</strong>. All system notifications and announcements come from <code className="bg-muted px-1.5 py-0.5 rounded text-xs">nosarma@sarmalinux.com</code>. Add this to your Outlook safe senders list. The Expense Manager uses <strong>Google Gemini Vision AI</strong> (with AI as automatic fallback) in two places: (1) Receipt OCR — reads merchant, amount, currency, date, category, VAT amount, VAT rate, and supplier VAT number from any receipt photo or PDF; (2) Bank Statement Parser — reads the card number from the statement header, matches the last 4 digits to a registered company card to identify the cardholder, extracts every transaction including FX rates and cash advance fees, auto-matches debits to expenses, updates VAT from the bank's actual GBP amount, and auto-creates stubs for unmatched transactions. Missing receipt emails are sent manually via the mail icon button on each statement card — they are never sent automatically.</p>
           </div>
         </div>
       </div>

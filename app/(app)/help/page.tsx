@@ -1172,7 +1172,7 @@ new_year_available = new_year_total + carry_amount`}</Formula>
                 <SubHeading text="What the Email Looks Like" />
                 <div className="rounded-xl border border-border bg-muted/20 p-4 space-y-2">
                     {[
-                        { mono: true,  text: "From: noreply@sarmalinux.com → staff@yourcompany.com" },
+                        { mono: true,  text: "From: nosarma@sarmalinux.com → staff@yourcompany.com" },
                         { mono: false, text: "Dark branded header with Staff Announcement title, your name, and the type badge (e.g. 🏖️ Out of Office)" },
                         { mono: false, text: "Blue subject bar with the emoji and your subject line" },
                         { mono: false, text: "Your message as clean paragraphs" },
@@ -1192,7 +1192,7 @@ new_year_available = new_year_total + carry_amount`}</Formula>
                     Every announcement is logged on the Announcements page. Expand any entry to see the full message, type, date range, and event details. The <strong>Announcements dashboard widget</strong> shows the last 4 sent at a glance.
                 </p>
 
-                <Note text="Add noreply@sarmalinux.com to your Outlook safe senders list so announcements don't go to junk. Settings → Safe senders → Add → noreply@sarmalinux.com → Save." />
+                <Note text="Add nosarma@sarmalinux.com to your Outlook safe senders list so announcements don't go to junk. Settings → Safe senders → Add → nosarma@sarmalinux.com → Save." />
             </div>
         ),
     },

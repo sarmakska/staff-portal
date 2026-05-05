@@ -8,7 +8,7 @@ import { Resend } from 'resend'
 // Sends stretch reminder emails to staff who have opted in
 
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null
-const FROM_EMAIL = process.env.RESEND_FROM_EMAIL ?? 'noreply@sarmalinux.com'
+const FROM_EMAIL = process.env.RESEND_FROM_EMAIL ?? 'nosarma@sarmalinux.com'
 const NEXUS_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://your-domain.com'
 
 const STRETCH_TIPS = [

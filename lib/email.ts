@@ -13,7 +13,7 @@ if (!process.env.RESEND_API_KEY) {
 
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null
 
-const FROM_EMAIL = process.env.RESEND_FROM_EMAIL ?? 'noreply@sarmalinux.com'
+const FROM_EMAIL = process.env.RESEND_FROM_EMAIL ?? 'nosarma@sarmalinux.com'
 
 // ── Template variable replacement ───────────────────────────
 
@@ -1730,7 +1730,7 @@ export async function sendPurchaseRequestDecisionEmail(params: PurchaseRequestDe
 
 // ── Staff Announcement Email ─────────────────────────────────
 
-const ANNOUNCE_FROM = process.env.RESEND_FROM_EMAIL ?? 'noreply@sarmalinux.com'
+const ANNOUNCE_FROM = process.env.RESEND_FROM_EMAIL ?? 'nosarma@sarmalinux.com'
 
 export interface AnnouncementEvent {
     title: string

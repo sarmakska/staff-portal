@@ -1,6 +1,6 @@
 ﻿// ── Notification setting constants (no "use server" — safe to import anywhere) ──
 
-export const NOTIFICATION_FROM_EMAIL = 'noreply@sarmalinux.com'
+export const NOTIFICATION_FROM_EMAIL = 'nosarma@sarmalinux.com'
 
 export const EMAIL_NOTIFICATION_KEYS = [
     "email_leave_submitted",
@@ -199,7 +199,7 @@ export const EMAIL_NOTIFICATION_META: Record<EmailNotificationKey, {
     email_announcement: {
         label: "Staff Announcement",
         description: "Sent when any staff member sends a broadcast announcement.",
-        detail: "A branded email is sent to staff@yourcompany.com — the company group inbox — from noreply@sarmalinux.com. The email includes the subject, full message body, and optionally a calendar event card with a .ics file attachment. Recipients can click the attachment to add the event directly to Outlook, Google Calendar, or Apple Calendar. All sent announcements are logged in Nexus.",
+        detail: "A branded email is sent to staff@yourcompany.com — the company group inbox — from nosarma@sarmalinux.com. The email includes the subject, full message body, and optionally a calendar event card with a .ics file attachment. Recipients can click the attachment to add the event directly to Outlook, Google Calendar, or Apple Calendar. All sent announcements are logged in Nexus.",
         group: "Announcements",
         recipient: "staff@yourcompany.com (all staff group inbox)",
         subject: "📢 {Announcement Subject}",

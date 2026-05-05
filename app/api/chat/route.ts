@@ -210,7 +210,7 @@ async function sendIssueEmail(userEmail: string, conversation: string, summary: 
     try {
         const { Resend } = await import('resend')
         const resend = new Resend(process.env.RESEND_API_KEY)
-        const FROM = process.env.RESEND_FROM_EMAIL ?? 'noreply@sarmalinux.com'
+        const FROM = process.env.RESEND_FROM_EMAIL ?? 'nosarma@sarmalinux.com'
 
         const convoHtml = conversation.split('\n\n').map(line => {
             const isUser = line.startsWith('User:')

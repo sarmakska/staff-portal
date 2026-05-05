@@ -162,7 +162,7 @@ async function sendUnmatchedNotification(
   const apiKey = process.env.RESEND_API_KEY
   if (!apiKey || unmatchedTxns.length === 0 || !cardholder?.email) return
   const resend = new Resend(apiKey)
-  const FROM = process.env.RESEND_FROM_EMAIL ?? 'noreply@sarmalinux.com'
+  const FROM = process.env.RESEND_FROM_EMAIL ?? 'nosarma@sarmalinux.com'
   const accountsEmail = process.env.ACCOUNTS_NOTIFY_EMAIL ?? 'accounts@yourcompany.com'
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://your-domain.com'
 

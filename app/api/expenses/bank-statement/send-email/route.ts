@@ -99,7 +99,7 @@ export async function POST(req: NextRequest) {
     const apiKey = process.env.RESEND_API_KEY
     if (!apiKey) return NextResponse.json({ error: 'Email not configured' }, { status: 500 })
     const resend = new Resend(apiKey)
-    const FROM = process.env.RESEND_FROM_EMAIL ?? 'noreply@sarmalinux.com'
+    const FROM = process.env.RESEND_FROM_EMAIL ?? 'nosarma@sarmalinux.com'
     const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://your-domain.com'
     const accountsEmail = 'accounts@yourcompany.com'
 
