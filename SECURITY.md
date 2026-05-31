@@ -4,9 +4,14 @@
 
 StaffPortal is distributed from the `main` branch and security fixes are applied there. Run the latest commit on `main` to receive patches. There are no separately maintained long-term support branches at this time.
 
+| Version | Supported |
+|---------|-----------|
+| `main` (latest) | Yes |
+| Older commits | No |
+
 ## Reporting a vulnerability
 
-If you discover a security vulnerability, please report it privately rather than opening a public issue. Email sarma@sarmalinux.com with a description of the issue, the affected component or endpoint, and steps to reproduce. Where relevant, include the deployment context (self-hosted, Vercel, Supabase configuration) so the report can be assessed accurately. You will receive an acknowledgement within 72 hours and a remediation plan or status update within seven days. Coordinated disclosure is preferred: please allow a reasonable window for a fix to ship before any public write-up, and credit will be given to reporters who request it.
+If you discover a security vulnerability, please report it privately rather than opening a public issue. Email security@sarmalinux.com with a description of the issue, the affected component or endpoint, and steps to reproduce. Where relevant, include the deployment context (self-hosted, Vercel, Supabase configuration) so the report can be assessed accurately. I will respond within 7 days with an acknowledgement and either a remediation plan or a status update. Coordinated disclosure is preferred: please allow a reasonable window for a fix to ship before any public write-up, and credit will be given to reporters who request it.
 
 ## Scope and hardening notes
 

@@ -16,6 +16,8 @@ out/
 coverage/
 *.log
 __pycache__/
+.pytest_cache/
+target/
 
 # Claude Code (machine-specific, not for git)
 .claude/

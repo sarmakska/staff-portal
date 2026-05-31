@@ -10,9 +10,9 @@
 [![TypeScript](https://img.shields.io/badge/TypeScript-5-blue?logo=typescript&logoColor=white)](https://typescriptlang.org)
 [![Supabase](https://img.shields.io/badge/Supabase-PostgreSQL-3ECF8E?logo=supabase&logoColor=white)](https://supabase.com)
 
-StaffPortal is a full-featured HR and workforce management platform you run on your own infrastructure. It covers attendance, leave, timesheets, expenses, visitors, wellness, and IT support behind a single role-based login, with an optional conversational AI assistant. It is built for small-to-medium organisations that want a modern, clean alternative to expensive HR software without handing staff data to a third party.
+StaffPortal is a full-featured HR and workforce management platform you run on your own infrastructure. It covers attendance, leave, timesheets, expenses, visitors, wellness, and IT support behind a single role-based login, with single sign-on, an immutable audit trail, GDPR data exports, monthly leave accruals, a mobile-friendly kiosk, and an optional conversational AI assistant. It is built for small-to-medium organisations that want a modern, clean alternative to expensive HR software without handing staff data to a third party.
 
-Full documentation lives in the [project wiki](https://github.com/sarmakska/staff-portal/wiki): start with [Home](https://github.com/sarmakska/staff-portal/wiki), then [Quick-Start](https://github.com/sarmakska/staff-portal/wiki/Quick-Start), [Architecture](https://github.com/sarmakska/staff-portal/wiki/Architecture), and [Roadmap](https://github.com/sarmakska/staff-portal/wiki/Roadmap).
+Full documentation lives in the [project wiki](https://github.com/sarmakska/staff-portal/wiki): start with [Home](https://github.com/sarmakska/staff-portal/wiki), then [Quick-Start](https://github.com/sarmakska/staff-portal/wiki/Quick-Start), [Architecture](https://github.com/sarmakska/staff-portal/wiki/Architecture), [Single-Sign-On](https://github.com/sarmakska/staff-portal/wiki/Single-Sign-On), [Leave-Accruals](https://github.com/sarmakska/staff-portal/wiki/Leave-Accruals), [GDPR-Export](https://github.com/sarmakska/staff-portal/wiki/GDPR-Export), [Kiosk-Mode](https://github.com/sarmakska/staff-portal/wiki/Kiosk-Mode), [Audit-Log](https://github.com/sarmakska/staff-portal/wiki/Audit-Log), and [Roadmap](https://github.com/sarmakska/staff-portal/wiki/Roadmap).
 
 ---
 
@@ -60,15 +60,18 @@ flowchart TD
     Resend["Resend (email)"]
     Groq["Groq API (Jarvis, optional)"]
     Cron["Scheduler (Vercel Cron / GitHub Actions)"]
+    IdP["Identity provider (Entra ID / Google / SAML)"]
 
     Browser --> MW --> Pages
     Pages --> Actions --> DB
     Pages --> API
     Actions --> Auth
+    Auth --> IdP
     API --> DB
     API --> Resend
     API --> Groq
     Cron -->|Bearer CRON_SECRET| API
+    Cron -->|leave-accrual, year-end-rollover| API
 ```
 
 ---
@@ -119,12 +122,15 @@ flowchart TD
 - **Work Schedule Management** — Set per-user contracted hours and working days
 - **Leave Records** — Full leave history with filters; resend approval emails
 - **Leave Allowances** — Set balances per employee, configure carry-forward caps
+- **Leave Accruals** — Monthly accrual top-ups per balance, capped at full entitlement, run by cron or on demand
 - **Corrections Management** — Review and approve timesheet correction requests
 - **Forgotten Clock-Outs** — Auto-detect staff who forgot to clock out
 - **Email Notification Settings** — Toggle each notification type on/off individually
 - **Analytics** — Late arrivals, WFH trends, office attendance, hours vs contracted; CSV export
 - **Bank Statement Reconciliation** — Export and reconcile expense data
-- **Audit Log** — Full system audit trail
+- **Single Sign-On** — Route staff to Microsoft Entra ID, Google Workspace, GitHub, GitLab, or SAML 2.0 by email domain
+- **Audit Log** — Full immutable system audit trail, including SSO logins, leave accruals, and GDPR exports
+- **GDPR Data Export** — One-click portable JSON export of every record held about a member
 
 ---
 
@@ -146,6 +152,25 @@ The built-in AI assistant is powered by [Groq](https://console.groq.com) and has
 The assistant's personality and system prompt are fully customisable in `app/api/chat/route.ts`. You can swap Groq for any OpenAI-compatible API.
 
 ---
+
+## Single sign-on
+
+Staff can sign in with your organisation's identity provider. SSO is layered on top of Supabase Auth, so it coexists with email and password and the kiosk PIN flow without any second session system.
+
+An admin maps an email domain to a provider under **Admin → Single Sign-On**. When a member types an email whose domain has an active connection, the login screen routes them straight to the identity provider instead of asking for a password:
+
+- OAuth providers (Microsoft Entra ID, Google Workspace, GitHub, GitLab) use Supabase `signInWithOAuth`.
+- SAML 2.0 connections use Supabase `signInWithSSO`.
+
+First-time SSO sign-ins bootstrap a profile and the standard leave balances, and every SSO login is written to the audit log. The provider apps and SAML metadata are configured in the Supabase dashboard under **Authentication → Providers** and **Authentication → SSO**.
+
+## Leave accruals
+
+Each leave balance can carry a monthly `accrual_rate`. A cron job (`/api/cron/leave-accrual`, first of each month) tops every accruing balance up by the elapsed months times its rate, capped at the configured entitlement. The job is idempotent: re-running in the same month grants nothing further, because each balance records how much it has accrued and when. Admins and accounts staff can preview and run accruals on demand under **Admin → Leave Accruals**.
+
+## GDPR data export
+
+Under the right to data portability, any signed-in member can download a single portable JSON document containing every record held about them (profile, attendance, leave, expenses, diary, visitors, feedback, complaints, and the audit events attributed to them) from **Settings → Privacy and data**. Administrators can export another member by calling `/api/gdpr/export?userId=<id>`. Every export is recorded in the audit log.
 
 ## Tech Stack
 
@@ -298,6 +323,8 @@ Alternatively, configure them in `vercel.json` for Vercel Cron, or use any cron 
 | Absent reminders | `/api/cron/absent-reminder` | Daily 10am |
 | Missing attendance | `/api/cron/missing-attendance` | Daily 6pm |
 | Forgotten clock-out | `/api/cron/forgotten-clockout` | Daily 8pm |
+| Leave accrual | `/api/cron/leave-accrual` | Monthly, 1st at 00:10 UTC |
+| Year-end rollover | `/api/cron/year-end-rollover` | Yearly, 1 Jan at 00:05 UTC |
 | Stretch reminder | `/api/cron/stretch-reminder` | Weekdays 2pm |
 | IT ticket cleanup | `/api/cron/it-ticket-cleanup` | Weekly |
 
@@ -351,7 +378,7 @@ Ideas for contributions:
 - Shift scheduling and rota management
 - Custom leave types per organisation
 - Multi-language (i18n) support
-- End-to-end tests (Playwright)
+- Browser-driven UI tests on top of the existing logic test suite
 
 ---
 
