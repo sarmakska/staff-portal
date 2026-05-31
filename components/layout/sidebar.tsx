@@ -10,6 +10,7 @@ import {
   Monitor, Tablet, ClipboardList, ChevronLeft, ChevronRight, ShieldAlert, Contact,
   FileText, Bell, BarChart2, Server, LogOut, HelpCircle, TableProperties,
   Receipt, Megaphone, Building2, BarChart3, Pin, Ticket, Heart,
+  KeyRound, CalendarClock, ScrollText,
 } from "lucide-react"
 import { useState } from "react"
 
@@ -69,6 +70,7 @@ const navGroups: NavGroup[] = [
     label: "ADMIN",
     items: [
       { href: "/admin/leave",               label: "Allowances",           icon: CalendarDays,    roles: ["director", "accounts"] },
+      { href: "/admin/leave-accrual",       label: "Leave Accruals",       icon: CalendarClock,   roles: ["accounts"] },
       { href: "/admin/leave-records",       label: "Leave Records",        icon: FileText,        roles: ["director", "accounts"] },
       { href: "/admin/staff-summary",       label: "Staff Summary",        icon: TableProperties, roles: ["accounts", "director"] },
       { href: "/admin/attendance",          label: "Attendance",           icon: ClipboardList,   roles: ["reception"] },
@@ -76,6 +78,8 @@ const navGroups: NavGroup[] = [
       { href: "/admin/it",                   label: "IT Portal",            icon: Ticket,          roles: ["admin"] },
       { href: "/admin/wellness",             label: "Wellness Trends",      icon: Heart,           roles: ["admin", "director"] },
       { href: "/admin/notifications",        label: "Notifications",        icon: Bell,            roles: ["admin"] },
+      { href: "/admin/sso",                  label: "Single Sign-On",       icon: KeyRound,        roles: ["admin"] },
+      { href: "/admin/audit",                label: "Audit Log",            icon: ScrollText,      roles: ["admin"] },
       { href: "/analytics",                 label: "Analytics",            icon: BarChart2,       roles: ["director"] },
       { href: "/admin/forgotten-clockouts", label: "Forgotten Clock-outs", icon: LogOut,          roles: ["director", "reception"] },
       { href: "/admin/org",                 label: "Org Chart",            icon: Users,           roles: [] },
