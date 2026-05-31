@@ -128,7 +128,7 @@ export async function submitKioskAttendance(userId: string, action: 'in' | 'out'
         // Calc total hours
         const clockInDate = new Date(record.clock_in)
         const clockOutDate = new Date(nowISO)
-        let diffHours = (clockOutDate.getTime() - clockInDate.getTime()) / (1000 * 60 * 60)
+        const diffHours = (clockOutDate.getTime() - clockInDate.getTime()) / (1000 * 60 * 60)
 
         const { error: updErr } = await supabaseAdmin
             .from('attendance')
