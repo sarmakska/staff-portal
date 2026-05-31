@@ -1,19 +1,79 @@
 # StaffPortal
 
-> Open-source staff management platform — built with Next.js 14, Supabase, and Tailwind CSS.
+> Self-hosted, open-source HR and workforce platform built with Next.js, Supabase, and Tailwind CSS.
 
-[![MIT License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Next.js](https://img.shields.io/badge/Next.js-14-black?logo=next.js&logoColor=white)](https://nextjs.org)
+[![CI](https://github.com/sarmakska/staff-portal/actions/workflows/ci.yml/badge.svg)](https://github.com/sarmakska/staff-portal/actions/workflows/ci.yml)
+[![License](https://img.shields.io/github/license/sarmakska/staff-portal)](LICENSE)
+[![Top language](https://img.shields.io/github/languages/top/sarmakska/staff-portal)](https://github.com/sarmakska/staff-portal)
+[![Last commit](https://img.shields.io/github/last-commit/sarmakska/staff-portal)](https://github.com/sarmakska/staff-portal/commits/main)
+[![Next.js](https://img.shields.io/badge/Next.js-16-black?logo=next.js&logoColor=white)](https://nextjs.org)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5-blue?logo=typescript&logoColor=white)](https://typescriptlang.org)
 [![Supabase](https://img.shields.io/badge/Supabase-PostgreSQL-3ECF8E?logo=supabase&logoColor=white)](https://supabase.com)
-[![Tailwind CSS](https://img.shields.io/badge/Tailwind-CSS-38BDF8?logo=tailwind-css&logoColor=white)](https://tailwindcss.com)
-[![Open Source](https://img.shields.io/badge/Open%20Source-%E2%9D%A4-red)](https://github.com/sarmakska/staff-portal)
 
-A full-featured HR and workforce management platform you can self-host for your team. Built for small-to-medium businesses that want a modern, clean alternative to expensive HR software.
+StaffPortal is a full-featured HR and workforce management platform you run on your own infrastructure. It covers attendance, leave, timesheets, expenses, visitors, wellness, and IT support behind a single role-based login, with an optional conversational AI assistant. It is built for small-to-medium organisations that want a modern, clean alternative to expensive HR software without handing staff data to a third party.
+
+Full documentation lives in the [project wiki](https://github.com/sarmakska/staff-portal/wiki): start with [Home](https://github.com/sarmakska/staff-portal/wiki), then [Quick-Start](https://github.com/sarmakska/staff-portal/wiki/Quick-Start), [Architecture](https://github.com/sarmakska/staff-portal/wiki/Architecture), and [Roadmap](https://github.com/sarmakska/staff-portal/wiki/Roadmap).
 
 ---
 
-## Features
+## Quickstart
+
+Five commands from a fresh clone to a running dev server. You will need a free [Supabase](https://supabase.com) project and a [Resend](https://resend.com) API key first.
+
+```bash
+git clone https://github.com/sarmakska/staff-portal.git && cd staff-portal
+npm install
+cp .env.local.example .env.local   # then fill in your Supabase and Resend keys
+npm run lint && npm test            # confirm the toolchain is healthy
+npm run dev                         # open http://localhost:3000
+```
+
+Run the SQL files in `supabase/migrations/` in numbered order against your Supabase project before first login. The full step-by-step setup, including auth redirect URLs and creating the first admin, is in [Getting Started](#getting-started) below.
+
+---
+
+## When to use this, and when not to
+
+Use StaffPortal if you are a small-to-medium organisation that wants to own its staff data, self-host on Vercel and Supabase, and run attendance, leave, expenses, and visitor management from one place. It suits teams that are comfortable managing a Supabase project and a few environment variables, and that want a codebase they can fork and extend rather than a closed SaaS subscription.
+
+Look elsewhere if you need certified payroll processing, statutory tax filing, or deep integration with an existing enterprise HRIS out of the box. It is not a multi-tenant SaaS product: each deployment serves one organisation. If you cannot run a Supabase instance or do not want to manage your own deployment, a hosted HR product will be a better fit.
+
+---
+
+## Architecture
+
+```mermaid
+flowchart TD
+    subgraph Client
+        Browser["Staff browser / Kiosk"]
+    end
+    subgraph Vercel["Next.js on Vercel"]
+        Pages["App Router pages + components"]
+        Actions["Server actions (lib/actions)"]
+        API["API routes + cron handlers"]
+        MW["middleware.ts (auth + role guards)"]
+    end
+    subgraph Supabase
+        Auth["Auth"]
+        DB[("PostgreSQL + Row Level Security")]
+    end
+    Resend["Resend (email)"]
+    Groq["Groq API (Jarvis, optional)"]
+    Cron["Scheduler (Vercel Cron / GitHub Actions)"]
+
+    Browser --> MW --> Pages
+    Pages --> Actions --> DB
+    Pages --> API
+    Actions --> Auth
+    API --> DB
+    API --> Resend
+    API --> Groq
+    Cron -->|Bearer CRON_SECRET| API
+```
+
+---
+
+## What is in the box
 
 ### For All Staff
 
@@ -91,7 +151,7 @@ The assistant's personality and system prompt are fully customisable in `app/api
 
 | Layer | Technology |
 |-------|-----------|
-| Framework | Next.js 14 (App Router) |
+| Framework | Next.js 16 (App Router, React 19) |
 | Language | TypeScript |
 | Database & Auth | Supabase (PostgreSQL + Row Level Security) |
 | Styling | Tailwind CSS + shadcn/ui |
@@ -120,7 +180,7 @@ The assistant's personality and system prompt are fully customisable in `app/api
 
 ### Prerequisites
 
-- [Node.js 18+](https://nodejs.org)
+- [Node.js 20+](https://nodejs.org)
 - [Supabase account](https://supabase.com) — free tier works
 - [Resend account](https://resend.com) — free tier works
 - [Groq API key](https://console.groq.com) — optional, only needed for the AI assistant

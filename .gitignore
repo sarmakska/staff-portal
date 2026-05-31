@@ -10,6 +10,12 @@ node_modules/
 .DS_Store
 tsconfig.tsbuildinfo
 .vercel
+build/
+dist/
+out/
+coverage/
+*.log
+__pycache__/
 
 # Claude Code (machine-specific, not for git)
 .claude/
