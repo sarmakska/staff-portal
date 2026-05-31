@@ -754,6 +754,22 @@ export default function SettingsClient({ profile, roles, departments, locations,
                 </div>
             </div>
 
+            {/* ── Privacy and data ── */}
+            <div className="rounded-2xl border border-border/60 bg-card shadow-sm px-5 py-5">
+                <SectionHeader icon={ShieldCheck} title="Privacy and data" description="Download a copy of all the personal data we hold about you." />
+                <p className="text-sm text-muted-foreground mb-3">
+                    Under your right to data portability we provide a complete export of your profile, attendance,
+                    leave, expenses and other records as a single JSON file.
+                </p>
+                <a
+                    href="/api/gdpr/export"
+                    className="inline-flex items-center gap-2 rounded-xl border border-border bg-muted/20 px-4 py-2.5 text-sm font-semibold text-foreground transition-colors hover:border-primary/40 hover:text-primary"
+                >
+                    <ShieldCheck className="h-4 w-4" />
+                    Download my data
+                </a>
+            </div>
+
         </div>
     )
 }
