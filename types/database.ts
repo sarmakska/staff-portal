@@ -77,6 +77,7 @@ export type AuditAction =
     | 'feedback_status_updated' | 'complaint_status_updated'
     | 'expense_submitted' | 'expense_approved' | 'expense_rejected' | 'expense_paid'
     | 'purchase_request_submitted' | 'purchase_request_approved' | 'purchase_request_rejected'
+    | 'sso_login' | 'leave_accrued' | 'gdpr_export'
 
 export type ExpenseStatus = 'draft' | 'submitted' | 'approved' | 'rejected' | 'paid'
 export type PrStatus = 'submitted' | 'approved' | 'rejected' | 'ordered' | 'cancelled'
@@ -390,6 +391,10 @@ export interface Database {
                     used: number
                     pending: number
                     year: number
+                    carried_forward?: number
+                    accrual_rate?: number
+                    accrued_to_date?: number
+                    last_accrued_on?: string | null
                     updated_at: string
                 }
                 Insert: {
@@ -399,6 +404,10 @@ export interface Database {
                     used?: number
                     pending?: number
                     year?: number
+                    carried_forward?: number
+                    accrual_rate?: number
+                    accrued_to_date?: number
+                    last_accrued_on?: string | null
                 }
                 Update: {
                     user_id?: string
@@ -407,6 +416,33 @@ export interface Database {
                     used?: number
                     pending?: number
                     year?: number
+                    carried_forward?: number
+                    accrual_rate?: number
+                    accrued_to_date?: number
+                    last_accrued_on?: string | null
+                }
+                Relationships: []
+            }
+            sso_connections: {
+                Row: {
+                    id: string
+                    domain: string
+                    provider: string
+                    display_name: string
+                    is_active: boolean
+                    created_at: string
+                }
+                Insert: {
+                    domain: string
+                    provider: string
+                    display_name: string
+                    is_active?: boolean
+                }
+                Update: {
+                    domain?: string
+                    provider?: string
+                    display_name?: string
+                    is_active?: boolean
                 }
                 Relationships: []
             }
