@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Eye, EyeOff, Loader2, AlertCircle, ArrowRight } from "lucide-react"
 import { signIn } from "@/lib/actions/auth"
+import { beginSso } from "@/lib/actions/sso"
 
 export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false)
@@ -19,7 +20,20 @@ export default function LoginPage() {
     setError(null)
     setHint(null)
     const formData = new FormData(e.currentTarget)
+    const email = (formData.get("email") as string) ?? ""
     startTransition(async () => {
+      // If the email domain has an SSO connection, route to the
+      // identity provider instead of asking for a password.
+      const sso = await beginSso(email)
+      if (sso.error) {
+        setError(sso.error)
+        return
+      }
+      if (sso.kind !== "password" && sso.url) {
+        window.location.href = sso.url
+        return
+      }
+
       const result = await signIn(formData)
       if (result?.error) {
         setError(result.error)

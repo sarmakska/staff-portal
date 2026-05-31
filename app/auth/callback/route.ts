@@ -7,7 +7,51 @@
 
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { supabaseAdmin } from '@/lib/supabase/admin'
+import { writeAuditLog } from '@/lib/audit'
 import { type NextRequest } from 'next/server'
+
+// Ensure a profile and standard leave balances exist for a user that
+// arrived via SSO (no signUp server action runs in that path), then
+// record the SSO login in the audit trail.
+async function bootstrapSsoUser(userId: string, email: string | undefined) {
+    const { data: profile } = await supabaseAdmin
+        .from('user_profiles')
+        .select('id')
+        .eq('id', userId)
+        .maybeSingle()
+
+    if (!profile && email) {
+        const fName = email.split('@')[0].split('.')
+            .map(p => p.charAt(0).toUpperCase() + p.slice(1)).join(' ')
+        await supabaseAdmin.from('user_profiles').insert({
+            id: userId, email, full_name: fName, display_name: fName, is_active: true,
+        })
+    }
+
+    const currentYear = new Date().getFullYear()
+    const { data: balances } = await supabaseAdmin
+        .from('leave_balances')
+        .select('leave_type')
+        .eq('user_id', userId)
+        .eq('year', currentYear)
+
+    if (!balances || balances.length === 0) {
+        await supabaseAdmin.from('leave_balances').insert([
+            { user_id: userId, leave_type: 'annual' as never, total: 25, year: currentYear },
+            { user_id: userId, leave_type: 'sick' as never, total: 10, year: currentYear },
+            { user_id: userId, leave_type: 'unpaid' as never, total: 365, year: currentYear },
+        ])
+    }
+
+    await writeAuditLog({
+        actorId: userId,
+        actorEmail: email,
+        action: 'sso_login',
+        entityTable: 'auth.users',
+        entityId: userId,
+    })
+}
 
 export async function GET(request: NextRequest) {
     const { searchParams, origin } = new URL(request.url)
@@ -76,6 +120,14 @@ export async function GET(request: NextRequest) {
                 .from('user_profiles')
                 .update({ is_email_verified: true })
                 .eq('id', user.id)
+
+            // SSO logins (OAuth / SAML) come back through this code
+            // exchange with a non-email identity provider. Bootstrap
+            // the profile and balances and record the login.
+            const provider = user.app_metadata?.provider
+            if (provider && provider !== 'email') {
+                await bootstrapSsoUser(user.id, user.email)
+            }
         }
 
         return redirectTo(next)
