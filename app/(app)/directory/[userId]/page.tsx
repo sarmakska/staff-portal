@@ -61,7 +61,7 @@ export default async function StaffProfilePage({ params }: { params: Promise<{ u
   else if ((todayAtt as any)?.clock_in && !(todayAtt as any)?.clock_out) statusType = "in_office"
   else if ((todayAtt as any)?.clock_in && (todayAtt as any)?.clock_out) statusType = "clocked_out"
 
-  // "At Memo since"
+  // "At company since"
   const joinedRaw = (profile as any).joined_at ?? (profile as any).created_at
   const joinedDate = new Date(typeof joinedRaw === "string" && joinedRaw.length === 10 ? joinedRaw + "T12:00:00" : joinedRaw)
   const now = new Date()

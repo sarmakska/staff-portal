@@ -58,7 +58,7 @@ flowchart TD
         DB[("PostgreSQL + Row Level Security")]
     end
     Resend["Resend (email)"]
-    Groq["Groq API (Jarvis, optional)"]
+    Groq["Groq API (the assistant, optional)"]
     Cron["Scheduler (Vercel Cron / GitHub Actions)"]
     IdP["Identity provider (Entra ID / Google / SAML)"]
 
@@ -94,7 +94,7 @@ flowchart TD
 - **Staff Directory** — Contact cards with phone, email, and profile details
 - **Announcements** — Company-wide announcements with email broadcast
 - **Polls** — Company polls with real-time vote counts
-- **AI Assistant (Jarvis)** — Conversational AI assistant with awareness of your attendance, leave, expenses, and team
+- **AI Assistant (the assistant)** — Conversational AI assistant with awareness of your attendance, leave, expenses, and team
 
 ### For Reception and Admin
 
@@ -134,7 +134,7 @@ flowchart TD
 
 ---
 
-## AI Assistant (Jarvis)
+## AI Assistant (the assistant)
 
 The built-in AI assistant is powered by [Groq](https://console.groq.com) and has real-time access to:
 

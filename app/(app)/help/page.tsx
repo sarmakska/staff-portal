@@ -738,7 +738,7 @@ new_year_available = new_year_total + carry_amount`}</Formula>
                     ["Diary reminder", "Optional reminder sent if you have not filled in your diary entry for the day. This is a gentle nudge and is not mandatory."],
                     ["IT ticket submitted", "Sent to the IT admin when you raise a new support ticket. Includes category, priority, and description."],
                     ["IT ticket status update", "Sent to you when your IT ticket status changes (Open, In Progress, Resolved, Closed)."],
-                    ["IT ticket reply", "Sent to you when the IT admin replies to your ticket. Includes the reply text so you can read it without opening Nexus."],
+                    ["IT ticket reply", "Sent to you when the IT admin replies to your ticket. Includes the reply text so you can read it without opening the portal."],
                     ["New wellness event", "Sent to all staff when a new wellness event is created. Includes date, time, location, and organiser."],
                 ].map(([event, desc]) => (
                     <div key={event} className="flex gap-3 items-start rounded-xl border border-border bg-muted/20 px-3 py-2.5">
@@ -900,11 +900,11 @@ new_year_available = new_year_total + carry_amount`}</Formula>
                 <div className="mt-2 rounded-xl border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-950/30 px-4 py-3.5 space-y-2">
                     <p className="text-[11px] font-bold uppercase tracking-widest text-blue-500 dark:text-blue-400">Developer Notice</p>
                     <p className="text-xs text-blue-900 dark:text-blue-200 leading-relaxed">
-                        This app is designed in a way that shows you what you as an employee need — based on Memo's standard procedures. Neither staff nor management can request any additional information. All information is held solely with the Directors.
+                        This app is designed in a way that shows you what you as an employee need, based on your company's standard procedures. Neither staff nor management can request any additional information. All information is held solely with the Directors.
                     </p>
                     <p className="text-xs text-blue-900 dark:text-blue-200 leading-relaxed">
-                        Please kindly cooperate with privacy. If you have a concern, speak to your Director directly or email the developer at{" "}
-                        <a href="mailto:privacy@sarmalinux.com" className="font-semibold underline underline-offset-2">privacy@sarmalinux.com</a>.
+                        Please kindly cooperate with privacy. If you have a concern, speak to your Director directly or email{" "}
+                        <a href="mailto:privacy@yourcompany.com" className="font-semibold underline underline-offset-2">privacy@yourcompany.com</a>.
                     </p>
                 </div>
             </div>
@@ -1172,7 +1172,7 @@ new_year_available = new_year_total + carry_amount`}</Formula>
                 <SubHeading text="What the Email Looks Like" />
                 <div className="rounded-xl border border-border bg-muted/20 p-4 space-y-2">
                     {[
-                        { mono: true,  text: "From: nosarma@sarmalinux.com → staff@yourcompany.com" },
+                        { mono: true,  text: "From: noreply@yourcompany.com to staff@yourcompany.com" },
                         { mono: false, text: "Dark branded header with Staff Announcement title, your name, and the type badge (e.g. 🏖️ Out of Office)" },
                         { mono: false, text: "Blue subject bar with the emoji and your subject line" },
                         { mono: false, text: "Your message as clean paragraphs" },
@@ -1192,7 +1192,7 @@ new_year_available = new_year_total + carry_amount`}</Formula>
                     Every announcement is logged on the Announcements page. Expand any entry to see the full message, type, date range, and event details. The <strong>Announcements dashboard widget</strong> shows the last 4 sent at a glance.
                 </p>
 
-                <Note text="Add nosarma@sarmalinux.com to your Outlook safe senders list so announcements don't go to junk. Settings → Safe senders → Add → nosarma@sarmalinux.com → Save." />
+                <Note text="Add noreply@yourcompany.com to your Outlook safe senders list so announcements don't go to junk. Settings, Safe senders, Add, noreply@yourcompany.com, Save." />
             </div>
         ),
     },
@@ -1242,7 +1242,7 @@ new_year_available = new_year_total + carry_amount`}</Formula>
                     ["Who gets notified", "All active staff — except Directors"],
                     ["When", "Every time a new poll is created"],
                     ["Email subject", "📊 New Poll: [Your Question]"],
-                    ["Email contains", "The poll question, all options, the deadline, and a direct link to vote in Nexus"],
+                    ["Email contains", "The poll question, all options, the deadline, and a direct link to vote in the portal"],
                     ["On/Off switch", "Admins can turn poll emails on or off in Admin → Notifications"],
                 ]} />
 
@@ -1311,7 +1311,7 @@ new_year_available = new_year_total + carry_amount`}</Formula>
         content: (
             <div className="space-y-4">
                 <p className="text-sm text-muted-foreground leading-relaxed">
-                    The IT Support Portal lets you raise a ticket for any technical issue — from broken hardware to software problems, network issues, or access requests. The IT admin (currently Sai) is notified by email immediately and can update your ticket, reply to you, and mark it as resolved — all from within Nexus.
+                    The IT Support Portal lets you raise a ticket for any technical issue — from broken hardware to software problems, network issues, or access requests. The IT admin (currently the admin) is notified by email immediately and can update your ticket, reply to you, and mark it as resolved — all from within the portal.
                 </p>
 
                 <SubHeading text="Raising a ticket" />
@@ -1362,7 +1362,7 @@ new_year_available = new_year_total + carry_amount`}</Formula>
                 <InfoTable rows={[
                     ["Ticket submitted", "IT admin receives an email with full ticket details"],
                     ["Status changed", "You receive an email explaining what the new status means"],
-                    ["IT replies", "You receive an email quoting their reply — no need to check Nexus"],
+                    ["IT replies", "You receive an email quoting their reply — no need to check the portal"],
                 ]} />
             </div>
         ),
@@ -1377,7 +1377,7 @@ new_year_available = new_year_total + carry_amount`}</Formula>
         content: (
             <div className="space-y-4">
                 <p className="text-sm text-muted-foreground leading-relaxed">
-                    The Wellness Hub is your personal wellbeing space within Nexus. Check in with how you're feeling, take a guided stretch break, practise breathing exercises, join team wellness events, and track your journey over time.
+                    The Wellness Hub is your personal wellbeing space within the portal. Check in with how you're feeling, take a guided stretch break, practise breathing exercises, join team wellness events, and track your journey over time.
                 </p>
 
                 <SubHeading text="Daily mood check-in" />
@@ -1452,46 +1452,46 @@ new_year_available = new_year_total + carry_amount`}</Formula>
         ),
     },
     {
-        id: "jarvis",
+        id: "the-assistant",
         icon: Bot,
         color: "text-violet-600 dark:text-violet-400",
         bg: "bg-violet-50 dark:bg-violet-950/40",
-        title: "Jarvis AI Assistant",
-        subtitle: "Your personal AI helper — ask anything about your data or how to use Nexus",
+        title: "the assistant AI Assistant",
+        subtitle: "Your personal AI helper — ask anything about your data or how to use the portal",
         content: (
             <div className="space-y-4">
                 <p className="text-sm text-muted-foreground leading-relaxed">
-                    Jarvis is your personal AI assistant built into StaffPortal. Click the floating button in the bottom-right corner of any page to open a chat with Jarvis.
+                    the assistant is your personal AI assistant built into StaffPortal. Click the floating button in the bottom-right corner of any page to open a chat with the assistant.
                 </p>
 
-                <SubHeading text="What Jarvis can do" />
+                <SubHeading text="What the assistant can do" />
                 <InfoTable rows={[
                     ["Your data", "Ask about your attendance, leave balance, work schedule, hours this week, and more"],
                     ["How-to help", "Step-by-step guidance for any feature — requesting leave, uploading receipts, booking visitors, etc."],
                     ["Office presence", "Ask who's in the office, who's working from home, or who's on leave today"],
                     ["WiFi passwords", "Ask for the staff or guest WiFi password"],
-                    ["Wellness support", "If you're having a tough day, Jarvis can suggest breathing exercises or stretches"],
-                    ["Report issues", "Tell Jarvis about a bug or problem — it collects the details and notifies the admin team"],
+                    ["Wellness support", "If you're having a tough day, the assistant can suggest breathing exercises or stretches"],
+                    ["Report issues", "Tell the assistant about a bug or problem — it collects the details and notifies the admin team"],
                 ]} />
 
                 <SubHeading text="How to use it" />
-                <Step n={1} text="Click the floating Jarvis button in the bottom-right corner of any page." />
+                <Step n={1} text="Click the floating the assistant button in the bottom-right corner of any page." />
                 <Step n={2} text="Type your question or message in the chat box." />
-                <Step n={3} text="Jarvis responds instantly with your real-time data or step-by-step instructions." />
+                <Step n={3} text="the assistant responds instantly with your real-time data or step-by-step instructions." />
                 <Step n={4} text="Close the chat by clicking the X button. Your conversation is kept for the session." />
 
                 <SubHeading text="Reporting an issue" />
-                <Step n={1} text={"Tell Jarvis something like \"the calendar isn't loading\" or \"my leave balance looks wrong\"."} />
-                <Step n={2} text="Jarvis will ask you for more details — what page, what happened, what you expected." />
-                <Step n={3} text="Once Jarvis has enough info, it sends a detailed report to the admin team by email." />
+                <Step n={1} text={"Tell the assistant something like \"the calendar isn't loading\" or \"my leave balance looks wrong\"."} />
+                <Step n={2} text="the assistant will ask you for more details — what page, what happened, what you expected." />
+                <Step n={3} text="Once the assistant has enough info, it sends a detailed report to the admin team by email." />
                 <Step n={4} text="You'll see a confirmation that the issue has been flagged." />
 
                 <SubHeading text="Privacy" />
                 <p className="text-sm text-muted-foreground leading-relaxed">
-                    Jarvis only shows you your own personal data. It will never reveal other employees' attendance times, leave balances, or personal details. It can only tell you whether a colleague is In Office, WFH, On Leave, or Running Late — nothing more.
+                    the assistant only shows you your own personal data. It will never reveal other employees' attendance times, leave balances, or personal details. It can only tell you whether a colleague is In Office, WFH, On Leave, or Running Late — nothing more.
                 </p>
 
-                <Note text="Jarvis was designed and built by Sai. It runs on a custom AI engine and is available to all logged-in staff." />
+                <Note text="the assistant was designed and built by the admin. It runs on a custom AI engine and is available to all logged-in staff." />
             </div>
         ),
     },

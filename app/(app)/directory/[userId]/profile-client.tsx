@@ -504,7 +504,7 @@ export function ProfileClient({ profile, deptName, statusType, sinceLabel, joine
                     )}
                   </div>
                   <div className="flex justify-between items-center py-2 border-b border-border/40">
-                    <span className="text-xs text-muted-foreground">With Memo</span>
+                    <span className="text-xs text-muted-foreground">With company</span>
                     <span className="text-xs font-semibold text-foreground">{sinceLabel}</span>
                   </div>
                   {birthdayDisplay && (

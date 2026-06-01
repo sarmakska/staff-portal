@@ -3,37 +3,37 @@
 -- Run this in Supabase SQL Editor
 -- ============================================================
 
--- Step 1: Create the missing sai@yourcompany.com profile if it doesn't exist
+-- Step 1: Create the missing admin@yourcompany.com profile if it doesn't exist
 -- We pull the user ID directly from auth.users
 INSERT INTO public.user_profiles (id, email, full_name, display_name, is_active, is_email_verified)
 SELECT 
   id,
   email,
-  COALESCE(raw_user_meta_data->>'full_name', 'Sai'),
-  COALESCE(raw_user_meta_data->>'full_name', 'Sai'),
+  COALESCE(raw_user_meta_data->>'full_name', 'Admin User'),
+  COALESCE(raw_user_meta_data->>'full_name', 'Admin User'),
   true,
   true
 FROM auth.users
-WHERE email = 'sai@yourcompany.com'
+WHERE email = 'admin@yourcompany.com'
 ON CONFLICT (id) DO UPDATE SET
   is_active = true,
   is_email_verified = true,
   updated_at = now();
 
--- Step 2: Ensure sai@yourcompany.com has employee + admin + accounts roles
+-- Step 2: Ensure admin@yourcompany.com has employee + admin + accounts roles
 INSERT INTO public.user_roles (user_id, role)
-SELECT id, 'employee' FROM auth.users WHERE email = 'sai@yourcompany.com'
+SELECT id, 'employee' FROM auth.users WHERE email = 'admin@yourcompany.com'
 ON CONFLICT (user_id, role) DO NOTHING;
 
 INSERT INTO public.user_roles (user_id, role)
-SELECT id, 'admin' FROM auth.users WHERE email = 'sai@yourcompany.com'
+SELECT id, 'admin' FROM auth.users WHERE email = 'admin@yourcompany.com'
 ON CONFLICT (user_id, role) DO NOTHING;
 
 INSERT INTO public.user_roles (user_id, role)
-SELECT id, 'accounts' FROM auth.users WHERE email = 'sai@yourcompany.com'
+SELECT id, 'accounts' FROM auth.users WHERE email = 'admin@yourcompany.com'
 ON CONFLICT (user_id, role) DO NOTHING;
 
--- Step 3: Seed default leave balances for sai if missing
+-- Step 3: Seed default leave balances for the admin user if missing
 INSERT INTO public.leave_balances (user_id, leave_type, total, year)
 SELECT u.id, lb.leave_type, lb.total, EXTRACT(YEAR FROM now())::int
 FROM auth.users u
@@ -43,7 +43,7 @@ CROSS JOIN (VALUES
   ('maternity'::text, 0),
   ('unpaid'::text, 0)
 ) AS lb(leave_type, total)
-WHERE u.email = 'sai@yourcompany.com'
+WHERE u.email = 'admin@yourcompany.com'
 ON CONFLICT (user_id, leave_type, year) DO NOTHING;
 
 -- Step 4: Fix the directory RLS — allow all authenticated users to see ALL profiles

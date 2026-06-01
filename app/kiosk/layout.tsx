@@ -1,7 +1,7 @@
 import type { Metadata, Viewport } from 'next'
 
 export const metadata: Metadata = {
-  title: 'Memo Kiosk',
+  title: 'StaffPortal Kiosk',
   manifest: '/manifest-kiosk.json',
   icons: {
     icon: '/favicon-dino.svg',
@@ -9,7 +9,7 @@ export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
     statusBarStyle: 'black-translucent',
-    title: 'Memo Kiosk',
+    title: 'StaffPortal Kiosk',
   },
 }
 

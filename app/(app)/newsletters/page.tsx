@@ -8,15 +8,15 @@ export const metadata = {
 
 const posts = [
   {
-    slug: 'meet-jarvis',
-    title: 'Meet Jarvis — Your AI Assistant',
-    subtitle: 'I\'ve built an AI assistant right into Nexus. Say hello.',
+    slug: 'meet-the-assistant',
+    title: 'Meet the assistant — Your AI Assistant',
+    subtitle: 'I\'ve built an AI assistant right into the portal. Say hello.',
     date: '8 April 2026',
     readTime: '3 min read',
     tag: 'AI',
     tagColor: 'bg-violet-100 text-violet-700',
     excerpt:
-      "Jarvis is your personal AI assistant built into StaffPortal. Ask him about your leave, attendance, how to do anything on the app, who's in the office, WiFi passwords, or just tell him you're having a rough day. He's also great at reporting issues to admin.",
+      "the assistant is your personal AI assistant built into StaffPortal. Ask him about your leave, attendance, how to do anything on the app, who's in the office, WiFi passwords, or just tell him you're having a rough day. He's also great at reporting issues to admin.",
   },
   {
     slug: 'staff-profile-pages',
@@ -49,7 +49,7 @@ const posts = [
     tag: 'Expenses',
     tagColor: 'bg-blue-100 text-blue-700',
     excerpt:
-      "From April 2026, every company card purchase must have a receipt uploaded in Nexus. Here's exactly how AI reads your receipts, what it extracts, and what to do if you receive a missing receipt email.",
+      "From April 2026, every company card purchase must have a receipt uploaded in the portal. Here's exactly how AI reads your receipts, what it extracts, and what to do if you receive a missing receipt email.",
   },
 ]
 

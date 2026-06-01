@@ -60,7 +60,7 @@ export default function StaffProfilePagesPage() {
         <p className="text-sm text-violet-700 leading-relaxed">
           Tap anyone&apos;s name in the <strong>Directory</strong> to open their full profile page. You&apos;ll see their cover photo,
           avatar, job title, department, live status (In Office, WFH, On Leave, etc.), contact details, social links,
-          bio, hobbies, and how long they&apos;ve been with Memo. Your own profile is fully editable.
+          bio, hobbies, and how long they&apos;ve been with the company. Your own profile is fully editable.
         </p>
       </div>
 
@@ -142,7 +142,7 @@ export default function StaffProfilePagesPage() {
             <p className="text-sm font-bold text-rose-700">Joined date</p>
           </div>
           <p className="text-sm text-rose-700/80 leading-relaxed">
-            Set the date you joined Memo. This shows as &ldquo;Since 2023 &middot; 2 years 4m&rdquo; on your profile.
+            Set the date you joined the company. This shows as &ldquo;Since 2023 &middot; 2 years 4m&rdquo; on your profile.
             You can edit it directly on your profile page (tap the pencil icon next to &ldquo;Joined&rdquo;) or in Settings.
           </p>
         </div>
@@ -165,7 +165,7 @@ export default function StaffProfilePagesPage() {
           { title: 'Live status', desc: 'In Office, Working from Home, On Leave, Running Late, Left Office, or Not In Today — updates in real time.' },
           { title: 'Contact buttons', desc: 'Email, WhatsApp, and Call buttons right at the top. One tap to reach you.' },
           { title: 'Department & job title', desc: 'Shown under your name and in the Work Details section.' },
-          { title: 'How long you\'ve been at Memo', desc: 'Your joined date shows as a badge and in the At a Glance sidebar.' },
+          { title: 'How long you\'ve been at the company', desc: 'Your joined date shows as a badge and in the At a Glance sidebar.' },
           { title: 'Birthday', desc: 'If you\'ve set your birthday in Settings, it appears in your At a Glance section.' },
           { title: 'Bio, hobbies & social links', desc: 'Everything you add in Settings shows on your profile for colleagues to see.' },
         ].map(({ title, desc }) => (
@@ -198,7 +198,7 @@ export default function StaffProfilePagesPage() {
           },
           {
             q: 'Where do I set my joined date?',
-            a: 'Two places: on your profile page, tap the pencil icon next to "Joined" in the At a Glance section. Or go to Settings and look for "Joined Memo" in your profile details.',
+            a: 'Two places: on your profile page, tap the pencil icon next to "Joined" in the At a Glance section. Or go to Settings and look for "Joined company" in your profile details.',
           },
           {
             q: 'My cover photo looks cropped wrong — how do I fix it?',

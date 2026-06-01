@@ -190,7 +190,7 @@ export default function AnnouncementsClient({ history }: Props) {
         {/* From/to bar */}
         <div className="px-5 py-3 border-b border-border/50 bg-muted/20 flex items-center gap-2 flex-wrap">
           <Send className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-          <span className="font-mono text-xs bg-muted border border-border rounded px-2 py-0.5">nosarma@sarmalinux.com</span>
+          <span className="font-mono text-xs bg-muted border border-border rounded px-2 py-0.5">noreply@yourcompany.com</span>
           <ArrowRight className="h-3 w-3 text-muted-foreground/50" />
           <span className="font-mono text-xs bg-muted border border-border rounded px-2 py-0.5">staff@yourcompany.com</span>
         </div>
@@ -251,7 +251,7 @@ export default function AnnouncementsClient({ history }: Props) {
               onChange={e => setBody(e.target.value)}
               rows={5}
               placeholder={
-                category === 'ooo' ? 'e.g. Hi everyone, I will be out of the office from Monday 24th March to Friday 28th March on a business trip to Dubai. For urgent matters please contact Sai.' :
+                category === 'ooo' ? 'e.g. Hi everyone, I will be out of the office from Monday 24th March to Friday 28th March on a business trip to Dubai. For urgent matters please contact the admin.' :
                 category === 'newjoiner' ? 'e.g. Please join me in welcoming Mark to the team! Mark joins us as...' :
                 'Write your announcement here. Each new line becomes a separate paragraph in the email.'
               }

@@ -162,7 +162,7 @@ async function sendUnmatchedNotification(
   const apiKey = process.env.RESEND_API_KEY
   if (!apiKey || unmatchedTxns.length === 0 || !cardholder?.email) return
   const resend = new Resend(apiKey)
-  const FROM = process.env.RESEND_FROM_EMAIL ?? 'nosarma@sarmalinux.com'
+  const FROM = process.env.RESEND_FROM_EMAIL ?? 'noreply@yourcompany.com'
   const accountsEmail = process.env.ACCOUNTS_NOTIFY_EMAIL ?? 'accounts@yourcompany.com'
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://your-domain.com'
 
@@ -210,7 +210,7 @@ async function sendUnmatchedNotification(
           <tbody>${tableRows}</tbody>
         </table>
 
-        <p style="color:#374151;font-weight:600;">These have been added to your expenses in Nexus. Please open each one and upload the receipt.</p>
+        <p style="color:#374151;font-weight:600;">These have been added to your expenses in the portal. Please open each one and upload the receipt.</p>
 
         <div style="background:#fff;border:1px solid #e5e7eb;border-radius:8px;padding:20px;margin:16px 0;">
           <h3 style="margin:0 0 12px;color:#111827;font-size:14px;font-weight:700;">How to upload a receipt:</h3>

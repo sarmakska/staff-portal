@@ -8,8 +8,8 @@ import { Resend } from 'resend'
 // Sends stretch reminder emails to staff who have opted in
 
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null
-const FROM_EMAIL = process.env.RESEND_FROM_EMAIL ?? 'nosarma@sarmalinux.com'
-const NEXUS_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://your-domain.com'
+const FROM_EMAIL = process.env.RESEND_FROM_EMAIL ?? 'noreply@yourcompany.com'
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://your-domain.com'
 
 const STRETCH_TIPS = [
   { title: 'Neck Roll', desc: 'Roll your head gently from side to side — hold 5 seconds each side.' },
@@ -80,12 +80,12 @@ export async function GET(request: Request) {
             <p style="margin:0;color:#374151;font-size:14px;line-height:1.6;">${tip.desc}</p>
           </div>
           <p style="margin:20px 0 0;text-align:center;">
-            <a href="${NEXUS_URL}/wellness/stretches" style="display:inline-block;padding:10px 24px;background:#16a34a;color:#fff;border-radius:8px;text-decoration:none;font-size:14px;font-weight:600;">
+            <a href="${APP_URL}/wellness/stretches" style="display:inline-block;padding:10px 24px;background:#16a34a;color:#fff;border-radius:8px;text-decoration:none;font-size:14px;font-weight:600;">
               Full stretch library →
             </a>
           </p>
           <p style="margin:20px 0 0;color:#9ca3af;font-size:11px;text-align:center;">
-            You can turn off stretch reminders in <a href="${NEXUS_URL}/wellness/my-journey" style="color:#16a34a;">Wellness → My Journey → Notifications</a>
+            You can turn off stretch reminders in <a href="${APP_URL}/wellness/my-journey" style="color:#16a34a;">Wellness → My Journey → Notifications</a>
           </p>
         </td></tr>
       </table>

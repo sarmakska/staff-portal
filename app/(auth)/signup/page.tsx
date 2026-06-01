@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label"
 import { Eye, EyeOff, Loader2, AlertCircle, CheckCircle2 } from "lucide-react"
 import { signUp } from "@/lib/actions/auth"
 
-const ALLOWED_EXCEPTION_EMAILS = ['varshkarsan@hotmail.co.uk', 'anilmal@hotmail.com']
+const ALLOWED_EXCEPTION_EMAILS = []
 
 export default function SignupPage() {
   const router = useRouter()
@@ -62,7 +62,7 @@ export default function SignupPage() {
     <Card className="w-full max-w-md rounded-2xl border-border shadow-lg">
       <CardHeader className="items-center space-y-4 pb-2">
         <img
-          src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/MEMO%20LOGO%281%29-LotOho4qrhl0Dxku4Sq22ZlQ7rRIWx.png"
+          src="/logo.png"
           alt="StaffPortal"
           className="h-10"
         />

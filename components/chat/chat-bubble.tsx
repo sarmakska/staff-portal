@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from "react"
 import { X, Send, Loader2 } from "lucide-react"
 
-function JarvisIcon({ className = "" }: { className?: string }) {
+function AssistantIcon({ className = "" }: { className?: string }) {
   return (
     <svg viewBox="0 0 64 64" fill="none" className={className}>
       {/* Head */}
@@ -61,7 +61,7 @@ export function ChatBubble() {
     if (open && messages.length === 0) {
       setMessages([{
         role: "assistant",
-        text: `Hey ${firstName}! I'm Jarvis — Master Sai designed me to help you out around here. Ask me anything about your leave, attendance, schedule, or how to do stuff on Nexus 🤙`,
+        text: `Hey ${firstName}! I'm the assistant — the admin designed me to help you out around here. Ask me anything about your leave, attendance, schedule, or how to do stuff on the portal `,
       }])
     }
   }, [open])
@@ -104,9 +104,9 @@ export function ChatBubble() {
         <button
           onClick={() => setOpen(true)}
           className="fixed bottom-6 right-6 md:bottom-6 md:right-6 bottom-20 z-50 h-14 w-14 rounded-full bg-gradient-to-br from-violet-500 to-indigo-700 text-white shadow-lg shadow-violet-500/25 flex items-center justify-center hover:scale-110 hover:shadow-xl hover:shadow-violet-500/30 active:scale-95 transition-all duration-200"
-          title="Chat with Jarvis"
+          title="Chat with the assistant"
         >
-          <JarvisIcon className="h-8 w-8" />
+          <AssistantIcon className="h-8 w-8" />
           <span className="absolute -top-0.5 -right-0.5 h-3 w-3 rounded-full bg-emerald-400 border-2 border-background animate-pulse" />
         </button>
       )}
@@ -118,10 +118,10 @@ export function ChatBubble() {
           <div className="flex items-center justify-between px-4 py-3 bg-gradient-to-r from-violet-600 to-indigo-700 shrink-0">
             <div className="flex items-center gap-2.5">
               <div className="h-8 w-8 rounded-full bg-white/10 flex items-center justify-center text-white">
-                <JarvisIcon className="h-6 w-6" />
+                <AssistantIcon className="h-6 w-6" />
               </div>
               <div>
-                <p className="text-sm font-bold text-white leading-tight">Jarvis</p>
+                <p className="text-sm font-bold text-white leading-tight">the assistant</p>
                 <p className="text-[10px] text-white/60">AI Assistant</p>
               </div>
             </div>
@@ -163,7 +163,7 @@ export function ChatBubble() {
                 value={input}
                 onChange={e => setInput(e.target.value)}
                 onKeyDown={e => e.key === "Enter" && !e.shiftKey && handleSend()}
-                placeholder="Ask Jarvis anything..."
+                placeholder="Ask the assistant anything..."
                 disabled={loading}
                 className="flex-1 bg-muted/50 border border-border/40 rounded-xl px-3.5 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/50 transition-all disabled:opacity-50"
               />
@@ -175,7 +175,7 @@ export function ChatBubble() {
                 {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
               </button>
             </div>
-            <p className="text-[9px] text-muted-foreground/50 text-center mt-1.5">Jarvis AI — your personal StaffPortal assistant</p>
+            <p className="text-[9px] text-muted-foreground/50 text-center mt-1.5">the assistant AI — your personal StaffPortal assistant</p>
           </div>
         </div>
       )}

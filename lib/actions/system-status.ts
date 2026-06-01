@@ -50,8 +50,8 @@ export interface SystemStatus {
     fetchedAt: string
 }
 
-// Workflow IDs for your-github-username/memo-nexus
-const GITHUB_REPO = 'your-github-username/memo-nexus'
+// Workflow IDs for your-org/staff-portal
+const GITHUB_REPO = 'your-org/staff-portal'
 const WORKFLOWS = [
     { id: 246268678, name: 'Birthday Reminder' },
     { id: 246262246, name: 'Diary Reminders' },
@@ -85,7 +85,7 @@ export async function getSystemStatus(): Promise<SystemStatus> {
     const vercelToken = process.env.VERCEL_API_TOKEN
     if (vercelToken) {
         try {
-            const res = await fetch('https://api.vercel.com/v6/deployments?app=memo-nexus&limit=30', {
+            const res = await fetch('https://api.vercel.com/v6/deployments?app=staff-portal&limit=30', {
                 headers: { Authorization: `Bearer ${vercelToken}` },
                 next: { revalidate: 300 },
             })

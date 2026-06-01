@@ -141,7 +141,7 @@ export function AppSidebar() {
         {!collapsed && (
           <Link href="/" className="flex items-center gap-2">
             <img src="/logo.svg" alt="StaffPortal" className="h-7" />
-            <span className="font-semibold text-sidebar-foreground text-sm">Nexus</span>
+            <span className="font-semibold text-sidebar-foreground text-sm">the portal</span>
           </Link>
         )}
         {collapsed && (

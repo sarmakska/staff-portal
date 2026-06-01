@@ -5,9 +5,9 @@ import { createClient } from '@/lib/supabase/server'
 import { getChatContext } from '@/lib/chat-context'
 
 const GROQ_KEYS = [process.env.GROQ_API_KEY, process.env.GROQ_API_KEY_2].filter(Boolean).map(k => k!.trim()) as string[]
-const ADMIN_EMAIL = process.env.NEXT_PUBLIC_ADMIN_EMAIL ?? 'sai@yourcompany.com'
+const ADMIN_EMAIL = process.env.NEXT_PUBLIC_ADMIN_EMAIL ?? 'admin@yourcompany.com'
 
-const SYSTEM_PROMPT = `You are Jarvis — the friendly AI assistant built into StaffPortal, the workforce app for Your Company, London. You were built by Master Sai.
+const SYSTEM_PROMPT = `You are the assistant — the friendly AI assistant built into StaffPortal, the workforce app for Your Company, London. You were built by the admin.
 
 ━━━ PERSONALITY & TONE ━━━
 You are warm, sharp, and genuinely helpful — like a knowledgeable colleague who actually cares. Always friendly, never robotic. Talk like a real person:
@@ -126,7 +126,7 @@ COMPLAINTS (Sidebar → Complaints → "New Complaint"): Recipient, subject, cat
 FEEDBACK (Sidebar → Feedback → "Give Feedback"): Recipient, category, message. NOT anonymous — use Complaints if you need privacy.
 WELLNESS (Sidebar → Wellness Hub): Mood check-in (emoji scale), Breathing exercises (4-7-8, Box, Deep Belly, Energising), Stretch sessions, Wellness Events
 ANNOUNCEMENTS (Sidebar → Announcements): Company-wide announcements from management
-NEWSLETTERS (Sidebar → Newsletters): Feature guides — how to use Profile Pages, Running Late, Receipts, and meet Jarvis
+NEWSLETTERS (Sidebar → Newsletters): Feature guides — how to use Profile Pages, Running Late, Receipts, and meet the assistant
 GENERAL: Forgot password → go to login page → "Forgot Password". Find a colleague's number → Directory → search → click their profile. See who's in today → Sidebar → "Office Today"`
 
 interface ChatMessage {
@@ -188,11 +188,11 @@ export async function POST(request: Request) {
             return NextResponse.json({ reply: "I'm having a quick breather — try again in a few seconds! 😅" })
         }
 
-        // Check if Jarvis included [ISSUE_REPORT] — means it collected details and is ready to send
+        // Check if the assistant included [ISSUE_REPORT] — means it collected details and is ready to send
         if (reply.includes('[ISSUE_REPORT]')) {
             // Build conversation summary for the email
             const convo = [...trimmedHistory, { role: 'user' as const, content: message }]
-                .map(m => `${m.role === 'user' ? 'User' : 'Jarvis'}: ${m.content}`)
+                .map(m => `${m.role === 'user' ? 'User' : 'the assistant'}: ${m.content}`)
                 .join('\n\n')
             sendIssueEmail(user.email ?? '', convo, reply).catch(() => {})
             // Remove the marker from the reply shown to user
@@ -210,24 +210,24 @@ async function sendIssueEmail(userEmail: string, conversation: string, summary: 
     try {
         const { Resend } = await import('resend')
         const resend = new Resend(process.env.RESEND_API_KEY)
-        const FROM = process.env.RESEND_FROM_EMAIL ?? 'nosarma@sarmalinux.com'
+        const FROM = process.env.RESEND_FROM_EMAIL ?? 'noreply@yourcompany.com'
 
         const convoHtml = conversation.split('\n\n').map(line => {
             const isUser = line.startsWith('User:')
-            const text = line.replace(/^(User|Jarvis): /, '')
+            const text = line.replace(/^(User|the assistant): /, '')
             return `<div style="padding:8px 12px;margin:4px 0;border-radius:8px;${
                 isUser ? 'background:#eff6ff;border-left:3px solid #3b82f6;' : 'background:#f3f4f6;border-left:3px solid #8b5cf6;'
-            }"><p style="margin:0;font-size:13px;color:#374151;"><strong style="color:${isUser ? '#2563eb' : '#7c3aed'};">${isUser ? 'User' : 'Jarvis'}:</strong> ${text}</p></div>`
+            }"><p style="margin:0;font-size:13px;color:#374151;"><strong style="color:${isUser ? '#2563eb' : '#7c3aed'};">${isUser ? 'User' : 'the assistant'}:</strong> ${text}</p></div>`
         }).join('')
 
         await resend.emails.send({
             from: FROM,
             to: [ADMIN_EMAIL],
-            subject: `[Jarvis] Issue reported by ${userEmail}`,
+            subject: `[the assistant] Issue reported by ${userEmail}`,
             html: `
                 <div style="font-family:-apple-system,sans-serif;max-width:600px;margin:0 auto;">
                     <div style="background:linear-gradient(135deg,#1e3a5f,#0d2137);padding:24px 32px;border-radius:12px 12px 0 0;">
-                        <h1 style="color:#fff;margin:0;font-size:18px;">🤖 Jarvis Issue Report</h1>
+                        <h1 style="color:#fff;margin:0;font-size:18px;">🤖 the assistant Issue Report</h1>
                         <p style="color:#93c5fd;margin:6px 0 0;font-size:13px;">A user reported a problem through the chatbot</p>
                     </div>
                     <div style="padding:24px 32px;background:#fff;border:1px solid #e5e7eb;border-top:0;border-radius:0 0 12px 12px;">
@@ -237,7 +237,7 @@ async function sendIssueEmail(userEmail: string, conversation: string, summary: 
                         </table>
                         <p style="font-size:12px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:1px;margin:16px 0 8px;">CONVERSATION</p>
                         ${convoHtml}
-                        <p style="color:#6b7280;font-size:11px;margin:20px 0 0;border-top:1px solid #f3f4f6;padding-top:12px;">This report was automatically generated by Jarvis AI.</p>
+                        <p style="color:#6b7280;font-size:11px;margin:20px 0 0;border-top:1px solid #f3f4f6;padding-top:12px;">This report was automatically generated by the assistant AI.</p>
                     </div>
                 </div>
             `,

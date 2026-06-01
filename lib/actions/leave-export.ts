@@ -79,7 +79,7 @@ export async function generateLeaveFormPDF(
     }
 
     doc.fontSize(7).fillColor('#888888').font('Helvetica')
-      .text('MEMO INTERNAL SYSTEM', MARGIN, 16, { align: 'right', width: W })
+      .text('INTERNAL SYSTEM', MARGIN, 16, { align: 'right', width: W })
     doc.fontSize(14).fillColor('#FFFFFF').font('Helvetica-Bold')
       .text('LEAVE AUTHORISATION FORM', MARGIN, 28, { align: 'right', width: W })
     doc.fontSize(7.5).fillColor('#aaaaaa').font('Helvetica')
@@ -272,7 +272,7 @@ export async function generateLeaveFormPDF(
     doc.rect(0, FOOTER_Y, PAGE_W, 841.89 - FOOTER_Y).fillColor('#1C1C1C').fill()
     doc.fontSize(7).fillColor('#666666').font('Helvetica')
       .text(
-        `MEMO Internal System  ·  Confidential  ·  ${refCode}  ·  Generated ${d(new Date().toISOString())}  ·  This document is valid without a handwritten signature when digitally issued.`,
+        `Internal System  ·  Confidential  ·  ${refCode}  ·  Generated ${d(new Date().toISOString())}  ·  This document is valid without a handwritten signature when digitally issued.`,
         MARGIN, FOOTER_Y + 9, { align: 'center', width: W }
       )
 

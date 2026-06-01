@@ -13,7 +13,7 @@ flowchart TD
     Actions --> DB[("PostgreSQL + Row Level Security")]
     API --> DB
     API --> Resend["Resend (email)"]
-    API --> Groq["Groq API (Jarvis, optional)"]
+    API --> Groq["Groq API (the assistant, optional)"]
     Cron["Vercel Cron / GitHub Actions"] -->|Bearer CRON_SECRET| API
 ```
 
@@ -22,7 +22,7 @@ flowchart TD
 - `app/(app)/` authenticated routes, with `admin/` for admin and accounts pages
 - `app/(auth)/` login, signup, password reset, email verification
 - `app/kiosk/` public PIN-based kiosk
-- `app/api/chat/` Jarvis assistant; `app/api/cron/` scheduled jobs; `app/api/gdpr/export/` data export
+- `app/api/chat/` the assistant assistant; `app/api/cron/` scheduled jobs; `app/api/gdpr/export/` data export
 - `app/auth/callback/` OAuth, SAML, and email-link callback
 - `lib/supabase/` server, browser, and service-role clients
 - `lib/actions/` server actions (the only place that mutates data)

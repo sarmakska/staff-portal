@@ -427,7 +427,7 @@ export default function SettingsClient({ profile, roles, departments, locations,
                                 <p className="text-[11px] text-muted-foreground">Year is optional — used for birthday reminders only</p>
                             </div>
                             <div className="space-y-1.5 sm:col-span-2">
-                                <Label className="text-xs">Joined Memo</Label>
+                                <Label className="text-xs">Joined company</Label>
                                 <div className="flex items-center gap-2">
                                     <Input type="date" value={joinedAt} onChange={e => setJoinedAt(e.target.value)} className="rounded-xl h-9 flex-1" />
                                     <Button size="sm" variant="outline" className="rounded-xl h-9 shrink-0" onClick={async () => {
@@ -465,7 +465,7 @@ export default function SettingsClient({ profile, roles, departments, locations,
                             {joinedAt && (() => {
                                 const d = new Date(joinedAt + "T12:00:00")
                                 const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"]
-                                return <FieldRow label="Joined Memo" value={`${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`} />
+                                return <FieldRow label="Joined company" value={`${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`} />
                             })()}
                         </div>
                     )}

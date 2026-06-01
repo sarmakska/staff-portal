@@ -9,6 +9,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Scannable QR code for visitors. The visitor detail page now renders an
+  inline SVG QR (via `qrcode.react`, no network round-trip) encoding the
+  visitor's reference code, so reception can scan it on arrival to look
+  the visitor up.
+- New wiki pages: `Attendance`, `Leave`, `Kiosk`, `Visitors`, `Crons`,
+  `Reception`, `Diary`, and `Exports`, covering the per-area details that
+  were previously folded into `Architecture` and `Home`.
+
+### Added (earlier in this cycle)
+
 - Single sign-on layered on Supabase Auth. Admins map an email domain to a
   provider (Microsoft Entra ID, Google Workspace, GitHub, GitLab, or SAML 2.0)
   under Admin, Single Sign-On. The login screen routes a member to their

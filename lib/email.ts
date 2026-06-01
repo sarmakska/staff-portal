@@ -13,7 +13,7 @@ if (!process.env.RESEND_API_KEY) {
 
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null
 
-const FROM_EMAIL = process.env.RESEND_FROM_EMAIL ?? 'nosarma@sarmalinux.com'
+const FROM_EMAIL = process.env.RESEND_FROM_EMAIL ?? 'noreply@yourcompany.com'
 
 // ── Template variable replacement ───────────────────────────
 
@@ -628,7 +628,7 @@ export async function sendDiaryReminderEmail(params: DiaryReminderParams) {
                 <tr>
                   <td>
                     <span style="color:#ffffff;font-size:18px;font-weight:800;letter-spacing:-0.3px;">StaffPortal</span><br>
-                    <span style="color:#a5b4fc;font-size:11px;letter-spacing:0.03em;">Your Companys Ltd &bull; Personal Diary</span>
+                    <span style="color:#a5b4fc;font-size:11px;letter-spacing:0.03em;">Your Company Ltd &bull; Personal Diary</span>
                   </td>
                   <td align="right" style="font-size:36px;line-height:1;">&#128214;</td>
                 </tr>
@@ -700,7 +700,7 @@ export async function sendDiaryReminderEmail(params: DiaryReminderParams) {
                     <p style="margin:0 0 4px;color:#9ca3af;font-size:12px;font-style:italic;">
                       This reminder was set by you in StaffPortal. Please do not reply to this email.
                     </p>
-                    <p style="margin:0;color:#d1d5db;font-size:11px;">&copy; Your Companys Ltd &bull; Internal communications only</p>
+                    <p style="margin:0;color:#d1d5db;font-size:11px;">&copy; Your Company Ltd &bull; Internal communications only</p>
                   </td>
                 </tr>
               </table>
@@ -726,7 +726,7 @@ export async function sendDiaryReminderEmail(params: DiaryReminderParams) {
         ``,
         `Open your diary: https://your-domain.com/diary`,
         ``,
-        `— StaffPortal, Your Companys Ltd`,
+        `— StaffPortal, Your Company Ltd`,
     ].filter(Boolean).join('\n')
 
     return sendEmail({ to: params.to, subject, html, text })
@@ -759,7 +759,7 @@ export async function sendBirthdayReminderEmail(params: BirthdayReminderParams) 
         <tr>
           <td style="background:#111827;border-radius:12px 12px 0 0;padding:20px 32px 0;">
             <span style="color:#fff;font-size:15px;font-weight:700;">StaffPortal</span>&nbsp;
-            <span style="color:#6b7280;font-size:11px;">· Your Companys Ltd</span>
+            <span style="color:#6b7280;font-size:11px;">· Your Company Ltd</span>
           </td>
         </tr>
 
@@ -803,14 +803,14 @@ export async function sendBirthdayReminderEmail(params: BirthdayReminderParams) 
             </table>
 
             <p style="margin:0 0 28px;font-size:14px;color:#374151;text-align:center;line-height:1.7;">
-              From all of us at <strong>Your Companys</strong> — let's make today memorable! 🎂
+              From all of us at <strong>Your Company</strong> — let's make today memorable! 🎂
             </p>
 
             <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"
               style="margin-top:20px;border-top:1px solid #e5e7eb;padding-top:20px;">
               <tr><td>
                 <p style="margin:0 0 4px;color:#6b7280;font-size:12px;font-style:italic;">This is a system-generated email from StaffPortal. Please do not reply.</p>
-                <p style="margin:0;color:#9ca3af;font-size:11px;">&copy; Your Companys Ltd &bull; Internal communications only</p>
+                <p style="margin:0;color:#9ca3af;font-size:11px;">&copy; Your Company Ltd &bull; Internal communications only</p>
               </td></tr>
             </table>
           </td>
@@ -822,7 +822,7 @@ export async function sendBirthdayReminderEmail(params: BirthdayReminderParams) 
 </body>
 </html>`
 
-    const text = `Hi ${params.recipientName}! Today is ${params.birthdayPersonName}'s birthday! Give them a big birthday wish — a message, smile, or coffee makes all the difference. From all of us at Your Companys 🎂 — StaffPortal`
+    const text = `Hi ${params.recipientName}! Today is ${params.birthdayPersonName}'s birthday! Give them a big birthday wish — a message, smile, or coffee makes all the difference. From all of us at Your Company 🎂 — StaffPortal`
 
     return sendEmail({ to: params.to, subject, html, text })
 }
@@ -836,7 +836,7 @@ export interface BirthdayWishParams {
 }
 
 export async function sendBirthdayWishEmail(params: BirthdayWishParams) {
-    const subject = `🎂 Happy Birthday from Your Companys, ${params.name}!`
+    const subject = `🎂 Happy Birthday from Your Company, ${params.name}!`
 
     const html = `<!DOCTYPE html>
 <html lang="en">
@@ -853,7 +853,7 @@ export async function sendBirthdayWishEmail(params: BirthdayWishParams) {
         <!-- Deep navy hero for the birthday person -->
         <tr>
           <td style="background:linear-gradient(135deg,#1e1b4b 0%,#312e81 45%,#1e3a5f 100%);border-radius:12px 12px 0 0;padding:44px 32px 36px;text-align:center;">
-            <p style="margin:0 0 8px;font-size:11px;font-weight:700;color:rgba(255,255,255,0.4);letter-spacing:0.18em;text-transform:uppercase;">Your Companys Ltd</p>
+            <p style="margin:0 0 8px;font-size:11px;font-weight:700;color:rgba(255,255,255,0.4);letter-spacing:0.18em;text-transform:uppercase;">Your Company Ltd</p>
             <div style="font-size:88px;line-height:1;margin:16px 0 20px;">🎂</div>
             <h1 style="margin:0 0 8px;font-size:34px;font-weight:900;color:#fff;letter-spacing:-0.5px;line-height:1.1;">
               Happy Birthday,<br><span style="color:#fbbf24;">${params.name}!</span>
@@ -871,7 +871,7 @@ export async function sendBirthdayWishEmail(params: BirthdayWishParams) {
 
             <p style="margin:0 0 20px;font-size:16px;font-weight:700;color:#111827;">Dear ${params.name},</p>
             <p style="margin:0 0 20px;font-size:15px;color:#374151;line-height:1.8;">
-              On behalf of everyone at <strong>Your Companys</strong>, we want to take a moment
+              On behalf of everyone at <strong>Your Company</strong>, we want to take a moment
               to celebrate <em>you</em> and wish you a truly special birthday today! 🥳
             </p>
 
@@ -893,7 +893,7 @@ export async function sendBirthdayWishEmail(params: BirthdayWishParams) {
               style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:12px;margin:0 0 28px;">
               <tr><td style="padding:20px 24px;">
                 <p style="margin:0 0 4px;font-size:14px;font-weight:700;color:#111827;">With warmest wishes,</p>
-                <p style="margin:0 0 4px;font-size:14px;color:#374151;font-weight:600;">The Your Companys Team 💙</p>
+                <p style="margin:0 0 4px;font-size:14px;color:#374151;font-weight:600;">The Your Company Team 💙</p>
                 <p style="margin:0;font-size:13px;color:#9ca3af;">your-domain.com</p>
               </td></tr>
             </table>
@@ -906,7 +906,7 @@ export async function sendBirthdayWishEmail(params: BirthdayWishParams) {
               style="margin-top:20px;border-top:1px solid #e5e7eb;padding-top:20px;">
               <tr><td>
                 <p style="margin:0 0 4px;color:#6b7280;font-size:12px;font-style:italic;">This is a system-generated email from StaffPortal. Please do not reply.</p>
-                <p style="margin:0;color:#9ca3af;font-size:11px;">&copy; Your Companys Ltd &bull; Internal communications only</p>
+                <p style="margin:0;color:#9ca3af;font-size:11px;">&copy; Your Company Ltd &bull; Internal communications only</p>
               </td></tr>
             </table>
           </td>
@@ -918,7 +918,7 @@ export async function sendBirthdayWishEmail(params: BirthdayWishParams) {
 </body>
 </html>`
 
-    const text = `Happy Birthday ${params.name}! On behalf of everyone at Your Companys, we wish you a wonderful day! You're a valued part of our team. Have a fantastic birthday! — The Your Companys Team 🎂`
+    const text = `Happy Birthday ${params.name}! On behalf of everyone at Your Company, we wish you a wonderful day! You're a valued part of our team. Have a fantastic birthday! — The Your Company Team 🎂`
 
     return sendEmail({ to: params.to, subject, html, text })
 }
@@ -945,7 +945,7 @@ function buildSimpleHtml({ heading, accentColor = '#111827', body }: {
           <tr>
             <td bgcolor="#111827" style="background-color:#111827;border-radius:12px 12px 0 0;padding:24px 32px;">
               <span style="color:#ffffff;font-size:17px;font-weight:700;letter-spacing:-0.2px;">StaffPortal</span><br>
-              <span style="color:#9ca3af;font-size:11px;">Your Companys Ltd &bull; Internal Office System</span>
+              <span style="color:#9ca3af;font-size:11px;">Your Company Ltd &bull; Internal Office System</span>
             </td>
           </tr>
 
@@ -965,7 +965,7 @@ function buildSimpleHtml({ heading, accentColor = '#111827', body }: {
                       This is a system-generated email from StaffPortal. Please do not reply.
                     </p>
                     <p style="margin:0;color:#9ca3af;font-size:11px;line-height:1.6;">
-                      &copy; Your Companys Ltd &bull; Internal communications only
+                      &copy; Your Company Ltd &bull; Internal communications only
                     </p>
                   </td>
                 </tr>
@@ -1039,7 +1039,7 @@ async function generateLeaveApprovalPdf(params: LeaveApprovedParams & { approval
         // Header bar
         doc.rect(0, 0, 595, 70).fill(dark)
         doc.fontSize(18).fillColor('#ffffff').font('Helvetica-Bold').text('StaffPortal', 50, 22)
-        doc.fontSize(10).fillColor('#9ca3af').font('Helvetica').text('Your Companys Ltd  •  Internal Office System', 50, 44)
+        doc.fontSize(10).fillColor('#9ca3af').font('Helvetica').text('Your Company Ltd  •  Internal Office System', 50, 44)
 
         // Green accent stripe
         doc.rect(0, 70, 595, 4).fill(green)
@@ -1082,7 +1082,7 @@ async function generateLeaveApprovalPdf(params: LeaveApprovedParams & { approval
         doc.fontSize(9).fillColor(muted).font('Helvetica-Oblique')
             .text('This is a system-generated document from StaffPortal. Please do not reply to the accompanying email.', 50, 778, { width: 495 })
         doc.fontSize(9).fillColor(muted).font('Helvetica')
-            .text('© Your Companys Ltd  •  Internal communications only', 50, 795)
+            .text('© Your Company Ltd  •  Internal communications only', 50, 795)
 
         doc.end()
     })
@@ -1274,7 +1274,7 @@ export async function sendVisitorBookingEmail(params: VisitorBookingParams) {
     const text = [
         `Hello ${params.visitorName},`,
         '',
-        `Your visit to Your Companys has been confirmed.`,
+        `Your visit to Your Company has been confirmed.`,
         '',
         `Reference Code: ${params.referenceCode}`,
         `Date: ${params.visitDate}`,
@@ -1283,7 +1283,7 @@ export async function sendVisitorBookingEmail(params: VisitorBookingParams) {
         `Purpose: ${params.purpose}`,
         '',
         `Office Address:`,
-        `Your Companys Ltd`,
+        `Your Company Ltd`,
         `3rd Floor, Kantar Building`,
         `Westgate, Hanger Lane`,
         `London W5 1UA`,
@@ -1295,7 +1295,7 @@ export async function sendVisitorBookingEmail(params: VisitorBookingParams) {
         `We look forward to welcoming you!`,
         '',
         `Warm regards,`,
-        `The Your Companys Team`,
+        `The Your Company Team`,
     ].join('\n')
 
     const receptionEmail = process.env.RECEPTION_NOTIFY_EMAIL ?? 'reception@yourcompany.com'
@@ -1303,7 +1303,7 @@ export async function sendVisitorBookingEmail(params: VisitorBookingParams) {
     return sendEmail({
         to: params.visitorEmail,
         cc: receptionEmail,
-        subject: `Your Visit to Your Companys — ${params.visitDate} · Ref: ${params.referenceCode}`,
+        subject: `Your Visit to Your Company — ${params.visitDate} · Ref: ${params.referenceCode}`,
         html,
         text,
     })
@@ -1326,7 +1326,7 @@ function getVisitorBookingHtml(p: VisitorBookingParams): string {
           <!-- Header -->
           <tr>
             <td style="background-color:#111827;border-radius:12px 12px 0 0;padding:28px 32px;text-align:center;">
-              <p style="margin:0;color:#ffffff;font-size:20px;font-weight:700;letter-spacing:-0.3px;">Your Companys</p>
+              <p style="margin:0;color:#ffffff;font-size:20px;font-weight:700;letter-spacing:-0.3px;">Your Company</p>
               <p style="margin:6px 0 0;color:#9ca3af;font-size:12px;letter-spacing:0.5px;text-transform:uppercase;">Visitor Booking Confirmation</p>
             </td>
           </tr>
@@ -1343,7 +1343,7 @@ function getVisitorBookingHtml(p: VisitorBookingParams): string {
               <h2 style="margin:0 0 8px;font-size:22px;color:#111827;font-weight:700;">Your visit is confirmed!</h2>
               <p style="margin:0 0 24px;color:#374151;font-size:14px;line-height:1.7;">
                 Dear <strong>${p.visitorName}</strong>,<br><br>
-                We are delighted to welcome you to Your Companys. Your booking has been confirmed — please find your visit details below and keep your reference code handy for a smooth check-in.
+                We are delighted to welcome you to Your Company. Your booking has been confirmed — please find your visit details below and keep your reference code handy for a smooth check-in.
               </p>
 
               <!-- Reference Code Box -->
@@ -1387,7 +1387,7 @@ function getVisitorBookingHtml(p: VisitorBookingParams): string {
                 <tr>
                   <td style="background-color:#f0f4ff;border-radius:8px;padding:18px 20px;">
                     <p style="margin:0 0 10px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:#6b7280;">Getting Here</p>
-                    <p style="margin:0 0 2px;font-size:14px;color:#111827;font-weight:700;">Your Companys Ltd</p>
+                    <p style="margin:0 0 2px;font-size:14px;color:#111827;font-weight:700;">Your Company Ltd</p>
                     <p style="margin:0 0 12px;font-size:13px;color:#374151;line-height:1.7;">3rd Floor, Kantar Building<br>Westgate, Hanger Lane<br>London W5 1UA</p>
                     <p style="margin:0;font-size:13px;color:#374151;">&#128222; Reception: <a href="tel:+442087537100" style="color:#4f46e5;text-decoration:none;font-weight:600;">+44 208 753 7100</a></p>
                   </td>
@@ -1403,9 +1403,9 @@ function getVisitorBookingHtml(p: VisitorBookingParams): string {
                 <tr>
                   <td style="padding-top:20px;border-top:1px solid #e5e7eb;">
                     <p style="margin:0 0 4px;color:#6b7280;font-size:12px;">Warm regards,</p>
-                    <p style="margin:0 0 16px;color:#111827;font-size:13px;font-weight:600;">The Your Companys Team</p>
+                    <p style="margin:0 0 16px;color:#111827;font-size:13px;font-weight:600;">The Your Company Team</p>
                     <p style="margin:0;color:#9ca3af;font-size:11px;line-height:1.6;">
-                      This is an automated booking confirmation from Your Companys. &copy; Your Companys Ltd
+                      This is an automated booking confirmation from Your Company. &copy; Your Company Ltd
                     </p>
                   </td>
                 </tr>
@@ -1426,7 +1426,7 @@ function getVisitorBookingHtml(p: VisitorBookingParams): string {
 // EXPENSE MODULE EMAILS
 // ============================================================
 
-const NEXUS_URL = 'https://your-domain.com'
+const APP_URL = 'https://your-domain.com'
 
 function expenseEmailBase(title: string, content: string) {
     return `<!DOCTYPE html>
@@ -1436,15 +1436,14 @@ function expenseEmailBase(title: string, content: string) {
     <tr><td align="center">
       <table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;">
         <tr><td bgcolor="#1e293b" style="background-color:#1e293b;background:linear-gradient(135deg,#1e293b 0%,#334155 100%);border-radius:16px 16px 0 0;padding:32px;text-align:center;">
-          <img src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/MEMO%20LOGO%281%29-LotOho4qrhl0Dxku4Sq22ZlQ7rRIWx.png" alt="Memo" height="36" style="display:block;margin:0 auto 12px;">
+          <img src="/logo.png" alt="StaffPortal" height="36" style="display:block;margin:0 auto 12px;">
           <h1 style="margin:0;color:#ffffff;font-size:20px;font-weight:700;">${title}</h1>
         </td></tr>
         <tr><td bgcolor="#ffffff" style="background-color:#ffffff;padding:32px;border-left:1px solid #e2e8f0;border-right:1px solid #e2e8f0;">
           ${content}
         </td></tr>
         <tr><td bgcolor="#1e293b" style="background-color:#1e293b;border-radius:0 0 16px 16px;padding:20px;text-align:center;">
-          <p style="margin:0;color:#94a3b8;font-size:12px;">StaffPortal &bull; Your Companys Ltd &bull; Internal use only</p>
-          <p style="margin:4px 0 0;color:#64748b;font-size:11px;">Designed and developed by Sarma Linux</p>
+          <p style="margin:0;color:#94a3b8;font-size:12px;">StaffPortal &bull; Internal use only</p>
         </td></tr>
       </table>
     </td></tr>
@@ -1476,11 +1475,11 @@ export async function sendExpenseSubmittedEmail(params: ExpenseSubmittedParams) 
         ${params.merchant ? expenseInfoRow('Merchant', params.merchant) : ''}
       </table>
       <div style="text-align:center;margin:28px 0;">
-        <a href="${NEXUS_URL}/expenses?tab=approvals" style="background:linear-gradient(135deg,#3b82f6,#2563eb);color:#fff;text-decoration:none;padding:14px 32px;border-radius:10px;font-size:14px;font-weight:700;display:inline-block;">Review &amp; Approve →</a>
+        <a href="${APP_URL}/expenses?tab=approvals" style="background:linear-gradient(135deg,#3b82f6,#2563eb);color:#fff;text-decoration:none;padding:14px 32px;border-radius:10px;font-size:14px;font-weight:700;display:inline-block;">Review &amp; Approve →</a>
       </div>
     `
     return sendEmail({ to: params.approverEmail, subject, html: expenseEmailBase(subject, content),
-        text: `Hi ${params.approverName},\n${params.employeeName} submitted an expense:\nAmount: ${params.amount}\nDate: ${params.date}\nDescription: ${params.description}\nReview: ${NEXUS_URL}/expenses?tab=approvals` })
+        text: `Hi ${params.approverName},\n${params.employeeName} submitted an expense:\nAmount: ${params.amount}\nDate: ${params.date}\nDescription: ${params.description}\nReview: ${APP_URL}/expenses?tab=approvals` })
 }
 
 // ── Expense Claim PDF Generator ─────────────────────────────
@@ -1605,7 +1604,7 @@ interface ExpenseApprovedParams {
 }
 
 export async function sendExpenseApprovedEmail(params: ExpenseApprovedParams) {
-    const claimUrl = `${NEXUS_URL}/api/expenses/claim-pdf/${params.expenseId}`
+    const claimUrl = `${APP_URL}/api/expenses/claim-pdf/${params.expenseId}`
     if (params.isFinance) {
         const subject = `New Expense Claim to Reimburse — ${params.submittedBy}`
         const content = `
@@ -1624,11 +1623,11 @@ export async function sendExpenseApprovedEmail(params: ExpenseApprovedParams) {
             <a href="${claimUrl}" style="background:linear-gradient(135deg,#3b82f6,#2563eb);color:#fff;text-decoration:none;padding:12px 28px;border-radius:10px;font-size:14px;font-weight:700;display:inline-block;">Download Claim Form PDF</a>
           </div>
           <div style="text-align:center;">
-            <a href="${NEXUS_URL}/expenses?tab=monthly" style="background:linear-gradient(135deg,#10b981,#059669);color:#fff;text-decoration:none;padding:12px 28px;border-radius:10px;font-size:14px;font-weight:700;display:inline-block;">View Monthly Sheet</a>
+            <a href="${APP_URL}/expenses?tab=monthly" style="background:linear-gradient(135deg,#10b981,#059669);color:#fff;text-decoration:none;padding:12px 28px;border-radius:10px;font-size:14px;font-weight:700;display:inline-block;">View Monthly Sheet</a>
           </div>
         `
         return sendEmail({ to: params.employeeEmail, subject, html: expenseEmailBase(subject, content),
-            text: `Hi ${params.accountsName ?? 'Accounts Team'},\nNew claim to reimburse from ${params.submittedBy}:\nAmount: ${params.amount}\nDescription: ${params.description}\nDownload claim form: ${claimUrl}\n${NEXUS_URL}/expenses?tab=monthly` })
+            text: `Hi ${params.accountsName ?? 'Accounts Team'},\nNew claim to reimburse from ${params.submittedBy}:\nAmount: ${params.amount}\nDescription: ${params.description}\nDownload claim form: ${claimUrl}\n${APP_URL}/expenses?tab=monthly` })
     }
     const subject = `Your Expense Has Been Approved`
     const content = `
@@ -1646,11 +1645,11 @@ export async function sendExpenseApprovedEmail(params: ExpenseApprovedParams) {
         <a href="${claimUrl}" style="background:linear-gradient(135deg,#3b82f6,#2563eb);color:#fff;text-decoration:none;padding:12px 28px;border-radius:10px;font-size:14px;font-weight:700;display:inline-block;">Download Claim Form PDF</a>
       </div>
       <div style="text-align:center;">
-        <a href="${NEXUS_URL}/expenses" style="background:linear-gradient(135deg,#10b981,#059669);color:#fff;text-decoration:none;padding:12px 28px;border-radius:10px;font-size:14px;font-weight:700;display:inline-block;">View My Expenses</a>
+        <a href="${APP_URL}/expenses" style="background:linear-gradient(135deg,#10b981,#059669);color:#fff;text-decoration:none;padding:12px 28px;border-radius:10px;font-size:14px;font-weight:700;display:inline-block;">View My Expenses</a>
       </div>
     `
     return sendEmail({ to: params.employeeEmail, subject, html: expenseEmailBase(subject, content),
-        text: `Hi ${params.employeeName},\nYour expense claim has been approved.\nAmount: ${params.amount}\nReimbursement will be processed by accounts.\nDownload claim form: ${claimUrl}\n${NEXUS_URL}/expenses` })
+        text: `Hi ${params.employeeName},\nYour expense claim has been approved.\nAmount: ${params.amount}\nReimbursement will be processed by accounts.\nDownload claim form: ${claimUrl}\n${APP_URL}/expenses` })
 }
 
 interface ExpenseRejectedParams {
@@ -1670,11 +1669,11 @@ export async function sendExpenseRejectedEmail(params: ExpenseRejectedParams) {
         ${expenseInfoRow('Reason', params.reason)}
       </table>
       <div style="text-align:center;">
-        <a href="${NEXUS_URL}/expenses" style="background:linear-gradient(135deg,#3b82f6,#2563eb);color:#fff;text-decoration:none;padding:12px 28px;border-radius:10px;font-size:14px;font-weight:700;display:inline-block;">View My Expenses</a>
+        <a href="${APP_URL}/expenses" style="background:linear-gradient(135deg,#3b82f6,#2563eb);color:#fff;text-decoration:none;padding:12px 28px;border-radius:10px;font-size:14px;font-weight:700;display:inline-block;">View My Expenses</a>
       </div>
     `
     return sendEmail({ to: params.employeeEmail, subject, html: expenseEmailBase(subject, content),
-        text: `Hi ${params.employeeName},\nYour expense was not approved.\nAmount: ${params.amount}\nReason: ${params.reason}\n${NEXUS_URL}/expenses` })
+        text: `Hi ${params.employeeName},\nYour expense was not approved.\nAmount: ${params.amount}\nReason: ${params.reason}\n${APP_URL}/expenses` })
 }
 
 interface PurchaseRequestSubmittedParams {
@@ -1695,11 +1694,11 @@ export async function sendPurchaseRequestSubmittedEmail(params: PurchaseRequestS
         ${params.justification ? expenseInfoRow('Justification', params.justification) : ''}
       </table>
       <div style="text-align:center;margin:28px 0;">
-        <a href="${NEXUS_URL}/expenses?tab=approvals" style="background:linear-gradient(135deg,#8b5cf6,#7c3aed);color:#fff;text-decoration:none;padding:14px 32px;border-radius:10px;font-size:14px;font-weight:700;display:inline-block;">Review Request</a>
+        <a href="${APP_URL}/expenses?tab=approvals" style="background:linear-gradient(135deg,#8b5cf6,#7c3aed);color:#fff;text-decoration:none;padding:14px 32px;border-radius:10px;font-size:14px;font-weight:700;display:inline-block;">Review Request</a>
       </div>
     `
     return sendEmail({ to: params.approverEmail, subject, html: expenseEmailBase(subject, content),
-        text: `Hi ${params.approverName},\n${params.employeeName} submitted a purchase request:\nItem: ${params.itemName}\nCost: ${params.estimatedCost}\nUrgency: ${params.urgency}\n${NEXUS_URL}/expenses?tab=approvals` })
+        text: `Hi ${params.approverName},\n${params.employeeName} submitted a purchase request:\nItem: ${params.itemName}\nCost: ${params.estimatedCost}\nUrgency: ${params.urgency}\n${APP_URL}/expenses?tab=approvals` })
 }
 
 interface PurchaseRequestDecisionParams {
@@ -1721,16 +1720,16 @@ export async function sendPurchaseRequestDecisionEmail(params: PurchaseRequestDe
         ${params.note ? expenseInfoRow(approved ? 'Note' : 'Reason', params.note) : ''}
       </table>
       <div style="text-align:center;">
-        <a href="${NEXUS_URL}/expenses?tab=purchase-requests" style="background:linear-gradient(135deg,#8b5cf6,#7c3aed);color:#fff;text-decoration:none;padding:12px 28px;border-radius:10px;font-size:14px;font-weight:700;display:inline-block;">View My Requests</a>
+        <a href="${APP_URL}/expenses?tab=purchase-requests" style="background:linear-gradient(135deg,#8b5cf6,#7c3aed);color:#fff;text-decoration:none;padding:12px 28px;border-radius:10px;font-size:14px;font-weight:700;display:inline-block;">View My Requests</a>
       </div>
     `
     return sendEmail({ to: params.employeeEmail, subject, html: expenseEmailBase(subject, content),
-        text: `Hi ${params.employeeName},\nYour purchase request "${params.itemName}" has been ${params.decision}.\n${params.note ? `Note: ${params.note}\n` : ''}${NEXUS_URL}/expenses?tab=purchase-requests` })
+        text: `Hi ${params.employeeName},\nYour purchase request "${params.itemName}" has been ${params.decision}.\n${params.note ? `Note: ${params.note}\n` : ''}${APP_URL}/expenses?tab=purchase-requests` })
 }
 
 // ── Staff Announcement Email ─────────────────────────────────
 
-const ANNOUNCE_FROM = process.env.RESEND_FROM_EMAIL ?? 'nosarma@sarmalinux.com'
+const ANNOUNCE_FROM = process.env.RESEND_FROM_EMAIL ?? 'noreply@yourcompany.com'
 
 export interface AnnouncementEvent {
     title: string
@@ -1882,10 +1881,10 @@ function announcementHtml(params: AnnouncementParams): string {
           <tr>
             <td>
               <p style="margin:0;font-size:12px;color:#6b7280;">Sent via <strong style="color:#374151;">StaffPortal</strong> by ${params.sentByName}</p>
-              <p style="margin:4px 0 0;font-size:11px;color:#9ca3af;">This is an internal staff announcement from Your Companys Limited.</p>
+              <p style="margin:4px 0 0;font-size:11px;color:#9ca3af;">This is an internal staff announcement from Your Company Limited.</p>
             </td>
             <td align="right">
-              <a href="${NEXUS_URL}" style="font-size:11px;color:#6b7280;text-decoration:none;">your-domain.com</a>
+              <a href="${APP_URL}" style="font-size:11px;color:#6b7280;text-decoration:none;">your-domain.com</a>
             </td>
           </tr>
         </table>
@@ -1942,7 +1941,7 @@ export interface PollCreatedParams {
 
 export async function sendPollCreatedEmail(params: PollCreatedParams): Promise<{ success: boolean; error?: string }> {
     if (!resend) return { success: true }
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://memo-nexus.vercel.app'
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://your-domain.com'
     const pollUrl = `${appUrl}/polls`
     const deadlineFormatted = new Date(params.deadline).toLocaleDateString('en-GB', {
         weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit',
@@ -2214,7 +2213,7 @@ export async function sendITTicketSubmittedEmail(params: {
     priority: string
     description: string
 }): Promise<{ success: boolean; error?: string }> {
-    const nexusUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://your-domain.com'
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://your-domain.com'
     const priorityColor = params.priority === 'critical' ? '#dc2626' : params.priority === 'high' ? '#ea580c' : params.priority === 'medium' ? '#d97706' : '#16a34a'
     const priorityLabel = params.priority.charAt(0).toUpperCase() + params.priority.slice(1)
     const categoryLabel = params.category.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
@@ -2235,7 +2234,7 @@ export async function sendITTicketSubmittedEmail(params: {
       <p style="margin:0;color:#374151;font-size:14px;line-height:1.6;">${params.description.replace(/\n/g, '<br>')}</p>
     </div>
     <p style="margin:24px 0 0;text-align:center;">
-      <a href="${nexusUrl}/admin/it" style="display:inline-block;padding:10px 28px;background:#7c3aed;color:#fff;border-radius:8px;text-decoration:none;font-size:14px;font-weight:600;">View in IT Portal</a>
+      <a href="${appUrl}/admin/it" style="display:inline-block;padding:10px 28px;background:#7c3aed;color:#fff;border-radius:8px;text-decoration:none;font-size:14px;font-weight:600;">View in IT Portal</a>
     </p>`
 
     const html = buildSimpleHtml({ heading: 'New IT Ticket', accentColor: '#7c3aed', body })
@@ -2255,7 +2254,7 @@ export async function sendITTicketStatusEmail(params: {
     ticketTitle: string
     newStatus: string
 }): Promise<{ success: boolean; error?: string }> {
-    const nexusUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://your-domain.com'
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://your-domain.com'
     const statusLabels: Record<string, { label: string; color: string; msg: string }> = {
         open: { label: 'Open', color: '#2563eb', msg: 'Your ticket has been reopened.' },
         in_progress: { label: 'In Progress', color: '#d97706', msg: 'Your ticket is now being worked on by the IT team.' },
@@ -2274,7 +2273,7 @@ export async function sendITTicketStatusEmail(params: {
         ['New Status', s.label, s.color],
     ])}
     <p style="margin:24px 0 0;text-align:center;">
-      <a href="${nexusUrl}/it" style="display:inline-block;padding:10px 28px;background:#7c3aed;color:#fff;border-radius:8px;text-decoration:none;font-size:14px;font-weight:600;">View My Tickets</a>
+      <a href="${appUrl}/it" style="display:inline-block;padding:10px 28px;background:#7c3aed;color:#fff;border-radius:8px;text-decoration:none;font-size:14px;font-weight:600;">View My Tickets</a>
     </p>`
 
     const html = buildSimpleHtml({ heading: 'IT Ticket Update', accentColor: '#7c3aed', body })
@@ -2295,7 +2294,7 @@ export async function sendITTicketCommentEmail(params: {
     commenterName: string
     commentBody: string
 }): Promise<{ success: boolean; error?: string }> {
-    const nexusUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://your-domain.com'
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://your-domain.com'
 
     const body = `
     <h2 style="margin:0 0 4px;font-size:20px;color:#111827;font-weight:700;">New Reply on Your Ticket</h2>
@@ -2311,7 +2310,7 @@ export async function sendITTicketCommentEmail(params: {
       <p style="margin:0;color:#374151;font-size:14px;line-height:1.6;">${params.commentBody.replace(/\n/g, '<br>')}</p>
     </div>
     <p style="margin:24px 0 0;text-align:center;">
-      <a href="${nexusUrl}/it" style="display:inline-block;padding:10px 28px;background:#7c3aed;color:#fff;border-radius:8px;text-decoration:none;font-size:14px;font-weight:600;">Reply in Nexus</a>
+      <a href="${appUrl}/it" style="display:inline-block;padding:10px 28px;background:#7c3aed;color:#fff;border-radius:8px;text-decoration:none;font-size:14px;font-weight:600;">Reply in the portal</a>
     </p>`
 
     const html = buildSimpleHtml({ heading: 'IT Ticket Reply', accentColor: '#7c3aed', body })
@@ -2335,7 +2334,7 @@ export async function sendWellnessEventEmail(params: {
     organiserName: string
     eventId: string
 }): Promise<{ success: boolean; error?: string }> {
-    const nexusUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://your-domain.com'
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://your-domain.com'
     const rows: [string, string][] = [
         ['Event', params.eventTitle],
         ['Date', params.eventDate],
@@ -2351,7 +2350,7 @@ export async function sendWellnessEventEmail(params: {
     ${infoTable(rows as [string, string, string?][])}
     ${params.description ? `<div style="background:#f0fdf4;border-left:3px solid #16a34a;border-radius:0 8px 8px 0;padding:14px;margin:0 0 20px;"><p style="margin:0;color:#374151;font-size:14px;line-height:1.6;">${params.description}</p></div>` : ''}
     <p style="margin:24px 0 0;text-align:center;">
-      <a href="${nexusUrl}/wellness/events/${params.eventId}" style="display:inline-block;padding:10px 28px;background:#16a34a;color:#fff;border-radius:8px;text-decoration:none;font-size:14px;font-weight:600;">View &amp; RSVP</a>
+      <a href="${appUrl}/wellness/events/${params.eventId}" style="display:inline-block;padding:10px 28px;background:#16a34a;color:#fff;border-radius:8px;text-decoration:none;font-size:14px;font-weight:600;">View &amp; RSVP</a>
     </p>`
 
     const html = buildSimpleHtml({ heading: 'New Wellness Event', accentColor: '#16a34a', body })

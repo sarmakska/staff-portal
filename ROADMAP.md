@@ -14,7 +14,7 @@ What is in, what is next, and what is parked. The living version is in the [proj
 - GDPR data-portability export, self-service and admin-driven
 - Immutable audit log covering logins, SSO logins, leave events, accruals, and exports
 - Cron jobs for reminders, cleanups, leave accrual, and year-end rollover
-- Jarvis AI assistant (optional Groq integration)
+- the assistant AI assistant (optional Groq integration)
 - PDF generation and Excel export
 - Bank-statement reconciliation, wellness module, IT support tickets
 - Logic test suites for SSO, accruals, and GDPR export with fixtures

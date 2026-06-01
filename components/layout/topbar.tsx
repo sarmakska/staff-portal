@@ -98,11 +98,11 @@ export function Topbar() {
       <div className="flex items-center gap-3 md:hidden">
         <Link href="/" className="flex items-center gap-2">
           <img
-            src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/MEMO%20LOGO%281%29-LotOho4qrhl0Dxku4Sq22ZlQ7rRIWx.png"
+            src="/logo.png"
             alt="StaffPortal"
             className="h-6"
           />
-          <span className="font-semibold text-sm text-foreground">Nexus</span>
+          <span className="font-semibold text-sm text-foreground">StaffPortal</span>
         </Link>
       </div>
 

@@ -86,22 +86,22 @@ CREATE INDEX IF NOT EXISTS idx_user_approvers_user_priority
 
 INSERT INTO public.user_profiles (id, email, full_name, display_name, is_active, is_email_verified)
 SELECT id, email,
-  COALESCE(raw_user_meta_data->>'full_name', 'Sai'),
-  COALESCE(raw_user_meta_data->>'full_name', 'Sai'),
+  COALESCE(raw_user_meta_data->>'full_name', 'Admin User'),
+  COALESCE(raw_user_meta_data->>'full_name', 'Admin User'),
   true, true
-FROM auth.users WHERE email = 'sai@yourcompany.com'
+FROM auth.users WHERE email = 'admin@yourcompany.com'
 ON CONFLICT (id) DO UPDATE SET is_active = true, is_email_verified = true, updated_at = now();
 
 INSERT INTO public.user_roles (user_id, role)
-SELECT id, 'employee' FROM auth.users WHERE email = 'sai@yourcompany.com'
+SELECT id, 'employee' FROM auth.users WHERE email = 'admin@yourcompany.com'
 ON CONFLICT (user_id, role) DO NOTHING;
 
 INSERT INTO public.user_roles (user_id, role)
-SELECT id, 'admin' FROM auth.users WHERE email = 'sai@yourcompany.com'
+SELECT id, 'admin' FROM auth.users WHERE email = 'admin@yourcompany.com'
 ON CONFLICT (user_id, role) DO NOTHING;
 
 INSERT INTO public.user_roles (user_id, role)
-SELECT id, 'accounts' FROM auth.users WHERE email = 'sai@yourcompany.com'
+SELECT id, 'accounts' FROM auth.users WHERE email = 'admin@yourcompany.com'
 ON CONFLICT (user_id, role) DO NOTHING;
 
 

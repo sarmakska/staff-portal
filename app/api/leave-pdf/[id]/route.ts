@@ -90,7 +90,7 @@ async function handleRequest(id: string) {
     const HDR_H = 72
     doc.rect(0, 0, PAGE_W, HDR_H).fillColor('#1C1C1C').fill()
     if (hasLogo) doc.image(logoPath, MARGIN, 14, { height: 44 })
-    doc.fontSize(7).fillColor('#888888').font('Helvetica').text('MEMO INTERNAL SYSTEM', MARGIN, 16, { align: 'right', width: W })
+    doc.fontSize(7).fillColor('#888888').font('Helvetica').text('INTERNAL SYSTEM', MARGIN, 16, { align: 'right', width: W })
     doc.fontSize(14).fillColor('#FFFFFF').font('Helvetica-Bold').text('LEAVE AUTHORISATION FORM', MARGIN, 28, { align: 'right', width: W })
     doc.fontSize(7.5).fillColor('#aaaaaa').font('Helvetica').text(`${refCode}   ·   Issued: ${d(new Date().toISOString())}`, MARGIN, 50, { align: 'right', width: W })
 
@@ -211,7 +211,7 @@ async function handleRequest(id: string) {
 
     const FOOTER_Y = 808
     doc.rect(0, FOOTER_Y, PAGE_W, 841.89 - FOOTER_Y).fillColor('#1C1C1C').fill()
-    doc.fontSize(7).fillColor('#666666').font('Helvetica').text(`MEMO Internal System  ·  Confidential  ·  ${refCode}  ·  Generated ${d(new Date().toISOString())}  ·  This document is valid without a handwritten signature when digitally issued.`, MARGIN, FOOTER_Y + 9, { align: 'center', width: W })
+    doc.fontSize(7).fillColor('#666666').font('Helvetica').text(`Internal System  ·  Confidential  ·  ${refCode}  ·  Generated ${d(new Date().toISOString())}  ·  This document is valid without a handwritten signature when digitally issued.`, MARGIN, FOOTER_Y + 9, { align: 'center', width: W })
 
     doc.end()
   })

@@ -14,15 +14,13 @@ import { headers } from 'next/headers'
 
 const ALLOWED_DOMAIN = process.env.NEXT_AUTH_DOMAIN ?? '@yourcompany.com'
 
-// Specific non-domain emails permitted to access the system
-const ALLOWED_EMAILS = new Set([
-    'varshkarsan@hotmail.co.uk',
-    'anilmal@hotmail.com',
-])
+// Specific non-domain emails permitted to access the system.
+// Populate with additional allowlisted addresses if needed.
+const ALLOWED_EMAILS = new Set<string>([])
 
 // ── Input validation ─────────────────────────────────────────
 
-function isValidMemoDomain(email: string): boolean {
+function isValidEmailDomain(email: string): boolean {
     const e = email.trim().toLowerCase()
     return e.endsWith(ALLOWED_DOMAIN) || ALLOWED_EMAILS.has(e)
 }
@@ -46,7 +44,7 @@ export async function signUp(formData: FormData) {
         return { error: 'Email and password are required.' }
     }
 
-    if (!isValidMemoDomain(email)) {
+    if (!isValidEmailDomain(email)) {
         return { error: 'Registration is restricted to @yourcompany.com email addresses only.' }
     }
 
@@ -78,7 +76,7 @@ export async function signUp(formData: FormData) {
     // The handle_new_user() Postgres trigger fires automatically and:
     //   1. Creates the user_profiles row
     //   2. Assigns 'employee' role
-    //   3. Auto-assigns 'admin' role if email = sai@yourcompany.com
+    //   3. Auto-assigns 'admin' role if email matches NEXT_PUBLIC_ADMIN_EMAIL
     //   4. Seeds leave balances
 
     return {
@@ -98,7 +96,7 @@ export async function signIn(formData: FormData) {
         return { error: 'Email and password are required.' }
     }
 
-    if (!isValidMemoDomain(email)) {
+    if (!isValidEmailDomain(email)) {
         return { error: 'Access restricted to @yourcompany.com accounts.' }
     }
 
@@ -137,7 +135,7 @@ export async function signIn(formData: FormData) {
             is_active: true
         })
 
-        const ADMIN_EMAIL = process.env.NEXT_PUBLIC_ADMIN_EMAIL ?? 'sai@yourcompany.com'
+        const ADMIN_EMAIL = process.env.NEXT_PUBLIC_ADMIN_EMAIL ?? 'admin@yourcompany.com'
         // Force the app owner to be an administrator on first signup
         if (email === ADMIN_EMAIL) {
             await supabaseAdmin.from('user_roles').insert([
@@ -147,7 +145,7 @@ export async function signIn(formData: FormData) {
 
         // Act as if it succeeded
         profile = { is_active: true, gender: null }
-    } else if (email === (process.env.NEXT_PUBLIC_ADMIN_EMAIL ?? 'sai@yourcompany.com')) {
+    } else if (email === (process.env.NEXT_PUBLIC_ADMIN_EMAIL ?? 'admin@yourcompany.com')) {
         // Guarantee the admin is always active and has admin roles unconditionally
         await supabaseAdmin.from('user_profiles').update({ is_active: true }).eq('id', data.user.id)
 
@@ -241,7 +239,7 @@ export async function forgotPassword(formData: FormData) {
         return { error: 'Please enter your email address.' }
     }
 
-    if (!isValidMemoDomain(email)) {
+    if (!isValidEmailDomain(email)) {
         return { error: 'Please enter your @yourcompany.com email address.' }
     }
 
@@ -291,7 +289,7 @@ export async function updatePassword(formData: FormData) {
 export async function resendVerificationEmail(formData: FormData) {
     const email = (formData.get('email') as string)?.trim().toLowerCase()
 
-    if (!email || !isValidMemoDomain(email)) {
+    if (!email || !isValidEmailDomain(email)) {
         return { error: 'Please enter a valid @yourcompany.com email address.' }
     }
 

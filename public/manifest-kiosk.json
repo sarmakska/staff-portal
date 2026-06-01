@@ -1,7 +1,7 @@
 ﻿{
-  "name": "Memo Kiosk",
+  "name": "StaffPortal Kiosk",
   "short_name": "Kiosk",
-  "description": "Your Company office kiosk — clock in/out",
+  "description": "Office kiosk for clock in and out",
   "start_url": "/kiosk",
   "display": "standalone",
   "background_color": "#1c1c1e",

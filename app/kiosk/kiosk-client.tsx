@@ -137,7 +137,7 @@ export default function KioskClient({ initialStaff }: Props) {
       {/* ── Header ─────────────────────────────────────────── */}
       <header className="flex items-center justify-between border-b border-border bg-card px-4 py-3 sm:px-8 sm:py-4 shrink-0 z-10">
         <div className="flex items-center gap-3">
-          <img src="/logo.svg" alt="Memo" className="h-8 sm:h-10 drop-shadow-sm" />
+          <img src="/logo.svg" alt="StaffPortal" className="h-8 sm:h-10 drop-shadow-sm" />
           <BadgeCheck className="h-5 w-5 text-brand-taupe opacity-70 hidden sm:block" />
         </div>
         <div className="text-right">

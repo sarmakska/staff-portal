@@ -40,7 +40,7 @@ const SEATS: { x: number; y: number; dir: number; name: string }[] = [
   { x: 876, y: 478, dir: DIR_DOWN, name: 'Prakash'  },
   // Zone D — bottom-left cluster
   { x: 82,  y: 442, dir: DIR_DOWN, name: 'Aziz'     }, { x: 82,  y: 538, dir: DIR_DOWN, name: 'Semih'    },
-  { x: 246, y: 490, dir: DIR_DOWN, name: 'Sai'      }, { x: 388, y: 490, dir: DIR_DOWN, name: 'Jai'      },
+  { x: 246, y: 490, dir: DIR_DOWN, name: 'the admin'      }, { x: 388, y: 490, dir: DIR_DOWN, name: 'Jai'      },
   // Zone E — bottom-middle room
   { x: 572, y: 480, dir: DIR_DOWN, name: 'Prateek'  },
 ]

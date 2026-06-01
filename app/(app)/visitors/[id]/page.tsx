@@ -7,6 +7,7 @@ import { StatusBadge } from "@/components/shared/status-badge"
 import { ArrowLeft, User, Building2, Calendar, Clock, Users, BadgeCheck, Accessibility } from "lucide-react"
 import Link from "next/link"
 import { getCurrentUser } from "@/lib/actions/auth"
+import { VisitorQr } from "@/components/shared/visitor-qr"
 
 export default async function VisitorDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -91,6 +92,9 @@ export default async function VisitorDetailPage({ params }: { params: Promise<{ 
               {visitor.badge_number && (
                 <p className="text-sm text-muted-foreground mt-2">Badge: {visitor.badge_number}</p>
               )}
+              <div className="mt-4">
+                <VisitorQr code={visitor.reference_code} />
+              </div>
             </CardContent>
           </Card>
 

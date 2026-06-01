@@ -1,6 +1,6 @@
 ﻿// ── Notification setting constants (no "use server" — safe to import anywhere) ──
 
-export const NOTIFICATION_FROM_EMAIL = 'nosarma@sarmalinux.com'
+export const NOTIFICATION_FROM_EMAIL = 'noreply@yourcompany.com'
 
 export const EMAIL_NOTIFICATION_KEYS = [
     "email_leave_submitted",
@@ -29,7 +29,7 @@ export const EMAIL_NOTIFICATION_KEYS = [
     "email_it_ticket_comment",
     "email_wellness_event",
     "email_bank_statement_unmatched",
-    "email_jarvis_issue_report",
+    "email_assistant_issue_report",
 ] as const
 
 export type EmailNotificationKey = typeof EMAIL_NOTIFICATION_KEYS[number]
@@ -199,7 +199,7 @@ export const EMAIL_NOTIFICATION_META: Record<EmailNotificationKey, {
     email_announcement: {
         label: "Staff Announcement",
         description: "Sent when any staff member sends a broadcast announcement.",
-        detail: "A branded email is sent to staff@yourcompany.com — the company group inbox — from nosarma@sarmalinux.com. The email includes the subject, full message body, and optionally a calendar event card with a .ics file attachment. Recipients can click the attachment to add the event directly to Outlook, Google Calendar, or Apple Calendar. All sent announcements are logged in Nexus.",
+        detail: "A branded email is sent to staff@yourcompany.com (the company group inbox) from noreply@yourcompany.com. The email includes the subject, full message body, and optionally a calendar event card with a .ics file attachment. Recipients can click the attachment to add the event directly to Outlook, Google Calendar, or Apple Calendar. All sent announcements are logged in the portal.",
         group: "Announcements",
         recipient: "staff@yourcompany.com (all staff group inbox)",
         subject: "📢 {Announcement Subject}",
@@ -208,7 +208,7 @@ export const EMAIL_NOTIFICATION_META: Record<EmailNotificationKey, {
     email_poll_created: {
         label: "New Poll Created",
         description: "Sent to all staff (except Directors) when someone creates a new poll.",
-        detail: "All active employees except those with the Director role receive an email with the poll question, the available options, the deadline, and a direct link to vote in Nexus. Directors are excluded from poll emails by design.",
+        detail: "All active employees except those with the Director role receive an email with the poll question, the available options, the deadline, and a direct link to vote in the portal. Directors are excluded from poll emails by design.",
         group: "Polls",
         recipient: "All active staff (excluding Directors)",
         subject: "📊 New Poll: {Poll Question}",
@@ -217,7 +217,7 @@ export const EMAIL_NOTIFICATION_META: Record<EmailNotificationKey, {
     email_it_ticket_submitted: {
         label: "IT Ticket Submitted",
         description: "Sent to the IT admin when a new support ticket is raised.",
-        detail: "The IT admin receives an email with the full ticket details including category, priority, and description, plus a direct link to the IT Admin Portal in Nexus to start working on it.",
+        detail: "The IT admin receives an email with the full ticket details including category, priority, and description, plus a direct link to the IT Admin Portal in the portal to start working on it.",
         group: "IT Support",
         recipient: "IT Admin",
         subject: "[IT #123] {Ticket Title}",
@@ -235,7 +235,7 @@ export const EMAIL_NOTIFICATION_META: Record<EmailNotificationKey, {
     email_it_ticket_comment: {
         label: "IT Ticket Reply",
         description: "Sent to the submitter when the IT admin adds a reply to their ticket.",
-        detail: "The ticket submitter receives an email quoting the reply message so they can read it without opening Nexus. Non-internal comments only — internal admin notes are never sent to the submitter.",
+        detail: "The ticket submitter receives an email quoting the reply message so they can read it without opening the portal. Non-internal comments only — internal admin notes are never sent to the submitter.",
         group: "IT Support",
         recipient: "Ticket submitter",
         subject: "[IT #123] New reply: {Ticket Title}",
@@ -271,19 +271,19 @@ export const EMAIL_NOTIFICATION_META: Record<EmailNotificationKey, {
     email_bank_statement_unmatched: {
         label: "Bank Statement — Missing Receipts",
         description: "Sent manually to the cardholder when an admin clicks the mail icon on a statement card.",
-        detail: "When an admin clicks the mail icon on a bank statement card, a manual email is sent to the cardholder listing transactions with no receipt uploaded. The email includes step-by-step instructions to open each [Receipt needed] stub in Nexus, upload the receipt, and save. No one else receives this email — only the cardholder.",
+        detail: "When an admin clicks the mail icon on a bank statement card, a manual email is sent to the cardholder listing transactions with no receipt uploaded. The email includes step-by-step instructions to open each [Receipt needed] stub in the portal, upload the receipt, and save. No one else receives this email — only the cardholder.",
         group: "Expenses",
         recipient: "Cardholder only (matched by card's last 4 digits)",
         subject: "[StaffPortal] Please upload receipts for your company card — {Month Year}",
         trigger: "Manual — admin clicks the mail icon on a statement card",
     },
-    email_jarvis_issue_report: {
-        label: "Jarvis — Issue Report",
-        description: "Sent to admin when a user reports a bug or problem through the Jarvis chatbot.",
-        detail: "When a user tells Jarvis about a problem (e.g. 'the calendar isn't loading', 'my leave balance is wrong'), Jarvis collects the details through conversation and sends a formatted report to the admin. Includes the user's name, email, and full description of the issue.",
+    email_assistant_issue_report: {
+        label: "Assistant Issue Report",
+        description: "Sent to admin when a user reports a bug or problem through the assistant chatbot.",
+        detail: "When a user tells the assistant about a problem (e.g. 'the calendar isn't loading', 'my leave balance is wrong'), the assistant collects the details through conversation and sends a formatted report to the admin. Includes the user's name, email, and full description of the issue.",
         group: "System",
-        recipient: "Admin (sai@yourcompany.com)",
-        subject: "[Jarvis] Issue reported by {User Email}",
-        trigger: "Automatic — when Jarvis detects an issue report in conversation and has collected enough details",
+        recipient: "Admin (admin@yourcompany.com)",
+        subject: "[Assistant] Issue reported by {User Email}",
+        trigger: "Automatic, when the assistant detects an issue report in conversation and has collected enough details",
     },
 }

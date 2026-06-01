@@ -3817,7 +3817,7 @@ function CardForm({ onClose, onSuccess }: { onClose: () => void; onSuccess: () =
           </div>
           <div>
             <label className="block text-xs font-bold text-foreground mb-1.5">Card Label</label>
-            <input required name="label" placeholder="e.g. Sai Business Visa"
+            <input required name="label" placeholder="e.g. the admin Business Visa"
               className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30" />
           </div>
           <div className="grid grid-cols-2 gap-3">

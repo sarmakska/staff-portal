@@ -68,7 +68,7 @@ export default function HowToUploadReceiptsPage() {
       <div className="bg-blue-50 border border-blue-200 rounded-2xl px-6 py-5 mb-10">
         <p className="text-sm font-bold text-blue-800 mb-2">What is changing</p>
         <p className="text-sm text-blue-700 leading-relaxed">
-          From April 2026, every purchase you make on your Memo company card must have a receipt
+          From April 2026, every purchase you make on your company card must have a receipt
           uploaded in <strong>StaffPortal</strong>. The accounts team uploads the monthly bank statement
           and the system automatically checks which purchases are missing receipts. If yours is missing,
           you&apos;ll receive a personal email asking you to upload it.
@@ -119,7 +119,7 @@ export default function HowToUploadReceiptsPage() {
       </div>
 
       <div className="space-y-5 bg-white dark:bg-card border border-slate-200 dark:border-border rounded-2xl p-6 mb-10">
-        <Step n={1} title="Go to My Expenses in Nexus">
+        <Step n={1} title="Go to My Expenses in the portal">
           You&apos;ll see entries labelled{' '}
           <code className="bg-slate-100 text-[#1e3a5f] px-1.5 py-0.5 rounded text-xs font-mono font-bold">[Receipt needed]</code>{' '}
           at the top of your list.
