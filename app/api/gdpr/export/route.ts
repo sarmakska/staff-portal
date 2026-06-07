@@ -4,7 +4,7 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { writeAuditLog } from '@/lib/audit'
-import { buildGdprBundle, gdprFilename } from '@/lib/gdpr'
+import { buildGdprBundle, gdprFilename, assertGdprCoverage } from '@/lib/gdpr'
 
 // GDPR Article 20 — right to data portability.
 // A signed-in member can export their own personal data as a single
@@ -24,10 +24,16 @@ const SOURCES: { table: string; column: string; description: string }[] = [
     { table: 'expenses', column: 'user_id', description: 'Expense claims you have submitted.' },
     { table: 'purchase_requests', column: 'user_id', description: 'Purchase requests you have submitted.' },
     { table: 'diary_entries', column: 'user_id', description: 'Personal diary notes.' },
+    { table: 'visitors', column: 'host_user_id', description: 'Visits you have hosted.' },
     { table: 'feedback', column: 'user_id', description: 'Feedback you have submitted.' },
     { table: 'complaints', column: 'user_id', description: 'Complaints you have submitted.' },
     { table: 'audit_logs', column: 'actor_id', description: 'System events attributed to your account.' },
 ]
+
+// Fail fast if a personal-data table declared in GDPR_TABLES is not
+// wired into SOURCES above. This keeps the documented set of personal
+// data and the data actually exported in lockstep.
+assertGdprCoverage(SOURCES.map(s => s.table))
 
 export async function GET(request: Request) {
     const supabase = await createClient()

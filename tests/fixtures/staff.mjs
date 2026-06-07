@@ -18,6 +18,27 @@ export const annualBalance = {
     last_accrued_on: null,
 }
 
+// The tables the GDPR export route actually reads. Mirrors the SOURCES
+// list in app/api/gdpr/export/route.ts so the coverage test pins the
+// route against the canonical GDPR_TABLES set and a forgotten table
+// fails the suite.
+export const gdprExportTables = [
+    'user_profiles',
+    'user_roles',
+    'attendance',
+    'wfh_records',
+    'leave_requests',
+    'leave_balances',
+    'attendance_corrections',
+    'expenses',
+    'purchase_requests',
+    'diary_entries',
+    'visitors',
+    'feedback',
+    'complaints',
+    'audit_logs',
+]
+
 export const gdprSources = [
     {
         table: 'user_profiles',

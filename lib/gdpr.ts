@@ -55,6 +55,26 @@ export const GDPR_TABLES = [
     'audit_logs',
 ] as const
 
+// Verify that the export route covers every table the canonical list
+// declares as holding personal data. Returns the tables that are
+// declared but not exported. An empty array means full coverage. The
+// route and its tests call this so a forgotten table fails loudly at
+// build/test time rather than silently shipping an incomplete export.
+export function gdprCoverageGaps(exportedTables: readonly string[]): string[] {
+    const exported = new Set(exportedTables)
+    return GDPR_TABLES.filter(t => !exported.has(t))
+}
+
+export function assertGdprCoverage(exportedTables: readonly string[]): void {
+    const gaps = gdprCoverageGaps(exportedTables)
+    if (gaps.length > 0) {
+        throw new Error(
+            `GDPR export is missing personal-data tables: ${gaps.join(', ')}. ` +
+            `Add them to the export route or remove them from GDPR_TABLES.`,
+        )
+    }
+}
+
 export function buildGdprBundle(input: GdprInput): GdprBundle {
     const generatedAt = (input.generatedAt ?? new Date()).toISOString()
 

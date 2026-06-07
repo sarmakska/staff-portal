@@ -3,8 +3,8 @@
 
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { buildGdprBundle, gdprFilename, GDPR_SCHEMA_VERSION, GDPR_TABLES } from '../lib/gdpr.ts'
-import { gdprSources } from './fixtures/staff.mjs'
+import { buildGdprBundle, gdprFilename, GDPR_SCHEMA_VERSION, GDPR_TABLES, gdprCoverageGaps, assertGdprCoverage } from '../lib/gdpr.ts'
+import { gdprSources, gdprExportTables } from './fixtures/staff.mjs'
 
 test('buildGdprBundle assembles every section and counts records', () => {
     const bundle = buildGdprBundle({
@@ -60,4 +60,19 @@ test('GDPR_TABLES covers the core personal-data tables', () => {
     for (const required of ['user_profiles', 'attendance', 'leave_requests', 'expenses', 'audit_logs']) {
         assert.ok(GDPR_TABLES.includes(required), `expected ${required} in GDPR_TABLES`)
     }
+})
+
+test('the export route covers every canonical personal-data table', () => {
+    // Pins the live route's SOURCES (mirrored in the fixture) against
+    // the canonical list. If a table is added to GDPR_TABLES but not
+    // wired into the route, this fails before it ships an incomplete
+    // export to a data subject.
+    assert.deepEqual(gdprCoverageGaps(gdprExportTables), [])
+    assert.doesNotThrow(() => assertGdprCoverage(gdprExportTables))
+})
+
+test('gdprCoverageGaps reports a forgotten table by name', () => {
+    const withoutVisitors = gdprExportTables.filter(t => t !== 'visitors')
+    assert.deepEqual(gdprCoverageGaps(withoutVisitors), ['visitors'])
+    assert.throws(() => assertGdprCoverage(withoutVisitors), /visitors/)
 })
