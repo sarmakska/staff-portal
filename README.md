@@ -168,9 +168,13 @@ First-time SSO sign-ins bootstrap a profile and the standard leave balances, and
 
 Each leave balance can carry a monthly `accrual_rate`. A cron job (`/api/cron/leave-accrual`, first of each month) tops every accruing balance up by the elapsed months times its rate, capped at the configured entitlement. The job is idempotent: re-running in the same month grants nothing further, because each balance records how much it has accrued and when. Admins and accounts staff can preview and run accruals on demand under **Admin → Leave Accruals**.
 
+At year end a second cron job (`/api/cron/year-end-rollover`, 1 January) opens each employee's new leave year. Unused, unpending days carry over, capped per employee by `max_carry_forward`, and the prior year's carried amount is stripped from the base so carry-forward never compounds from one year to the next. The carry-forward arithmetic is a pure helper (`computeCarryForward`) shared with the route and covered by its own test suite, so an over-spent balance can never produce a negative carry.
+
 ## GDPR data export
 
 Under the right to data portability, any signed-in member can download a single portable JSON document containing every record held about them (profile, attendance, leave, expenses, diary, visitors, feedback, complaints, and the audit events attributed to them) from **Settings → Privacy and data**. Administrators can export another member by calling `/api/gdpr/export?userId=<id>`. Every export is recorded in the audit log.
+
+The set of personal-data tables is declared once in `GDPR_TABLES`, and the export route asserts at module load that it covers every declared table (`assertGdprCoverage`). If a new personal-data table is added but not wired into the export, the build and the test suite fail before an incomplete export can reach a data subject.
 
 ## Tech Stack
 

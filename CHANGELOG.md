@@ -9,6 +9,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Pure `computeCarryForward` helper in `lib/leave-accrual.ts` driving the
+  year-end rollover. The carry-forward arithmetic (cap at
+  `max_carry_forward`, strip prior carry so it never compounds, floor at
+  zero so an over-spent balance never carries negative days) is now shared
+  with `/api/cron/year-end-rollover` and covered by
+  `tests/leave-carry-forward.test.mjs`.
+- `assertGdprCoverage` guard in `lib/gdpr.ts`. The export route asserts at
+  module load that it covers every table declared in `GDPR_TABLES`, so a
+  forgotten personal-data table fails the build and tests rather than
+  silently shipping an incomplete export.
+
+### Fixed
+
+- GDPR export now includes the `visitors` a member has hosted, which were
+  declared in `GDPR_TABLES` but missing from the export route's `SOURCES`.
+  The new coverage guard prevents the lists drifting again.
+
+### Added (continued)
+
 - Scannable QR code for visitors. The visitor detail page now renders an
   inline SVG QR (via `qrcode.react`, no network round-trip) encoding the
   visitor's reference code, so reception can scan it on arrival to look
