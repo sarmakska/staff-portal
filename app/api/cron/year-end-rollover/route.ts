@@ -2,6 +2,7 @@ export const dynamic = 'force-dynamic'
 
 import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
+import { computeCarryForward } from '@/lib/leave-accrual'
 
 const DEFAULT_CAP = 5
 
@@ -47,10 +48,13 @@ export async function GET(request: Request) {
         let count = 0
         for (const b of balances as any[]) {
             const cap = capMap.get(b.user_id) ?? DEFAULT_CAP
-            const remaining = Math.max(0, b.total - b.used - b.pending)
-            const willCarry = Math.min(remaining, cap)
-            const nextYearBase = b.total - (b.carried_forward ?? 0)
-            const nextYearTotal = nextYearBase + willCarry
+            const { willCarry, nextYearTotal } = computeCarryForward({
+                total: b.total,
+                used: b.used,
+                pending: b.pending,
+                carriedForward: b.carried_forward ?? 0,
+                maxCarryForward: cap,
+            })
 
             const { error } = await supabaseAdmin
                 .from('leave_balances')

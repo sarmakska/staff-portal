@@ -87,3 +87,54 @@ export function round2(n: number): number {
 export function accrualStamp(asOf: Date): string {
     return asOf.toISOString().slice(0, 10)
 }
+
+// ============================================================
+// Year-end carry-forward — pure calculation logic.
+// Drives the annual rollover cron: unused leave from the closing
+// year is carried into the new year, capped per employee. Kept
+// pure so the rollover route and the admin preview share one
+// source of truth and the arithmetic can be unit tested.
+// ============================================================
+
+export interface CarryForwardInput {
+    // The closing year's total entitlement (including any leave that
+    // was itself carried into the closing year).
+    total: number
+    // Days already taken in the closing year.
+    used: number
+    // Days requested but not yet taken at year end.
+    pending: number
+    // Days that were carried into the closing year. Stripped out so
+    // carry-forward never compounds year on year.
+    carriedForward: number
+    // The most this employee may carry into the new year.
+    maxCarryForward: number
+}
+
+export interface CarryForwardResult {
+    // Unused, unpending days left at year end (never negative).
+    remaining: number
+    // Days actually carried into the new year after the cap.
+    willCarry: number
+    // The new year's opening total entitlement.
+    nextYearTotal: number
+}
+
+// Compute the new year's opening balance from a closing-year balance.
+// Unused days are capped at the employee's carry limit, and the base
+// entitlement is taken net of any prior carry-forward so the carried
+// amount never compounds.
+export function computeCarryForward(input: CarryForwardInput): CarryForwardResult {
+    const total = Number(input.total) || 0
+    const used = Number(input.used) || 0
+    const pending = Number(input.pending) || 0
+    const carriedForward = Number(input.carriedForward) || 0
+    const cap = Math.max(0, Number(input.maxCarryForward) || 0)
+
+    const remaining = Math.max(0, round2(total - used - pending))
+    const willCarry = round2(Math.min(remaining, cap))
+    const nextYearBase = round2(total - carriedForward)
+    const nextYearTotal = round2(nextYearBase + willCarry)
+
+    return { remaining, willCarry, nextYearTotal }
+}
